@@ -1,0 +1,39 @@
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs and runtime output
+logs/
+*.log
+tmp/
+temp/
+
+# Dependency and build outputs
+node_modules/
+dist/
+build/
+target/
+.gradle/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Feishu-derived local data
+exports/
+sync-snapshots/
+*.sqlite
+*.db

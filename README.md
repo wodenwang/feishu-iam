@@ -18,6 +18,7 @@ This repository is initialized as the source home for the project. The implement
 ## Initial Documentation
 
 - [Architecture notes](docs/architecture.md)
+- [v0.1 product specification](docs/v0.1-product-spec.md)
 - [Agent handoff notes](AGENTS.md)
 
 ## Security Notes

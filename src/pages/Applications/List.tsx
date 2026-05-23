@@ -3,9 +3,7 @@ import {
   Alert,
   App,
   Button,
-  Card,
   DatePicker,
-  Drawer,
   Empty,
   Form,
   Grid,
@@ -14,7 +12,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Table,
   Tag,
   Typography,
 } from 'antd';
@@ -23,6 +20,10 @@ import type { Dayjs } from 'dayjs';
 import type { Key } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppTable } from '../../components/AppTable';
+import { FormDrawer } from '../../components/FormDrawer';
+import { SearchForm } from '../../components/SearchForm';
+import { canCreateApplication, canDisableApplications, getScopedApplicationIds } from '../../features/iam/permissions';
 import { useApplications, useBatchDisableApplications, useCreateApplication, useCurrentSession } from '../../features/iam/queries';
 import type { Application, ApplicationStatus, CreateApplicationInput } from '../../features/iam/types';
 
@@ -73,25 +74,21 @@ export function ApplicationsListPage() {
   const [refreshFeedback, setRefreshFeedback] = useState('');
   const [locallyDisabledApplicationIds, setLocallyDisabledApplicationIds] = useState<string[]>([]);
   const currentSessionQuery = useCurrentSession();
-  const isApplicationAdminOnly = Boolean(
-    currentSessionQuery.data?.roles.includes('application_admin') && !currentSessionQuery.data.roles.includes('platform_admin'),
-  );
+  const scopedApplicationIds = getScopedApplicationIds(currentSessionQuery.data);
   const applicationsQuery = useApplications({
     ...filters,
-    allowedApplicationIds: isApplicationAdminOnly ? (currentSessionQuery.data?.applicationIds ?? []) : undefined,
+    allowedApplicationIds: scopedApplicationIds,
     page: pagination.page,
     pageSize: pagination.pageSize,
   });
   const createApplicationMutation = useCreateApplication();
   const batchDisableApplicationsMutation = useBatchDisableApplications();
-  const canManageApplications = Boolean(
-    currentSessionQuery.data?.roles.includes('platform_admin') &&
-      currentSessionQuery.data.permissions.includes('application:create'),
-  );
+  const canCreate = canCreateApplication(currentSessionQuery.data);
+  const canDisable = canDisableApplications(currentSessionQuery.data);
 
   const confirmRowDisable = useCallback(
     async (application: Application) => {
-      if (!canManageApplications) {
+      if (!canDisable) {
         return;
       }
 
@@ -101,7 +98,7 @@ export function ApplicationsListPage() {
       message.success(`已停用 ${application.name}`);
       await applicationsQuery.refetch();
     },
-    [applicationsQuery, batchDisableApplicationsMutation, canManageApplications, message],
+    [applicationsQuery, batchDisableApplicationsMutation, canDisable, message],
   );
 
   const columns = useMemo<ColumnsType<Application>>(() => {
@@ -140,7 +137,7 @@ export function ApplicationsListPage() {
           <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
             接入配置
           </Button>
-          {canManageApplications && !isCompact ? (
+          {canDisable && !isCompact ? (
             <Popconfirm title={`停用 ${record.name}？`} okText="停用" cancelText="取消" onConfirm={() => confirmRowDisable(record)}>
               <Button type="link" size="small" danger>
                 停用
@@ -204,10 +201,10 @@ export function ApplicationsListPage() {
       },
       actionColumn,
     ];
-  }, [canManageApplications, confirmRowDisable, isCompact, locallyDisabledApplicationIds, navigate]);
+  }, [canDisable, confirmRowDisable, isCompact, locallyDisabledApplicationIds, navigate]);
 
   const submitCreateApplication = async (values: CreateApplicationFormValues) => {
-    if (!canManageApplications) {
+    if (!canCreate) {
       return;
     }
 
@@ -233,7 +230,7 @@ export function ApplicationsListPage() {
   };
 
   const confirmBatchDisable = async () => {
-    if (!canManageApplications) {
+    if (!canDisable) {
       return;
     }
 
@@ -261,76 +258,68 @@ export function ApplicationsListPage() {
         应用管理
       </Typography.Title>
 
-      <Card>
-        <Form
-          form={form}
-          layout="inline"
-          style={{ rowGap: 12 }}
-          onFinish={(values) => {
-            setPagination((current) => ({ ...current, page: 1 }));
-            setFilters({
-              keyword: values.keyword?.trim() || undefined,
-              status: values.status,
-              createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
-              createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
-            });
-          }}
-        >
-          <Form.Item name="keyword" label="关键词">
-            <Input allowClear placeholder="搜索应用名称 / 编码" aria-label="keyword" style={{ width: 240 }} />
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select
-              allowClear
-              aria-label="status"
-              placeholder="全部状态"
-              style={{ width: 160 }}
-              options={[
-                { value: 'active', label: '启用' },
-                { value: 'disabled', label: '停用' },
-                { value: 'draft', label: '草稿' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="createdAtRange" label="创建时间">
-            <RangePicker />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                查询
-              </Button>
-              <Button
-                onClick={() => {
-                  form.resetFields();
-                  setPagination((current) => ({ ...current, page: 1 }));
-                  setFilters({});
-                }}
-              >
-                重置
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Card>
+      <SearchForm
+        form={form}
+        onFinish={(values) => {
+          setPagination((current) => ({ ...current, page: 1 }));
+          setFilters({
+            keyword: values.keyword?.trim() || undefined,
+            status: values.status,
+            createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
+            createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
+          });
+        }}
+      >
+        <Form.Item name="keyword" label="关键词">
+          <Input allowClear placeholder="搜索应用名称 / 编码" aria-label="keyword" style={{ width: 240 }} />
+        </Form.Item>
+        <Form.Item name="status" label="状态">
+          <Select
+            allowClear
+            aria-label="status"
+            placeholder="全部状态"
+            style={{ width: 160 }}
+            options={[
+              { value: 'active', label: '启用' },
+              { value: 'disabled', label: '停用' },
+              { value: 'draft', label: '草稿' },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item name="createdAtRange" label="创建时间">
+          <RangePicker />
+        </Form.Item>
+        <Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">
+              查询
+            </Button>
+            <Button
+              onClick={() => {
+                form.resetFields();
+                setPagination((current) => ({ ...current, page: 1 }));
+                setFilters({});
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+        </Form.Item>
+      </SearchForm>
 
-      <Card
+      <AppTable<Application>
         title="应用列表"
         extra={
           <Space>
-            {canManageApplications ? (
-              <>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
-                  创建应用
-                </Button>
-                <Button
-                  icon={<StopOutlined />}
-                  disabled={selectedRowKeys.length === 0}
-                  onClick={() => setBatchDisableOpen(true)}
-                >
-                  批量停用
-                </Button>
-              </>
+            {canCreate ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
+                创建应用
+              </Button>
+            ) : null}
+            {canDisable ? (
+              <Button icon={<StopOutlined />} disabled={selectedRowKeys.length === 0} onClick={() => setBatchDisableOpen(true)}>
+                批量停用
+              </Button>
             ) : null}
             <Button icon={<ReloadOutlined />} loading={applicationsQuery.isFetching} onClick={refreshApplications}>
               刷新
@@ -338,8 +327,8 @@ export function ApplicationsListPage() {
             {refreshFeedback ? <Typography.Text type="success">{refreshFeedback}</Typography.Text> : null}
           </Space>
         }
-      >
-        {applicationsQuery.isError ? (
+        isError={applicationsQuery.isError}
+        error={
           <Alert
             type="error"
             showIcon
@@ -351,49 +340,40 @@ export function ApplicationsListPage() {
               </Button>
             }
           />
-        ) : isSearchEmpty ? (
-          <Empty description="没有匹配的应用" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : (
-          <Table
-            rowKey="id"
-            size="middle"
-            columns={columns}
-            dataSource={dataSource}
-            loading={applicationsQuery.isLoading}
-            rowSelection={
-              canManageApplications
-                ? {
-                    selectedRowKeys,
-                    onChange: setSelectedRowKeys,
-                  }
-                : undefined
-            }
-            pagination={{
-              total: applicationsQuery.data?.total ?? 0,
-              pageSize: pagination.pageSize,
-              current: pagination.page,
-              showSizeChanger: false,
-              onChange: (page, pageSize) => setPagination({ page, pageSize }),
-            }}
-            scroll={{ x: isCompact ? 620 : 1280 }}
-          />
-        )}
-      </Card>
+        }
+        isEmpty={isSearchEmpty}
+        empty={<Empty description="没有匹配的应用" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+        tableProps={{
+          rowKey: 'id',
+          size: 'middle',
+          columns,
+          dataSource,
+          loading: applicationsQuery.isLoading,
+          rowSelection: canDisable
+            ? {
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }
+            : undefined,
+          pagination: {
+            total: applicationsQuery.data?.total ?? 0,
+            pageSize: pagination.pageSize,
+            current: pagination.page,
+            showSizeChanger: false,
+            onChange: (page, pageSize) => setPagination({ page, pageSize }),
+          },
+          scroll: { x: isCompact ? 620 : 1280 },
+        }}
+      />
 
-      <Drawer
+      <FormDrawer
         title="创建应用"
         size={520}
         open={drawerOpen}
-        destroyOnClose
         onClose={() => setDrawerOpen(false)}
-        extra={
-          <Space>
-            <Button onClick={() => setDrawerOpen(false)}>取消</Button>
-            <Button type="primary" loading={createApplicationMutation.isPending} onClick={() => createForm.submit()}>
-              提交
-            </Button>
-          </Space>
-        }
+        submitText="提交"
+        submitLoading={createApplicationMutation.isPending}
+        onSubmit={() => createForm.submit()}
       >
         <Form
           form={createForm}
@@ -446,7 +426,7 @@ export function ApplicationsListPage() {
             />
           </Form.Item>
         </Form>
-      </Drawer>
+      </FormDrawer>
 
       <Modal
         title="批量停用应用"

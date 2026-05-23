@@ -20,6 +20,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useCurrentSession, useRetrySyncRun, useStartManualSync, useSyncRuns } from '../../features/iam/queries';
+import { canRunSync as canRunSyncForSession } from '../../features/iam/permissions';
 import type { SyncRun, SyncRunStatus, SyncTrigger } from '../../features/iam/types';
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
@@ -72,7 +73,7 @@ export function SyncPage() {
   const syncRuns = syncRunsQuery.data?.items ?? [];
   const latestRun = syncRuns[0];
   const latestSuccessRun = syncRuns.find((run) => run.status === 'succeeded');
-  const canRunSync = Boolean(currentSessionQuery.data?.permissions.includes('sync:run'));
+  const canRunSync = canRunSyncForSession(currentSessionQuery.data);
   const syncRunPermissionTip = '需要 sync:run 权限才能发起同步或重试。';
 
   const startManualSync = async () => {

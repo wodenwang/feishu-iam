@@ -67,9 +67,11 @@ function buildRuntimeEnv(application: Application) {
 }
 
 async function copyText(value: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('clipboard unavailable');
   }
+
+  await navigator.clipboard.writeText(value);
 }
 
 export function ApplicationOnboardingPage() {
@@ -136,16 +138,24 @@ export function ApplicationOnboardingPage() {
       return;
     }
 
-    setSecretModalOpen(false);
-    await copyText(runtimeEnv);
-    await recordRuntimeSecretCopyMutation.mutateAsync(application.id);
-    setAuditFeedback('已复制，并记录审计事件。');
-    message.success('已复制，并记录审计事件。');
+    try {
+      await copyText(runtimeEnv);
+      setSecretModalOpen(false);
+      await recordRuntimeSecretCopyMutation.mutateAsync(application.id);
+      setAuditFeedback('已复制，并记录审计事件。');
+      message.success('已复制，并记录审计事件。');
+    } catch {
+      message.error('浏览器剪贴板不可用，请手动复制配置。');
+    }
   };
 
   const copyAgentPrompt = async () => {
-    await copyText(agentPrompt);
-    message.success('Agent Prompt 已复制');
+    try {
+      await copyText(agentPrompt);
+      message.success('Agent Prompt 已复制');
+    } catch {
+      message.error('浏览器剪贴板不可用，请手动复制 Agent Prompt。');
+    }
   };
 
   const runConnectionCheck = () => {

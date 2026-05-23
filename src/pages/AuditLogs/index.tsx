@@ -2,7 +2,6 @@ import { DownloadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons
 import {
   Alert,
   Button,
-  Card,
   DatePicker,
   Descriptions,
   Drawer,
@@ -12,13 +11,14 @@ import {
   Input,
   Select,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
+import { AppTable } from '../../components/AppTable';
+import { SearchForm } from '../../components/SearchForm';
 import { useApplications, useAuditLogs } from '../../features/iam/queries';
 import type { AuditAction, AuditLog, AuditResult } from '../../features/iam/types';
 
@@ -165,64 +165,62 @@ export function AuditLogsPage() {
         审计日志
       </Typography.Title>
 
-      <Card>
-        <Form form={form} layout="inline" style={{ rowGap: 12 }} onFinish={submitSearch}>
-          <Form.Item name="createdAtRange" label="时间范围">
-            <RangePicker />
-          </Form.Item>
-          <Form.Item name="applicationId" label="应用">
-            <Select
-              allowClear
-              aria-label="application"
-              placeholder="全部应用"
-              style={{ width: 180 }}
-              options={(applicationsQuery.data?.items ?? []).map((application) => ({
-                value: application.id,
-                label: application.name,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item name="action" label="动作类型">
-            <Select
-              allowClear
-              aria-label="action"
-              placeholder="全部动作"
-              style={{ width: 180 }}
-              options={Object.entries(actionLabels).map(([value, label]) => ({ value, label }))}
-            />
-          </Form.Item>
-          <Form.Item name="result" label="结果">
-            <Select
-              allowClear
-              aria-label="result"
-              placeholder="全部结果"
-              style={{ width: 140 }}
-              options={Object.entries(resultLabels).map(([value, config]) => ({ value, label: config.text }))}
-            />
-          </Form.Item>
-          <Form.Item name="keyword" label="关键词">
-            <Input allowClear aria-label="keyword" placeholder="requestId / actor / message" style={{ width: 220 }} />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                查询
-              </Button>
-              <Button
-                onClick={() => {
-                  form.resetFields();
-                  setPagination((current) => ({ ...current, page: 1 }));
-                  setFilters({});
-                }}
-              >
-                重置
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Card>
+      <SearchForm form={form} onFinish={submitSearch}>
+        <Form.Item name="createdAtRange" label="时间范围">
+          <RangePicker />
+        </Form.Item>
+        <Form.Item name="applicationId" label="应用">
+          <Select
+            allowClear
+            aria-label="application"
+            placeholder="全部应用"
+            style={{ width: 180 }}
+            options={(applicationsQuery.data?.items ?? []).map((application) => ({
+              value: application.id,
+              label: application.name,
+            }))}
+          />
+        </Form.Item>
+        <Form.Item name="action" label="动作类型">
+          <Select
+            allowClear
+            aria-label="action"
+            placeholder="全部动作"
+            style={{ width: 180 }}
+            options={Object.entries(actionLabels).map(([value, label]) => ({ value, label }))}
+          />
+        </Form.Item>
+        <Form.Item name="result" label="结果">
+          <Select
+            allowClear
+            aria-label="result"
+            placeholder="全部结果"
+            style={{ width: 140 }}
+            options={Object.entries(resultLabels).map(([value, config]) => ({ value, label: config.text }))}
+          />
+        </Form.Item>
+        <Form.Item name="keyword" label="关键词">
+          <Input allowClear aria-label="keyword" placeholder="requestId / actor / message" style={{ width: 220 }} />
+        </Form.Item>
+        <Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">
+              查询
+            </Button>
+            <Button
+              onClick={() => {
+                form.resetFields();
+                setPagination((current) => ({ ...current, page: 1 }));
+                setFilters({});
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+        </Form.Item>
+      </SearchForm>
 
-      <Card
+      <AppTable<AuditLog>
         title="日志列表"
         extra={
           <Space>
@@ -236,8 +234,8 @@ export function AuditLogsPage() {
             </Tooltip>
           </Space>
         }
-      >
-        {auditLogsQuery.isError ? (
+        isError={auditLogsQuery.isError}
+        error={
           <Alert
             type="error"
             showIcon
@@ -250,26 +248,25 @@ export function AuditLogsPage() {
             }
             action={<Button onClick={() => auditLogsQuery.refetch()}>重试</Button>}
           />
-        ) : !auditLogsQuery.isLoading && (auditLogsQuery.data?.items ?? []).length === 0 ? (
-          <Empty description="没有匹配的审计日志" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : (
-          <Table
-            rowKey="id"
-            size="middle"
-            columns={columns}
-            dataSource={auditLogsQuery.data?.items ?? []}
-            loading={auditLogsQuery.isLoading}
-            pagination={{
-              total: auditLogsQuery.data?.total ?? 0,
-              pageSize: pagination.pageSize,
-              current: pagination.page,
-              showSizeChanger: false,
-              onChange: (page, pageSize) => setPagination({ page, pageSize }),
-            }}
-            scroll={{ x: isCompact ? 540 : 1380 }}
-          />
-        )}
-      </Card>
+        }
+        isEmpty={!auditLogsQuery.isLoading && (auditLogsQuery.data?.items ?? []).length === 0}
+        empty={<Empty description="没有匹配的审计日志" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+        tableProps={{
+          rowKey: 'id',
+          size: 'middle',
+          columns,
+          dataSource: auditLogsQuery.data?.items ?? [],
+          loading: auditLogsQuery.isLoading,
+          pagination: {
+            total: auditLogsQuery.data?.total ?? 0,
+            pageSize: pagination.pageSize,
+            current: pagination.page,
+            showSizeChanger: false,
+            onChange: (page, pageSize) => setPagination({ page, pageSize }),
+          },
+          scroll: { x: isCompact ? 540 : 1380 },
+        }}
+      />
 
       <Drawer
         title="审计日志详情"

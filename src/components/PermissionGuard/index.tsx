@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useCurrentSession } from '../../features/iam/queries';
+import { hasAllPermissions, hasAnyPermission } from '../../features/iam/permissions';
 import type { PermissionCode } from '../../features/iam/types';
 
 interface PermissionGuardBaseProps {
@@ -26,11 +27,7 @@ export function PermissionGuard({
     return fallback;
   }
 
-  const allowed =
-    permissions.length === 0 ||
-    (requireAll
-      ? permissions.every((item) => session.permissions.includes(item))
-      : permissions.some((item) => session.permissions.includes(item)));
+  const allowed = permissions.length === 0 || (requireAll ? hasAllPermissions(session, permissions) : hasAnyPermission(session, permissions));
 
   return allowed ? children : fallback;
 }

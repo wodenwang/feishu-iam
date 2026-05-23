@@ -126,4 +126,20 @@ describe('ApplicationOnboardingPage', () => {
 
     expect(await screen.findByText('已复制，并记录审计事件。')).toBeInTheDocument();
   });
+
+  it('does not show copy success when clipboard is unavailable', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+    renderApplicationOnboarding();
+
+    await screen.findByText('Demo CRM');
+    await user.click(screen.getByRole('button', { name: /3 导出 Agent Prompt/ }));
+    await user.click(screen.getByRole('button', { name: '复制 Agent Prompt' }));
+
+    expect(await screen.findByText('浏览器剪贴板不可用，请手动复制 Agent Prompt。')).toBeInTheDocument();
+    expect(screen.queryByText('Agent Prompt 已复制')).not.toBeInTheDocument();
+  });
 });

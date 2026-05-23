@@ -11,6 +11,10 @@ import {
   useCurrentSession,
   useRotateApplicationSecret,
 } from '../../features/iam/queries';
+import {
+  canDisableApplication as canDisableApplicationForSession,
+  canRotateApplicationSecret as canRotateApplicationSecretForSession,
+} from '../../features/iam/permissions';
 import type { ApplicationPermissionRegistration, ApplicationStatus, AuditLog } from '../../features/iam/types';
 
 const statusLabels: Record<ApplicationStatus, { text: string; color: string }> = {
@@ -85,9 +89,8 @@ export function ApplicationDetailPage() {
   const application = applicationQuery.data;
   const effectiveStatus = localStatus ?? application?.status ?? 'draft';
   const statusConfig = statusLabels[effectiveStatus];
-  const currentPermissions = currentSessionQuery.data?.permissions ?? [];
-  const canDisableApplication = currentPermissions.includes('application:disable');
-  const canRotateApplicationSecret = currentPermissions.includes('application:secret');
+  const canDisableApplication = canDisableApplicationForSession(currentSessionQuery.data);
+  const canRotateApplicationSecret = canRotateApplicationSecretForSession(currentSessionQuery.data);
   const canUseDangerousActions = canDisableApplication || canRotateApplicationSecret;
 
   const confirmDisable = async () => {

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -86,6 +86,24 @@ describe('RolesPage', () => {
     expect(within(drawer).getByText('角色编码')).toBeInTheDocument();
     expect(within(drawer).getByText('描述')).toBeInTheDocument();
     expect(within(drawer).getByText('状态')).toBeInTheDocument();
+  });
+
+  it('persists new roles through the page form', async () => {
+    const user = userEvent.setup();
+    renderRolesPage();
+
+    await screen.findByText('销售主管');
+    await user.click(screen.getByRole('button', { name: /新建角色/ }));
+
+    const drawer = await screen.findByRole('dialog', { name: '新建角色' });
+    await user.type(within(drawer).getByPlaceholderText('例如：销售主管'), '客服主管');
+    await user.type(within(drawer).getByPlaceholderText('例如：sales-manager'), 'support-manager');
+    await user.click(within(drawer).getByRole('button', { name: /保\s*存/ }));
+
+    await waitFor(async () => {
+      const roles = await listRoles({ keyword: '客服主管', page: 1, pageSize: 20 });
+      expect(roles.items[0]).toMatchObject({ name: '客服主管', code: 'support-manager', status: 'active' });
+    });
   });
 
   it('opens authorization drawer and shows permission tree, Feishu organization and user selectors, then summary modal', async () => {
@@ -175,5 +193,14 @@ describe('RolesPage', () => {
     expect(screen.getByText('移除权限：1 个')).toBeInTheDocument();
     expect(screen.getByText('新增组织：1 个')).toBeInTheDocument();
     expect(screen.getByText('新增用户：1 个')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /确认保存授权/ }));
+
+    await waitFor(async () => {
+      const roles = await listRoles({ keyword: '销售主管', page: 1, pageSize: 20 });
+      expect(roles.items[0].permissionKeys).not.toContain('crm.contract:read');
+      expect(roles.items[0].departmentIds).toContain('dept_it');
+      expect(roles.items[0].userIds).toContain('ou_sales_disabled_002');
+    });
   });
 });

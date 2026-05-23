@@ -7,6 +7,7 @@ import {
   SyncOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
+import { hasPermission } from '../features/iam/permissions';
 import type { CurrentSession, PermissionCode } from '../features/iam/types';
 import { ApplicationDetailPage } from '../pages/Applications/Detail';
 import { ApplicationsListPage } from '../pages/Applications/List';
@@ -112,7 +113,7 @@ export const routeItems: RouteItem[] = [
 ];
 
 export function canAccess(session: CurrentSession, permission: PermissionCode) {
-  return session.permissions.includes(permission);
+  return hasPermission(session, permission);
 }
 
 export function getVisibleMenuItems(items: RouteItem[], session: CurrentSession) {

@@ -26,6 +26,8 @@ import type {
   PageRequest,
   PageResult,
   SyncRun,
+  UpdateRoleAuthorizationInput,
+  UpsertRoleInput,
 } from './types';
 
 interface MockIamStore {
@@ -119,6 +121,44 @@ const createUniqueApplicationId = (code: string) => {
   }
 
   return nextId;
+};
+
+const createUniqueRoleId = (code: string) => {
+  const baseId = `role_${code.replaceAll('-', '_')}`;
+  const existingIds = new Set(mockIamStore.roles.map((item) => item.id));
+
+  if (!existingIds.has(baseId)) {
+    return baseId;
+  }
+
+  let index = 1;
+  let nextId = `${baseId}_${index}`;
+  while (existingIds.has(nextId)) {
+    index += 1;
+    nextId = `${baseId}_${index}`;
+  }
+
+  return nextId;
+};
+
+const countPermissionGroups = (permissionKeys: string[]) => permissionKeys.filter((key) => !key.includes(':')).length;
+const countPermissionPoints = (permissionKeys: string[]) => permissionKeys.filter((key) => key.includes(':')).length;
+
+const appendRoleAuditLog = (message: string, applicationId?: string) => {
+  const now = new Date().toISOString();
+  mockIamStore.auditLogs = [
+    {
+      id: `audit_role_update_${Date.now()}`,
+      action: 'role.update',
+      result: 'success',
+      actorFeishuUserId: mockCurrentSession.user.feishuUserId,
+      applicationId,
+      message,
+      requestId: `req_${Date.now()}`,
+      createdAt: now,
+    },
+    ...mockIamStore.auditLogs,
+  ];
 };
 
 export function resetMockIamStore() {
@@ -235,6 +275,121 @@ export async function listRoles(request: ListRolesRequest): Promise<PageResult<I
   });
 
   return paginate(filtered.map(cloneRole), request);
+}
+
+export async function createRole(input: UpsertRoleInput): Promise<IamRole> {
+  await wait();
+
+  const application = mockIamStore.applications.find((item) => item.id === input.applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+
+  const now = new Date().toISOString();
+  const role: IamRole = {
+    id: createUniqueRoleId(input.code),
+    applicationId: input.applicationId,
+    applicationName: application.name,
+    name: input.name,
+    code: input.code,
+    description: input.description,
+    status: input.status,
+    permissionGroupCount: 0,
+    permissionPointCount: 0,
+    departmentBindingCount: 0,
+    userBindingCount: 0,
+    permissionKeys: [],
+    departmentIds: [],
+    userIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  mockIamStore.roles = [role, ...mockIamStore.roles];
+  appendRoleAuditLog(`创建角色 ${role.name}`, role.applicationId);
+
+  return cloneRole(role);
+}
+
+export async function updateRole(roleId: string, input: UpsertRoleInput): Promise<IamRole> {
+  await wait();
+
+  const application = mockIamStore.applications.find((item) => item.id === input.applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+
+  const now = new Date().toISOString();
+  let updatedRole: IamRole | undefined;
+  mockIamStore.roles = mockIamStore.roles.map((role) => {
+    if (role.id !== roleId) {
+      return role;
+    }
+
+    updatedRole = {
+      ...role,
+      applicationId: input.applicationId,
+      applicationName: application.name,
+      name: input.name,
+      code: input.code,
+      description: input.description,
+      status: input.status,
+      updatedAt: now,
+    };
+    return updatedRole;
+  });
+
+  if (!updatedRole) {
+    throw new Error('role not found');
+  }
+
+  appendRoleAuditLog(`更新角色 ${updatedRole.name}`, updatedRole.applicationId);
+  return cloneRole(updatedRole);
+}
+
+export async function updateRoleAuthorization(input: UpdateRoleAuthorizationInput): Promise<IamRole> {
+  await wait();
+
+  const now = new Date().toISOString();
+  let updatedRole: IamRole | undefined;
+  mockIamStore.roles = mockIamStore.roles.map((role) => {
+    if (role.id !== input.roleId) {
+      return role;
+    }
+
+    updatedRole = {
+      ...role,
+      permissionKeys: [...input.permissionKeys],
+      departmentIds: [...input.departmentIds],
+      userIds: [...input.userIds],
+      permissionGroupCount: countPermissionGroups(input.permissionKeys),
+      permissionPointCount: countPermissionPoints(input.permissionKeys),
+      departmentBindingCount: input.departmentIds.length,
+      userBindingCount: input.userIds.length,
+      updatedAt: now,
+    };
+    return updatedRole;
+  });
+
+  if (!updatedRole) {
+    throw new Error('role not found');
+  }
+
+  appendRoleAuditLog(`更新角色授权 ${updatedRole.name}`, updatedRole.applicationId);
+  return cloneRole(updatedRole);
+}
+
+export async function disableRoles(roleIds: string[]): Promise<IamRole[]> {
+  await wait();
+
+  const disabledIdSet = new Set(roleIds);
+  const now = new Date().toISOString();
+  mockIamStore.roles = mockIamStore.roles.map((role) =>
+    disabledIdSet.has(role.id) ? { ...role, status: 'disabled', updatedAt: now } : role,
+  );
+  appendRoleAuditLog(`停用 ${roleIds.length} 个角色`);
+
+  return mockIamStore.roles.filter((role) => disabledIdSet.has(role.id)).map(cloneRole);
 }
 
 export async function listIamPermissionTree(): Promise<IamPermissionNode[]> {

@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   batchDisableApplications,
+  createRole,
   createApplication,
+  disableRoles,
   getApplication,
   getLatestSyncRun,
   getCurrentSession,
@@ -18,8 +20,19 @@ import {
   retrySyncRun,
   rotateApplicationSecret,
   startManualSync,
+  updateRole,
+  updateRoleAuthorization,
 } from './mockApi';
-import type { ApplicationStatus, AuditAction, AuditResult, CreateApplicationInput, ListRolesRequest, RoleStatus } from './types';
+import type {
+  ApplicationStatus,
+  AuditAction,
+  AuditResult,
+  CreateApplicationInput,
+  ListRolesRequest,
+  RoleStatus,
+  UpdateRoleAuthorizationInput,
+  UpsertRoleInput,
+} from './types';
 
 interface ListApplicationsParams {
   keyword?: string;
@@ -180,6 +193,54 @@ export function useApplicationPermissionRegistrations(applicationId: string) {
   return useQuery({
     queryKey: iamQueryKeys.applicationPermissionRegistrations(applicationId),
     queryFn: () => listApplicationPermissionRegistrations(applicationId),
+  });
+}
+
+export function useCreateRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpsertRoleInput) => createRole(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useUpdateRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ roleId, input }: { roleId: string; input: UpsertRoleInput }) => updateRole(roleId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useUpdateRoleAuthorization() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateRoleAuthorizationInput) => updateRoleAuthorization(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useDisableRoles() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (roleIds: string[]) => disableRoles(roleIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
   });
 }
 

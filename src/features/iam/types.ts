@@ -111,6 +111,21 @@ export interface ListRolesRequest extends PageRequest {
   allowedApplicationIds?: string[];
 }
 
+export interface UpsertRoleInput {
+  applicationId: string;
+  name: string;
+  code: string;
+  description?: string;
+  status: RoleStatus;
+}
+
+export interface UpdateRoleAuthorizationInput {
+  roleId: string;
+  permissionKeys: string[];
+  departmentIds: string[];
+  userIds: string[];
+}
+
 export interface FeishuDepartment {
   id: string;
   name: string;

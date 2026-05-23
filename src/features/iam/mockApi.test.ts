@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   batchDisableApplications,
   createApplication,
+  createRole,
+  disableRoles,
   getCurrentSession,
   listApplications,
   listAuditLogs,
+  listRoles,
   listSyncRuns,
   resetMockIamStore,
+  updateRole,
+  updateRoleAuthorization,
 } from './mockApi';
 import { applications as fixtureApplications } from './mockData';
 
@@ -93,6 +98,53 @@ describe('iam mock API', () => {
     resetMockIamStore();
     const resetResult = await listApplications({ page: 1, pageSize: 20 });
     expect(resetResult.items.find((item) => item.id === 'app_demo_crm')?.status).toBe('active');
+  });
+
+  it('persists role create, edit, authorization, and disable mutations', async () => {
+    const createdRole = await createRole({
+      applicationId: 'app_demo_crm',
+      name: '客服主管',
+      code: 'support-manager',
+      description: '客服团队授权',
+      status: 'active',
+    });
+
+    expect(createdRole).toMatchObject({
+      applicationId: 'app_demo_crm',
+      applicationName: 'Demo CRM',
+      name: '客服主管',
+      status: 'active',
+    });
+
+    await updateRole(createdRole.id, {
+      applicationId: 'app_demo_crm',
+      name: '客服经理',
+      code: 'support-manager',
+      description: '客服经理授权',
+      status: 'active',
+    });
+    await updateRoleAuthorization({
+      roleId: createdRole.id,
+      permissionKeys: ['crm.customer', 'crm.customer:read', 'crm.contract:read'],
+      departmentIds: ['dept_sales'],
+      userIds: ['ou_sales_001'],
+    });
+    await disableRoles([createdRole.id]);
+
+    const roles = await listRoles({ keyword: '客服经理', page: 1, pageSize: 20 });
+    expect(roles.items[0]).toMatchObject({
+      id: createdRole.id,
+      name: '客服经理',
+      status: 'disabled',
+      permissionGroupCount: 1,
+      permissionPointCount: 2,
+      departmentBindingCount: 1,
+      userBindingCount: 1,
+      permissionKeys: ['crm.customer', 'crm.customer:read', 'crm.contract:read'],
+    });
+
+    const auditLogs = await listAuditLogs({ action: 'role.update', page: 1, pageSize: 20 });
+    expect(auditLogs.items.length).toBeGreaterThanOrEqual(4);
   });
 
   it('records auditable secret copy events', async () => {

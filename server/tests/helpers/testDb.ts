@@ -1,0 +1,25 @@
+import { runMigrations } from '../../src/db/migrate';
+import { createPool, type DbPool } from '../../src/db/pool';
+
+export async function createTestPool(): Promise<DbPool> {
+  const databaseUrl = process.env.TEST_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('TEST_DATABASE_URL is required for server tests');
+  }
+  const pool = createPool(databaseUrl);
+  await resetDatabase(pool);
+  await runMigrations(pool);
+  return pool;
+}
+
+export async function resetDatabase(pool: DbPool): Promise<void> {
+  await pool.query(`
+    drop table if exists audit_logs cascade;
+    drop table if exists application_secrets cascade;
+    drop table if exists applications cascade;
+    drop table if exists iam_sessions cascade;
+    drop table if exists platform_admins cascade;
+    drop table if exists feishu_users cascade;
+    drop table if exists schema_migrations cascade;
+  `);
+}

@@ -27,6 +27,25 @@ npm install
 npm run dev
 ```
 
+## v0.1.1 Runtime Slice
+
+本切片提供本地 mock Feishu 登录、平台管理员绑定、应用创建和审计日志闭环。
+
+```bash
+cp .env.example .env
+npm install
+npm run server:dev
+```
+
+另一个终端运行：
+
+```bash
+npm run server:test
+npm run e2e -- tests/e2e/runtime-api.spec.ts
+```
+
+`FEISHU_AUTH_MODE=mock` 只允许本地开发和测试使用，生产环境必须使用真实飞书认证配置。
+
 发布前检查：
 
 ```bash

@@ -13,6 +13,17 @@ export function errorHandler(error: FastifyError | Error, request: FastifyReques
     return;
   }
 
+  const fastifyStatusCode = 'statusCode' in error ? error.statusCode : undefined;
+  if (typeof fastifyStatusCode === 'number' && fastifyStatusCode >= 400 && fastifyStatusCode < 500) {
+    reply.status(fastifyStatusCode).send({
+      requestId,
+      code: fastifyStatusCode === 400 ? 'BAD_REQUEST' : 'REQUEST_ERROR',
+      message: '请求格式错误',
+      details: {},
+    });
+    return;
+  }
+
   reply.status(500).send({
     requestId,
     code: 'INTERNAL_SERVER_ERROR',

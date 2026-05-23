@@ -1,0 +1,2243 @@
+[
+  {
+    "viewport": "1440x900",
+    "page": "dashboard",
+    "url": "/dashboard",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/dashboard-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "工作台",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": false,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "事件",
+            "说明",
+            "操作者",
+            "Request ID",
+            "发生时间"
+          ],
+          "scrollWidth": 718,
+          "clientWidth": 718
+        }
+      ],
+      "buttonTexts": []
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "applications",
+    "url": "/applications",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/applications-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用管理",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "应用名称",
+            "appkey",
+            "状态",
+            "权限组",
+            "权限点",
+            "应用管理员",
+            "最近 API 调用",
+            "创建时间",
+            "操作"
+          ],
+          "scrollWidth": 1204,
+          "clientWidth": 1110
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "创建应用",
+        "批量停用",
+        "刷新",
+        "查看",
+        "接入配置",
+        "停用",
+        "查看",
+        "接入配置",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "application-onboarding",
+    "url": "/applications/onboarding",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-onboarding-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用接入向导",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [],
+      "buttonTexts": [
+        "复制 Agent Prompt"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "application-detail",
+    "url": "/applications/app_demo_crm",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-detail-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用详情",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [],
+      "buttonTexts": [
+        "停用应用",
+        "轮换 appsecret",
+        "轮换 API secret"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "roles",
+    "url": "/roles",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/roles-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "角色授权",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "角色名称",
+            "所属应用",
+            "权限数量",
+            "授权对象",
+            "状态",
+            "更新时间",
+            "操作"
+          ],
+          "scrollWidth": 1110,
+          "clientWidth": 1110
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "新建角色",
+        "批量停用",
+        "刷新",
+        "编辑",
+        "配置授权",
+        "停用",
+        "编辑",
+        "配置授权",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "directory",
+    "url": "/directory",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/directory-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "组织与用户",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "姓名",
+            "部门",
+            "状态",
+            "邮箱",
+            "手机遮罩",
+            "最近同步时间",
+            "操作"
+          ],
+          "scrollWidth": 1100,
+          "clientWidth": 814
+        }
+      ],
+      "buttonTexts": [
+        "刷新",
+        "查看详情",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "sync",
+    "url": "/sync",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/sync-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "飞书同步",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "Run ID",
+            "触发方式",
+            "状态",
+            "开始时间",
+            "耗时",
+            "用户变化",
+            "部门变化",
+            "操作人",
+            "操作"
+          ],
+          "scrollWidth": 1202,
+          "clientWidth": 1110
+        }
+      ],
+      "buttonTexts": [
+        "手动同步",
+        "刷新",
+        "查看详情",
+        "重试同步",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "audit-logs",
+    "url": "/audit-logs",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/audit-logs-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "审计日志",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [
+        {
+          "headers": [
+            "时间",
+            "动作类型",
+            "结果",
+            "操作者",
+            "应用",
+            "说明",
+            "Request ID",
+            "操作"
+          ],
+          "scrollWidth": 1300,
+          "clientWidth": 1110
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "刷新",
+        "导出当前筛选结果",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "forbidden",
+    "url": "/403",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/forbidden-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [],
+      "buttonTexts": [
+        "返回工作台"
+      ]
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "page": "fallback",
+    "url": "/fallback",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/fallback-1440x900.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1440,
+      "bodyClientWidth": 1440,
+      "tables": [],
+      "buttonTexts": [
+        "重 试",
+        "返回工作台",
+        "复制 Request ID"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "dashboard",
+    "url": "/dashboard",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/dashboard-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "工作台",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": false,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "事件",
+            "说明",
+            "操作者",
+            "Request ID",
+            "发生时间"
+          ],
+          "scrollWidth": 611,
+          "clientWidth": 611
+        }
+      ],
+      "buttonTexts": []
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "applications",
+    "url": "/applications",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/applications-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用管理",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "应用名称",
+            "appkey",
+            "状态",
+            "权限组",
+            "权限点",
+            "应用管理员",
+            "最近 API 调用",
+            "创建时间",
+            "操作"
+          ],
+          "scrollWidth": 1204,
+          "clientWidth": 950
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "创建应用",
+        "批量停用",
+        "刷新",
+        "查看",
+        "接入配置",
+        "停用",
+        "查看",
+        "接入配置",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "application-onboarding",
+    "url": "/applications/onboarding",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-onboarding-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用接入向导",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [],
+      "buttonTexts": [
+        "复制 Agent Prompt"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "application-detail",
+    "url": "/applications/app_demo_crm",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-detail-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用详情",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [],
+      "buttonTexts": [
+        "停用应用",
+        "轮换 appsecret",
+        "轮换 API secret"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "roles",
+    "url": "/roles",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/roles-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "角色授权",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "角色名称",
+            "所属应用",
+            "权限数量",
+            "授权对象",
+            "状态",
+            "更新时间",
+            "操作"
+          ],
+          "scrollWidth": 1100,
+          "clientWidth": 950
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "新建角色",
+        "批量停用",
+        "刷新",
+        "编辑",
+        "配置授权",
+        "停用",
+        "编辑",
+        "配置授权",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "directory",
+    "url": "/directory",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/directory-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "组织与用户",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "姓名",
+            "部门",
+            "状态",
+            "邮箱",
+            "手机遮罩",
+            "最近同步时间",
+            "操作"
+          ],
+          "scrollWidth": 1100,
+          "clientWidth": 654
+        }
+      ],
+      "buttonTexts": [
+        "刷新",
+        "查看详情",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "sync",
+    "url": "/sync",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/sync-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "飞书同步",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "Run ID",
+            "触发方式",
+            "状态",
+            "开始时间",
+            "耗时",
+            "用户变化",
+            "部门变化",
+            "操作人",
+            "操作"
+          ],
+          "scrollWidth": 1202,
+          "clientWidth": 950
+        }
+      ],
+      "buttonTexts": [
+        "手动同步",
+        "刷新",
+        "查看详情",
+        "重试同步",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "audit-logs",
+    "url": "/audit-logs",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/audit-logs-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "审计日志",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [
+        {
+          "headers": [
+            "时间",
+            "动作类型",
+            "结果",
+            "操作者",
+            "应用",
+            "说明",
+            "Request ID",
+            "操作"
+          ],
+          "scrollWidth": 1300,
+          "clientWidth": 950
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "刷新",
+        "导出当前筛选结果",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "forbidden",
+    "url": "/403",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/forbidden-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [],
+      "buttonTexts": [
+        "返回工作台"
+      ]
+    }
+  },
+  {
+    "viewport": "1280x800",
+    "page": "fallback",
+    "url": "/fallback",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/fallback-1280x800.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 1280,
+      "bodyClientWidth": 1280,
+      "tables": [],
+      "buttonTexts": [
+        "重 试",
+        "返回工作台",
+        "复制 Request ID"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "dashboard",
+    "url": "/dashboard",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/dashboard-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "工作台",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": false,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 881,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "事件",
+            "说明",
+            "操作者",
+            "Request ID",
+            "发生时间"
+          ],
+          "scrollWidth": 608,
+          "clientWidth": 438
+        }
+      ],
+      "buttonTexts": []
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "applications",
+    "url": "/applications",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/applications-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用管理",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "应用名称",
+            "appkey",
+            "状态",
+            "权限组",
+            "权限点",
+            "应用管理员",
+            "最近 API 调用",
+            "创建时间",
+            "操作"
+          ],
+          "scrollWidth": 1204,
+          "clientWidth": 438
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "创建应用",
+        "批量停用",
+        "刷新",
+        "查看",
+        "接入配置",
+        "停用",
+        "查看",
+        "接入配置",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "application-onboarding",
+    "url": "/applications/onboarding",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-onboarding-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用接入向导",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [],
+      "buttonTexts": [
+        "复制 Agent Prompt"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "application-detail",
+    "url": "/applications/app_demo_crm",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/application-detail-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "应用详情",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [],
+      "buttonTexts": [
+        "停用应用",
+        "轮换 appsecret",
+        "轮换 API secret"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "roles",
+    "url": "/roles",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/roles-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "角色授权",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "角色名称",
+            "所属应用",
+            "权限数量",
+            "授权对象",
+            "状态",
+            "更新时间",
+            "操作"
+          ],
+          "scrollWidth": 1100,
+          "clientWidth": 438
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "新建角色",
+        "批量停用",
+        "刷新",
+        "编辑",
+        "配置授权",
+        "停用",
+        "编辑",
+        "配置授权",
+        "停用"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "directory",
+    "url": "/directory",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/directory-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "组织与用户",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": true,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "姓名",
+            "部门",
+            "状态",
+            "邮箱",
+            "手机遮罩",
+            "最近同步时间",
+            "操作"
+          ],
+          "scrollWidth": 1100,
+          "clientWidth": 142
+        }
+      ],
+      "buttonTexts": [
+        "刷新",
+        "查看详情",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "sync",
+    "url": "/sync",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/sync-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "飞书同步",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": true,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "Run ID",
+            "触发方式",
+            "状态",
+            "开始时间",
+            "耗时",
+            "用户变化",
+            "部门变化",
+            "操作人",
+            "操作"
+          ],
+          "scrollWidth": 1202,
+          "clientWidth": 438
+        }
+      ],
+      "buttonTexts": [
+        "手动同步",
+        "刷新",
+        "查看详情",
+        "重试同步",
+        "查看详情",
+        "查看详情"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "audit-logs",
+    "url": "/audit-logs",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/audit-logs-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "审计日志",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": true,
+      "hasToolbar": true,
+      "hasTable": true,
+      "hasPagination": true,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": true,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [
+        {
+          "headers": [
+            "时间",
+            "动作类型",
+            "结果",
+            "操作者",
+            "应用",
+            "说明",
+            "Request ID",
+            "操作"
+          ],
+          "scrollWidth": 1300,
+          "clientWidth": 438
+        }
+      ],
+      "buttonTexts": [
+        "查 询",
+        "重 置",
+        "刷新",
+        "导出当前筛选结果",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情",
+        "详情"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "forbidden",
+    "url": "/403",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/forbidden-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [],
+      "buttonTexts": [
+        "返回工作台"
+      ]
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "page": "fallback",
+    "url": "/fallback",
+    "status": 200,
+    "file": "design/implementation-screenshots/design-review/fallback-768x1024.png",
+    "console": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 850,
+          "column": 8,
+          "lineNumber": 850,
+          "columnNumber": 8
+        }
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "location": {
+          "url": "http://127.0.0.1:5173/@vite/client",
+          "line": 954,
+          "column": 11,
+          "lineNumber": 954,
+          "columnNumber": 11
+        }
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "location": {
+          "url": "http://127.0.0.1:5173/node_modules/.vite/deps/client-DqEhpaG1.js?v=675a0a39",
+          "line": 14336,
+          "column": 48,
+          "lineNumber": 14336,
+          "columnNumber": 48
+        }
+      }
+    ],
+    "audit": {
+      "title": "",
+      "hasBreadcrumb": true,
+      "hasSider": true,
+      "hasHeader": true,
+      "hasSearchForm": false,
+      "hasToolbar": false,
+      "hasTable": false,
+      "hasPagination": false,
+      "hasDrawerTrigger": false,
+      "hasEmpty": false,
+      "hasSpin": false,
+      "hasAlert": false,
+      "bodyScrollWidth": 768,
+      "bodyClientWidth": 768,
+      "tables": [],
+      "buttonTexts": [
+        "重 试",
+        "返回工作台",
+        "复制 Request ID"
+      ]
+    }
+  }
+]

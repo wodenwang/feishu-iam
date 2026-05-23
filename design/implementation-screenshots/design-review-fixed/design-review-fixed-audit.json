@@ -1,0 +1,253 @@
+{
+  "results": [
+    {
+      "route": "applications",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "roles",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "directory",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "sync",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "audit-logs",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "application-onboarding",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "fallback",
+      "viewport": "1440x900",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1208,
+      "rightOverflow": 0
+    },
+    {
+      "route": "applications",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "roles",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "directory",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "sync",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "audit-logs",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "application-onboarding",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "fallback",
+      "viewport": "1280x800",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 1048,
+      "rightOverflow": 0
+    },
+    {
+      "route": "applications",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "roles",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "directory",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "sync",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "audit-logs",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "application-onboarding",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    },
+    {
+      "route": "fallback",
+      "viewport": "768x1024",
+      "hasSidebar": true,
+      "hasHeader": true,
+      "hasBreadcrumb": true,
+      "missing": [],
+      "contentWidth": 536,
+      "rightOverflow": 0
+    }
+  ],
+  "interactionResults": [
+    {
+      "name": "applications-create-drawer",
+      "ok": true
+    },
+    {
+      "name": "applications-disable-confirm",
+      "ok": true
+    },
+    {
+      "name": "roles-create-drawer",
+      "ok": true
+    },
+    {
+      "name": "roles-disable-confirm",
+      "ok": true
+    },
+    {
+      "name": "directory-detail-drawer",
+      "ok": true
+    },
+    {
+      "name": "sync-detail-drawer",
+      "ok": true
+    },
+    {
+      "name": "audit-detail-drawer",
+      "ok": true
+    },
+    {
+      "name": "onboarding-run-check",
+      "ok": true
+    }
+  ],
+  "consoleErrors": [],
+  "onboardingRerun": {
+    "ok": true,
+    "consoleErrors": []
+  }
+}

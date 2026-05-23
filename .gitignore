@@ -19,6 +19,7 @@ logs/
 *.log
 tmp/
 temp/
+test-results/
 
 # Dependency and build outputs
 node_modules/

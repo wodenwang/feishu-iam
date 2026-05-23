@@ -1,59 +1,72 @@
-# feishu-iam Architecture Notes
+# feishu-iam 架构说明
 
-## Identity Model
+## 身份模型
 
-Feishu is the upstream source of truth for:
+飞书是以下数据和行为的上游来源：
 
-- departments
-- users
-- user status
-- identity binding
-- login authentication
-- super administrator identity
+- 部门
+- 用户
+- 用户状态
+- 身份绑定
+- 登录认证
+- 超级管理员身份
 
-The system should store only the local projection needed for authorization decisions, auditability, and application behavior. It should not become a competing identity provider.
+系统只保存授权判断、审计和应用运行所需的本地投影，不应变成与飞书竞争的独立身份源。
 
-## Feishu Application Boundary
+## 飞书应用边界
 
-The system is bound to a dedicated self-built Feishu application. All Feishu API calls must use permissions granted to this application.
+系统绑定一个专用自建飞书应用。所有飞书 API 调用都必须使用该应用被授予的权限。
 
-The implementation should make this boundary explicit in configuration:
+实现中需要把以下配置边界显式化：
 
-- Feishu app ID
-- Feishu app secret or private credential material
-- tenant identity
-- callback URLs
+- 飞书 app ID
+- 飞书 app secret 或私钥等凭证材料
+- 租户身份
+- 回调地址
 - OAuth scopes
-- event subscription settings
-- synchronization permissions
+- 事件订阅配置
+- 通讯录同步权限
 
-Secrets must be loaded from runtime configuration or a secret manager, never from committed files.
+所有 secret 必须来自运行时配置或 secret manager，不能写入仓库文件。
 
-## Login And Authorization
+## 登录与授权
 
-Login must be Feishu-backed. Local accounts and local password authentication are outside the project boundary.
+登录必须由飞书支撑。本地账号和本地密码认证不在项目边界内。
 
-The expected shape is:
+预期流程：
 
-1. User starts login.
-2. System redirects to or invokes Feishu authentication.
-3. Feishu returns the authenticated user identity.
-4. System resolves the Feishu user against its synchronized local projection.
-5. System grants local application permissions based on Feishu identity, department, role mappings, and admin bindings.
+1. 用户发起登录。
+2. 系统跳转到飞书认证，或调用飞书认证能力。
+3. 飞书返回已认证用户身份。
+4. 系统用飞书用户匹配本地同步投影。
+5. 系统根据飞书身份、部门、角色映射和管理员绑定授予本地应用权限。
 
-## Synchronization
+## Admin Console 前端
 
-Organization and user synchronization should be treated as a first-class subsystem:
+当前 `v0.1.0` 已落地一个可测试的 Admin Console mock frontend：
 
-- full sync for bootstrap and repair
-- incremental sync or event-driven sync for normal operation
-- idempotent upserts
-- deletion or disable handling
-- audit logs for sync runs
-- clear error reporting for permission or token failures
+- React + TypeScript + Vite 作为前端工程骨架。
+- Ant Design 作为唯一 UI 组件体系。
+- React Router 负责页面路由和 route metadata。
+- TanStack Query 管理 server state。
+- `src/features/iam/mockApi.ts` 暂时承载 mock service，后续可替换为真实后端 API。
+- `src/features/iam/permissions.ts` 集中处理页面、菜单和按钮级权限判断。
 
-## Super Administrator
+当前前端用于验证 v0.1 接入闭环的页面结构、权限边界、审计体验和视觉密度，不替代后端 API 与真实飞书同步。
 
-Super administrator access must be assigned to Feishu users. It should not rely on an independent local root account.
+## 同步子系统
 
-Bootstrap should define how the first Feishu-backed super administrator is selected, validated, and audited.
+组织和用户同步应作为一等子系统处理：
+
+- bootstrap 和修复场景使用 full sync。
+- 日常场景使用 incremental sync 或事件驱动同步。
+- 写入必须支持幂等 upsert。
+- 必须处理删除、停用和离职状态。
+- 同步运行需要审计日志。
+- 权限、token 或飞书 API 错误需要清晰展示。
+
+## 超级管理员
+
+超级管理员必须绑定到飞书用户，不能依赖独立本地 root 账号。
+
+初始化流程需要定义第一位飞书超级管理员如何被选择、验证和审计。

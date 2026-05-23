@@ -1,6 +1,13 @@
-import { applications, auditLogs, dashboardSummary, platformAdminSession } from './mockData';
+import {
+  applicationPermissionRegistrations,
+  applications,
+  auditLogs,
+  dashboardSummary,
+  platformAdminSession,
+} from './mockData';
 import type {
   Application,
+  ApplicationPermissionRegistration,
   ApplicationStatus,
   AuditLog,
   CreateApplicationInput,
@@ -12,6 +19,7 @@ import type {
 
 interface MockIamStore {
   applications: Application[];
+  permissionRegistrations: ApplicationPermissionRegistration[];
   auditLogs: AuditLog[];
 }
 
@@ -29,9 +37,13 @@ const cloneCurrentSession = (session: CurrentSession): CurrentSession => ({
 });
 
 const cloneAuditLog = (auditLog: AuditLog): AuditLog => ({ ...auditLog });
+const clonePermissionRegistration = (
+  registration: ApplicationPermissionRegistration,
+): ApplicationPermissionRegistration => ({ ...registration });
 
 const createMockIamStore = (): MockIamStore => ({
   applications: applications.map(cloneApplication),
+  permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
   auditLogs: auditLogs.map(cloneAuditLog),
 });
 
@@ -128,6 +140,17 @@ export async function listApplications(
   return paginate(filtered.map(cloneApplication), request);
 }
 
+export async function getApplication(applicationId: string): Promise<Application> {
+  await wait();
+
+  const application = mockIamStore.applications.find((item) => item.id === applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+
+  return cloneApplication(application);
+}
+
 export async function createApplication(input: CreateApplicationInput): Promise<Application> {
   await wait();
 
@@ -173,6 +196,73 @@ export async function batchDisableApplications(applicationIds: string[]): Promis
   );
 
   return mockIamStore.applications.filter((application) => disabledIdSet.has(application.id)).map(cloneApplication);
+}
+
+export async function rotateApplicationSecret(applicationId: string, secretType: 'appsecret' | 'apiSecret'): Promise<Application> {
+  await wait();
+
+  const now = new Date().toISOString();
+  let rotatedApplication: Application | undefined;
+  mockIamStore.applications = mockIamStore.applications.map((application) => {
+    if (application.id !== applicationId) {
+      return application;
+    }
+
+    rotatedApplication = {
+      ...application,
+      appSecretPreview: secretType === 'appsecret' ? 'sec_****_rotated' : application.appSecretPreview,
+      apiSecretPreview: secretType === 'apiSecret' ? 'api_****_rotated' : application.apiSecretPreview,
+      updatedAt: now,
+    };
+    return rotatedApplication;
+  });
+
+  if (!rotatedApplication) {
+    throw new Error('application not found');
+  }
+
+  mockIamStore.auditLogs = [
+    {
+      id: `audit_secret_rotate_${Date.now()}`,
+      action: 'secret.rotate',
+      actorFeishuUserId: mockCurrentSession.user.feishuUserId,
+      applicationId,
+      message: secretType === 'appsecret' ? '轮换 appsecret' : '轮换 API secret',
+      requestId: `req_${Date.now()}`,
+      createdAt: now,
+    },
+    ...mockIamStore.auditLogs,
+  ];
+
+  return cloneApplication(rotatedApplication);
+}
+
+export async function recordRuntimeSecretCopy(applicationId: string): Promise<AuditLog> {
+  await wait();
+
+  const now = new Date().toISOString();
+  const auditLog: AuditLog = {
+    id: `audit_secret_copy_${Date.now()}`,
+    action: 'secret.copy',
+    actorFeishuUserId: mockCurrentSession.user.feishuUserId,
+    applicationId,
+    message: '复制运行时环境变量',
+    requestId: `req_${Date.now()}`,
+    createdAt: now,
+  };
+  mockIamStore.auditLogs = [auditLog, ...mockIamStore.auditLogs];
+
+  return cloneAuditLog(auditLog);
+}
+
+export async function listApplicationPermissionRegistrations(
+  applicationId: string,
+): Promise<ApplicationPermissionRegistration[]> {
+  await wait();
+
+  return mockIamStore.permissionRegistrations
+    .filter((item) => item.applicationId === applicationId)
+    .map(clonePermissionRegistration);
 }
 
 export async function listAuditLogs(request: PageRequest & { action?: AuditLog['action'] }): Promise<PageResult<AuditLog>> {

@@ -1,4 +1,4 @@
-import type { Application, AuditLog, CurrentSession, DashboardSummary } from './types';
+import type { Application, ApplicationPermissionRegistration, AuditLog, CurrentSession, DashboardSummary } from './types';
 
 export const platformAdminSession: CurrentSession = {
   user: {
@@ -58,6 +58,19 @@ export const auditLogs: AuditLog[] = [
     message: '复制 Demo CRM API secret',
     requestId: 'req_secret_copy_001',
     createdAt: '2026-05-23T00:10:00.000Z',
+  },
+];
+
+export const applicationPermissionRegistrations: ApplicationPermissionRegistration[] = [
+  {
+    id: 'perm_demo_crm_customer_read',
+    applicationId: 'app_demo_crm_registered',
+    groupCode: 'crm.customer',
+    groupName: '客户管理',
+    permissionCode: 'crm.customer:read',
+    permissionName: '查看客户',
+    status: 'active',
+    updatedAt: '2026-05-23T00:12:00.000Z',
   },
 ];
 

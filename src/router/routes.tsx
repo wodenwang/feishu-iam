@@ -8,7 +8,9 @@ import {
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import type { CurrentSession, PermissionCode } from '../features/iam/types';
+import { ApplicationDetailPage } from '../pages/Applications/Detail';
 import { ApplicationsListPage } from '../pages/Applications/List';
+import { ApplicationOnboardingPage } from '../pages/Applications/Onboarding';
 import { DashboardPage } from '../pages/Dashboard';
 
 export interface RouteItem {
@@ -47,7 +49,7 @@ export const routeItems: RouteItem[] = [
     permission: 'application:view',
     showInMenu: false,
     icon: <AppstoreOutlined />,
-    element: <Placeholder title="接入配置占位页" />,
+    element: <ApplicationOnboardingPage />,
   },
   {
     path: '/applications/:id',
@@ -55,7 +57,7 @@ export const routeItems: RouteItem[] = [
     permission: 'application:view',
     showInMenu: false,
     icon: <AppstoreOutlined />,
-    element: <Placeholder title="应用详情占位页" />,
+    element: <ApplicationDetailPage />,
   },
   {
     path: '/roles',

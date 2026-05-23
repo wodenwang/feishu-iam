@@ -201,12 +201,14 @@ describe('ApplicationsListPage', () => {
     renderApplicationsList(applicationAdminSession);
 
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
+    const row = screen.getByText('Demo CRM').closest('tr');
+    expect(row).not.toBeNull();
 
-    expect(screen.queryByRole('button', { name: /创建应用/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /批量停用/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '停用' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '查看' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '接入配置' })).toBeInTheDocument();
+    expect(screen.queryByText('创建应用')).not.toBeInTheDocument();
+    expect(screen.queryByText('批量停用')).not.toBeInTheDocument();
+    expect(within(row!).queryByText('停用')).not.toBeInTheDocument();
+    expect(within(row!).getByText('查看')).toBeInTheDocument();
+    expect(within(row!).getByText('接入配置')).toBeInTheDocument();
   });
 
   it('shows retryable error block when loading applications fails', async () => {

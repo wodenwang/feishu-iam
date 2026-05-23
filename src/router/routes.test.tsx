@@ -22,6 +22,12 @@ beforeAll(() => {
       dispatchEvent: vi.fn(),
     })),
   });
+
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 });
 
 const appAdminSession: CurrentSession = {
@@ -70,7 +76,7 @@ describe('routes', () => {
     expect(getMenuSelectedKey(routeItems, '/applications/onboarding')).toBe('/applications');
   });
 
-  it('renders application detail placeholder for dynamic path instead of layout 404', async () => {
+  it('renders application detail page for dynamic path instead of layout 404', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -102,7 +108,8 @@ describe('routes', () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText('应用详情占位页')).toBeInTheDocument();
+    expect((await screen.findAllByText('应用详情')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
     expect(screen.queryByText('页面不存在')).not.toBeInTheDocument();
   });
 });

@@ -61,6 +61,17 @@ export interface Application {
   updatedAt: string;
 }
 
+export interface ApplicationPermissionRegistration {
+  id: string;
+  applicationId: string;
+  groupCode: string;
+  groupName: string;
+  permissionCode: string;
+  permissionName: string;
+  status: 'active' | 'disabled';
+  updatedAt: string;
+}
+
 export interface CreateApplicationInput {
   name: string;
   code: string;

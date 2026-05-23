@@ -54,6 +54,29 @@
 
 当前前端用于验证 v0.1 接入闭环的页面结构、权限边界、审计体验和视觉密度，不替代后端 API 与真实飞书同步。
 
+## 后端 Runtime
+
+`v0.1.1` 开始新增 `server/` TypeScript runtime，用于把前端 mock 接入闭环推进到本地可运行 API。
+
+当前后端边界：
+
+- Fastify 负责 HTTP API 和统一错误响应。
+- PostgreSQL 是平台管理员绑定、会话、应用、secret hash 和审计日志的运行时状态存储。
+- SQL migration 放在 `server/src/db/migrations/`，由 `server/src/db/migrate.ts` 执行。
+- 飞书认证通过 adapter 边界接入，`mock` adapter 只允许本地开发和测试使用。
+- 生产环境不得使用 `FEISHU_AUTH_MODE=mock`。
+- 平台管理员绑定和应用创建必须写审计日志。
+
+当前 runtime slice 只覆盖：
+
+1. mock Feishu 登录。
+2. 当前 session 查询。
+3. 首位平台管理员绑定。
+4. 应用创建和应用列表。
+5. 全局审计日志查询。
+
+Application API、第三方 Demo、真实飞书 OAuth callback 和前端 HTTP service 切换在后续 slice 中实现。
+
 ## 同步子系统
 
 组织和用户同步应作为一等子系统处理：

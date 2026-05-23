@@ -18,7 +18,8 @@
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
 - 已保留 Pencil 原型、实现截图、QA 记录和 E2E 测试。
-- 后端 API、第三方 Demo 和交付部署仍在独立实施计划中，尚未落地为运行时代码。
+- `v0.1.1` 已新增本地 Fastify + PostgreSQL runtime slice，用于验证 mock 飞书登录、平台管理员绑定、应用创建和审计日志闭环。
+- 真实飞书 OAuth、第三方 Demo、前端 HTTP service 切换和交付部署仍在后续独立切片中。
 
 ## 本地运行
 
@@ -26,6 +27,25 @@
 npm install
 npm run dev
 ```
+
+## v0.1.1 Runtime Slice
+
+本切片提供本地 mock Feishu 登录、平台管理员绑定、应用创建和审计日志闭环。
+
+```bash
+cp .env.example .env
+npm install
+npm run server:dev
+```
+
+另一个终端运行：
+
+```bash
+npm run server:test
+npm run e2e -- tests/e2e/runtime-api.spec.ts
+```
+
+`FEISHU_AUTH_MODE=mock` 只允许本地开发和测试使用，生产环境必须使用真实飞书认证配置。
 
 发布前检查：
 

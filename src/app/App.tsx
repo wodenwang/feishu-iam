@@ -2,14 +2,16 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { Result } from 'antd';
 import { PermissionGuard } from '../components/PermissionGuard';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { InitializePage } from '../pages/Initialize';
+import { LoginPage } from '../pages/Login';
 import { routeItems } from '../router/routes';
 
 export function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Result title="飞书登录" subTitle="使用飞书登录占位页" />} />
-        <Route path="/initialize" element={<Result title="首次初始化" subTitle="飞书超级管理员绑定占位页" />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/initialize" element={<InitializePage />} />
         <Route element={<AdminLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           {routeItems.map((item) => (

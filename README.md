@@ -18,7 +18,8 @@
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
 - 已保留 Pencil 原型、实现截图、QA 记录和 E2E 测试。
-- 后端 API、第三方 Demo 和交付部署仍在独立实施计划中，尚未落地为运行时代码。
+- `v0.1.1` 已新增本地 Fastify + PostgreSQL runtime slice，用于验证 mock 飞书登录、平台管理员绑定、应用创建和审计日志闭环。
+- 真实飞书 OAuth、第三方 Demo、前端 HTTP service 切换和交付部署仍在后续独立切片中。
 
 ## 本地运行
 

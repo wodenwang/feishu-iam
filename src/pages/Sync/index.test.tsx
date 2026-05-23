@@ -115,7 +115,9 @@ describe('SyncPage', () => {
     expect(screen.getByText('飞书部门列表接口限流，部分批次未完成。')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: /手动同步/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '重试同步' })).toBeDisabled();
+    const failedRunRow = screen.getByText('sync_run_202605230035').closest('tr');
+    expect(failedRunRow).not.toBeNull();
+    expect(within(failedRunRow as HTMLTableRowElement).getByRole('button', { name: '重试同步' })).toBeDisabled();
     expect(screen.getByText('需要 sync:run 权限才能发起同步或重试。')).toBeInTheDocument();
   });
 });

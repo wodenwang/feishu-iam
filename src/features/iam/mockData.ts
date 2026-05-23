@@ -1,4 +1,4 @@
-import type { Application, AuditLog, CurrentSession } from './types';
+import type { Application, AuditLog, CurrentSession, DashboardSummary } from './types';
 
 export const platformAdminSession: CurrentSession = {
   user: {
@@ -30,6 +30,7 @@ export const applications: Application[] = [
     id: 'app_demo_crm',
     name: 'Demo CRM',
     code: 'demo-crm',
+    description: '销售系统接入演示应用',
     status: 'active',
     appKey: 'app_demo_crm_key',
     appSecretPreview: 'sec_****_crm',
@@ -38,6 +39,10 @@ export const applications: Application[] = [
     callbackUrls: ['https://demo.example.com/auth/callback'],
     allowedOrigins: ['https://demo.example.com'],
     ownerFeishuUserId: 'ou_feishu_admin_001',
+    ownerName: '王文哲',
+    permissionGroupCount: 3,
+    permissionPointCount: 12,
+    lastApiCalledAt: '2026-05-23T00:20:00.000Z',
     agentPrompt: '将 IAM_APP_SECRET 和 IAM_API_SECRET 作为环境变量写入 demo 系统，禁止提交到 Git。',
     createdAt: '2026-05-23T00:00:00.000Z',
     updatedAt: '2026-05-23T00:00:00.000Z',
@@ -55,3 +60,18 @@ export const auditLogs: AuditLog[] = [
     createdAt: '2026-05-23T00:10:00.000Z',
   },
 ];
+
+export const dashboardSummary: DashboardSummary = {
+  applicationCount: applications.length,
+  permissionPointCount: applications.reduce((total, item) => total + item.permissionPointCount, 0),
+  lastSync: {
+    status: 'partial_failed',
+    startedAt: '2026-05-23T00:00:00.000Z',
+    finishedAt: '2026-05-23T00:03:00.000Z',
+    departmentTotal: 18,
+    userTotal: 236,
+    failedCount: 2,
+    message: '部分用户状态同步失败，已保留上次有效组织关系。',
+  },
+  auditEventCount24h: auditLogs.length,
+};

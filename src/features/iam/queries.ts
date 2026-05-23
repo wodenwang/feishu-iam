@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createApplication, getCurrentSession, listApplications, listAuditLogs } from './mockApi';
-import type { AuditAction, CreateApplicationInput } from './types';
+import {
+  batchDisableApplications,
+  createApplication,
+  getCurrentSession,
+  getDashboardSummary,
+  listApplications,
+  listAuditLogs,
+} from './mockApi';
+import type { ApplicationStatus, AuditAction, CreateApplicationInput } from './types';
 
 interface ListApplicationsParams {
   keyword?: string;
+  status?: ApplicationStatus;
   page: number;
   pageSize: number;
 }
@@ -16,6 +24,7 @@ interface ListAuditLogsParams {
 
 export const iamQueryKeys = {
   session: ['iam', 'session'] as const,
+  dashboardSummary: ['iam', 'dashboardSummary'] as const,
   applications: (params: ListApplicationsParams) => ['iam', 'applications', params] as const,
   auditLogs: (params: ListAuditLogsParams) => ['iam', 'auditLogs', params] as const,
 };
@@ -24,6 +33,13 @@ export function useCurrentSession() {
   return useQuery({
     queryKey: iamQueryKeys.session,
     queryFn: getCurrentSession,
+  });
+}
+
+export function useDashboardSummary() {
+  return useQuery({
+    queryKey: iamQueryKeys.dashboardSummary,
+    queryFn: getDashboardSummary,
   });
 }
 
@@ -39,6 +55,15 @@ export function useCreateApplication() {
 
   return useMutation({
     mutationFn: (input: CreateApplicationInput) => createApplication(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] }),
+  });
+}
+
+export function useBatchDisableApplications() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (applicationIds: string[]) => batchDisableApplications(applicationIds),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] }),
   });
 }

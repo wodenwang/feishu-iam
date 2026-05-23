@@ -43,6 +43,7 @@ export interface Application {
   id: string;
   name: string;
   code: string;
+  description?: string;
   status: ApplicationStatus;
   appKey: string;
   appSecretPreview: string;
@@ -51,6 +52,10 @@ export interface Application {
   callbackUrls: string[];
   allowedOrigins: string[];
   ownerFeishuUserId: string;
+  ownerName: string;
+  permissionGroupCount: number;
+  permissionPointCount: number;
+  lastApiCalledAt?: string;
   agentPrompt: string;
   createdAt: string;
   updatedAt: string;
@@ -59,6 +64,7 @@ export interface Application {
 export interface CreateApplicationInput {
   name: string;
   code: string;
+  description?: string;
   callbackUrls: string[];
   allowedOrigins: string[];
   ownerFeishuUserId: string;
@@ -84,4 +90,21 @@ export interface AuditLog {
   message: string;
   requestId: string;
   createdAt: string;
+}
+
+export interface SyncSummary {
+  status: SyncStatus;
+  startedAt: string;
+  finishedAt?: string;
+  departmentTotal: number;
+  userTotal: number;
+  failedCount: number;
+  message: string;
+}
+
+export interface DashboardSummary {
+  applicationCount: number;
+  permissionPointCount: number;
+  lastSync: SyncSummary;
+  auditEventCount24h: number;
 }

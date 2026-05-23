@@ -3,7 +3,7 @@ import type { MenuProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useCurrentSession } from '../features/iam/queries';
 import type { AdminRole } from '../features/iam/types';
-import { getVisibleMenuItems, routeItems } from '../router/routes';
+import { getMenuSelectedKey, getVisibleMenuItems, matchRouteItem, routeItems } from '../router/routes';
 
 const { Header, Content, Sider } = Layout;
 
@@ -17,7 +17,8 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const sessionQuery = useCurrentSession();
   const session = sessionQuery.data;
-  const currentRoute = routeItems.find((item) => item.path === location.pathname);
+  const currentRoute = matchRouteItem(routeItems, location.pathname);
+  const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
 
   if (sessionQuery.isLoading) {
     return (
@@ -55,7 +56,7 @@ export function AdminLayout() {
         </div>
         <Menu
           mode="inline"
-          selectedKeys={[currentRoute?.path ?? '/dashboard']}
+          selectedKeys={[selectedMenuKey]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           style={{ borderInlineEnd: 0 }}

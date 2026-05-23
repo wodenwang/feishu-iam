@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createApplication, getCurrentSession, listApplications, listAuditLogs, resetMockIamStore } from './mockApi';
+import {
+  batchDisableApplications,
+  createApplication,
+  getCurrentSession,
+  listApplications,
+  listAuditLogs,
+  resetMockIamStore,
+} from './mockApi';
 import { applications as fixtureApplications } from './mockData';
 
 describe('iam mock API', () => {
@@ -71,6 +78,20 @@ describe('iam mock API', () => {
     const result = await listApplications({ keyword: 'CRM', page: 1, pageSize: 20 });
 
     expect(result.items.every((item) => item.name.includes('CRM') || item.code.includes('crm'))).toBe(true);
+  });
+
+  it('batch disables applications and reset restores active fixture state', async () => {
+    const disabledApps = await batchDisableApplications(['app_demo_crm']);
+
+    expect(disabledApps).toHaveLength(1);
+    expect(disabledApps[0]).toMatchObject({ id: 'app_demo_crm', status: 'disabled' });
+
+    const disabledResult = await listApplications({ page: 1, pageSize: 20 });
+    expect(disabledResult.items.find((item) => item.id === 'app_demo_crm')?.status).toBe('disabled');
+
+    resetMockIamStore();
+    const resetResult = await listApplications({ page: 1, pageSize: 20 });
+    expect(resetResult.items.find((item) => item.id === 'app_demo_crm')?.status).toBe('active');
   });
 
   it('records auditable secret copy events', async () => {

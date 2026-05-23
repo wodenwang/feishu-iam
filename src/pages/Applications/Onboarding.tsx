@@ -6,7 +6,7 @@ import {
   PlayCircleOutlined,
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Card, Col, Descriptions, Modal, Row, Space, Steps, Tag, Typography, message } from 'antd';
+import { Alert, App, Button, Card, Col, Descriptions, Modal, Row, Space, Steps, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -73,6 +73,7 @@ async function copyText(value: string) {
 }
 
 export function ApplicationOnboardingPage() {
+  const { message } = App.useApp();
   const [searchParams] = useSearchParams();
   const requestedApplicationId = searchParams.get('applicationId') ?? undefined;
   const applicationsQuery = useApplications({ page: 1, pageSize: 50 });

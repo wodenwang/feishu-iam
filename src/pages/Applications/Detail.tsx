@@ -1,5 +1,5 @@
 import { KeyOutlined, StopOutlined, SyncOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Descriptions, Empty, Popconfirm, Space, Table, Tabs, Tag, Typography, message } from 'antd';
+import { Alert, App, Button, Card, Descriptions, Empty, Popconfirm, Space, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -22,6 +22,7 @@ const statusLabels: Record<ApplicationStatus, { text: string; color: string }> =
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
 
 export function ApplicationDetailPage() {
+  const { message } = App.useApp();
   const { id = 'app_demo_crm' } = useParams();
   const [localStatus, setLocalStatus] = useState<ApplicationStatus | undefined>();
   const applicationQuery = useApplication(id);

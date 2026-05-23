@@ -14,10 +14,11 @@ test.describe('v0.1 access loop critical path', () => {
 
     await page.goto('/applications/onboarding');
     await expect(page.getByRole('heading', { name: '应用接入向导' })).toBeVisible();
+    await page.getByRole('button', { name: /3 导出 Agent Prompt/ }).click();
     await expect(page.getByText('IAM_APP_SECRET')).toBeVisible();
     await expect(page.getByText('IAM_API_SECRET')).toBeVisible();
 
-    const agentPromptArea = page.locator('.ant-card').filter({ has: page.getByText('Agent Prompt') }).last();
+    const agentPromptArea = page.locator('.ant-card').filter({ has: page.getByText('导出 Agent Prompt') }).last();
     await expect(agentPromptArea).toContainText('IAM_APP_SECRET');
     await expect(agentPromptArea).toContainText('IAM_API_SECRET');
     await expect(agentPromptArea).not.toContainText('sec_****_crm');
@@ -28,7 +29,12 @@ test.describe('v0.1 access loop critical path', () => {
 
     await page.goto('/audit-logs');
     await expect(page.getByRole('heading', { name: '审计日志' })).toBeVisible();
-    await expect(page.getByText(/req_/).first()).toBeVisible();
+    const failedAuditRow = page.locator('tr', { hasText: '失败' }).first();
+    await failedAuditRow.getByRole('button', { name: /详情/ }).click();
+    const auditDrawer = page.getByRole('dialog', { name: '审计日志详情' });
+    await expect(auditDrawer).toBeVisible();
+    await expect(auditDrawer.getByText('req_sync_failed_001')).toBeVisible();
+    await auditDrawer.getByRole('button', { name: 'Close' }).click();
 
     await page.goto('/sync');
     await expect(page.getByRole('heading', { name: '飞书同步' })).toBeVisible();

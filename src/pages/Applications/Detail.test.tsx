@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@testing-library/react';
+import { App as AntdApp } from 'antd';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetMockIamStore, setMockCurrentSession } from '../../features/iam/mockApi';
@@ -50,11 +51,13 @@ function renderApplicationDetail(session: CurrentSession = platformAdminSession)
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/applications/app_demo_crm']}>
-        <Routes>
-          <Route path="/applications/:id" element={<ApplicationDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <AntdApp>
+        <MemoryRouter initialEntries={['/applications/app_demo_crm']}>
+          <Routes>
+            <Route path="/applications/:id" element={<ApplicationDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AntdApp>
     </QueryClientProvider>,
   );
 }

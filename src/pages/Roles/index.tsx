@@ -1,6 +1,7 @@
 import { PlusOutlined, ReloadOutlined, SaveOutlined, StopOutlined } from '@ant-design/icons';
 import {
   Alert,
+  App,
   Button,
   Card,
   DatePicker,
@@ -20,7 +21,6 @@ import {
   Tree,
   TreeSelect,
   Typography,
-  message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
@@ -66,6 +66,7 @@ const countAdded = (current: string[], previous: string[]) => current.filter((it
 const countRemoved = (current: string[], previous: string[]) => previous.filter((item) => !current.includes(item)).length;
 
 export function RolesPage() {
+  const { message } = App.useApp();
   const [form] = Form.useForm<SearchValues>();
   const [roleForm] = Form.useForm();
   const screens = Grid.useBreakpoint();

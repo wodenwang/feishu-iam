@@ -1,6 +1,7 @@
 import { PlusOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
 import {
   Alert,
+  App,
   Button,
   Card,
   DatePicker,
@@ -16,7 +17,6 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
@@ -58,6 +58,7 @@ const statusLabels: Record<ApplicationStatus, { text: string; color: string }> =
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
 
 export function ApplicationsListPage() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [form] = Form.useForm<SearchValues>();
   const [createForm] = Form.useForm<CreateApplicationFormValues>();
@@ -100,7 +101,7 @@ export function ApplicationsListPage() {
       message.success(`已停用 ${application.name}`);
       await applicationsQuery.refetch();
     },
-    [applicationsQuery, batchDisableApplicationsMutation, canManageApplications],
+    [applicationsQuery, batchDisableApplicationsMutation, canManageApplications, message],
   );
 
   const columns = useMemo<ColumnsType<Application>>(() => {

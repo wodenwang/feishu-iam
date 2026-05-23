@@ -1,5 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { App as AntdApp } from 'antd';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { GlobalErrorPage } from './GlobalError';
@@ -25,9 +26,11 @@ describe('GlobalErrorPage', () => {
     const retry = vi.fn();
 
     render(
-      <MemoryRouter>
-        <GlobalErrorPage onRetry={retry} occurredAt="2026-05-23T08:30:00.000Z" />
-      </MemoryRouter>,
+      <AntdApp>
+        <MemoryRouter>
+          <GlobalErrorPage onRetry={retry} occurredAt="2026-05-23T08:30:00.000Z" />
+        </MemoryRouter>
+      </AntdApp>,
     );
 
     expect(screen.getByText('全局错误')).toBeInTheDocument();
@@ -59,9 +62,11 @@ describe('GlobalErrorPage', () => {
     const copyRequestId = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <MemoryRouter>
-        <GlobalErrorPage onRetry={retry} requestId="req_custom_error_001" onCopyRequestId={copyRequestId} />
-      </MemoryRouter>,
+      <AntdApp>
+        <MemoryRouter>
+          <GlobalErrorPage onRetry={retry} requestId="req_custom_error_001" onCopyRequestId={copyRequestId} />
+        </MemoryRouter>
+      </AntdApp>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: '复制 Request ID' }));

@@ -1,5 +1,5 @@
 import { CopyOutlined, HomeOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Descriptions, Row, Space, Tag, Typography, message } from 'antd';
+import { Alert, App, Button, Card, Descriptions, Row, Space, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
 interface GlobalErrorPageProps {
@@ -21,6 +21,7 @@ export function GlobalErrorPage({
   impactScope = '当前页面不可用，已登录会话和其他页面不受影响。',
   onCopyRequestId,
 }: GlobalErrorPageProps) {
+  const { message } = App.useApp();
   const navigate = useNavigate();
 
   const retry = () => {

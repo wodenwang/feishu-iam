@@ -1,6 +1,7 @@
 import { EyeOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import {
   Alert,
+  App,
   Button,
   Card,
   Descriptions,
@@ -15,7 +16,6 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
@@ -59,6 +59,7 @@ function formatDuration(run: SyncRun) {
 }
 
 export function SyncPage() {
+  const { message } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
   const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);

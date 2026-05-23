@@ -1,4 +1,4 @@
-import type { DbPool } from '../../db/pool';
+import type { DbClient } from '../../db/pool';
 
 export interface AuditInput {
   requestId: string;
@@ -10,7 +10,7 @@ export interface AuditInput {
   metadata?: Record<string, unknown>;
 }
 
-export async function writeAudit(pool: DbPool, input: AuditInput): Promise<void> {
+export async function writeAudit(pool: DbClient, input: AuditInput): Promise<void> {
   await pool.query(
     `
       insert into audit_logs(request_id, actor_feishu_user_id, action, target_type, target_id, result, metadata)

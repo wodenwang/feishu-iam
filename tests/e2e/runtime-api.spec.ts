@@ -5,7 +5,7 @@ test.describe('v0.1.1 runtime API smoke', () => {
     const runtimeBaseUrl = process.env.RUNTIME_API_BASE_URL ?? 'http://127.0.0.1:4100';
     const login = await request.post(`${runtimeBaseUrl}/api/dev/feishu/mock-login`, {
       data: {
-        feishuUserId: `ou_runtime_admin_${testInfo.project.name}`,
+        feishuUserId: 'ou_runtime_admin',
         name: '运行时管理员',
         email: 'runtime-admin@example.com',
       },

@@ -57,6 +57,24 @@ describe('platform initialization', () => {
     const admins = await pool.query('select count(*)::int as count from platform_admins');
     expect(admins.rows[0].count).toBe(1);
   });
+
+  it('rejects a different user after platform admin initialization is complete', async () => {
+    const adminCookie = await loginCookie(app, 'ou_init_admin_003', '首位管理员');
+    const otherCookie = await loginCookie(app, 'ou_init_other_003', '其他用户');
+
+    await app.inject({ method: 'POST', url: '/api/initialization/bind-platform-admin', headers: { cookie: adminCookie } });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/initialization/bind-platform-admin',
+      headers: { cookie: otherCookie },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ code: 'FORBIDDEN', message: '平台管理员已完成初始化' });
+
+    const admins = await pool.query('select feishu_user_id from platform_admins');
+    expect(admins.rows).toEqual([{ feishu_user_id: 'ou_init_admin_003' }]);
+  });
 });
 
 async function loginCookie(app: Awaited<ReturnType<typeof buildTestApp>>, feishuUserId: string, name: string) {

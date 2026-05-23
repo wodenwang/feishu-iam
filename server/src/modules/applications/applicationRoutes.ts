@@ -26,22 +26,35 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
       throw new HttpError(409, 'APPLICATION_NAME_EXISTS', '应用名称已存在');
     }
 
-    const application = await createApplication(pool, {
-      name: normalizedName,
-      createdByFeishuUserId: request.actor.feishuUserId,
-    });
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      const application = await createApplication(client, {
+        name: normalizedName,
+        createdByFeishuUserId: request.actor.feishuUserId,
+      });
 
-    await writeAudit(pool, {
-      requestId: request.id,
-      actorFeishuUserId: request.actor.feishuUserId,
-      action: 'application.create',
-      targetType: 'application',
-      targetId: application.id,
-      result: 'success',
-      metadata: { appKey: application.app_key },
-    });
+      await writeAudit(client, {
+        requestId: request.id,
+        actorFeishuUserId: request.actor.feishuUserId,
+        action: 'application.create',
+        targetType: 'application',
+        targetId: application.id,
+        result: 'success',
+        metadata: { appKey: application.app_key },
+      });
+      await client.query('commit');
 
-    return application;
+      return application;
+    } catch (error) {
+      await client.query('rollback');
+      if (isUniqueViolation(error)) {
+        throw new HttpError(409, 'APPLICATION_NAME_EXISTS', '应用名称已存在');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   });
 
   app.get('/api/applications', async (request) => {
@@ -53,4 +66,8 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     );
     return { items: result.rows };
   });
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
 }

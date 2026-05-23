@@ -59,3 +59,4 @@ create table if not exists audit_logs (
 create index if not exists idx_audit_logs_created_at on audit_logs(created_at desc);
 create index if not exists idx_audit_logs_actor_id on audit_logs(actor_feishu_user_id);
 create index if not exists idx_applications_status on applications(status);
+create unique index if not exists idx_applications_name_lower on applications(lower(name));

@@ -80,6 +80,21 @@ describe('applications API', () => {
     expect(duplicate.statusCode).toBe(409);
     expect(duplicate.json()).toMatchObject({ code: 'APPLICATION_NAME_EXISTS' });
   });
+
+  it('rejects duplicate application names regardless of case', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_003', '应用管理员三');
+
+    await app.inject({ method: 'POST', url: '/api/applications', headers: { cookie }, payload: { name: 'Case App' } });
+    const duplicate = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: 'case app' },
+    });
+
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json()).toMatchObject({ code: 'APPLICATION_NAME_EXISTS' });
+  });
 });
 
 async function loginAndBindAdmin(app: Awaited<ReturnType<typeof buildTestApp>>, feishuUserId: string, name: string) {

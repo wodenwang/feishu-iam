@@ -49,4 +49,23 @@ describe('parseEnv', () => {
       }),
     ).toThrow('FEISHU_APP_ID is required when FEISHU_AUTH_MODE=real');
   });
+
+  it('rejects invalid auth modes and ports at startup', () => {
+    expect(() =>
+      parseEnv({
+        DATABASE_URL: 'postgres://example',
+        SESSION_SECRET: 'test-session-secret-at-least-32-bytes',
+        FEISHU_AUTH_MODE: 'local',
+      }),
+    ).toThrow('FEISHU_AUTH_MODE must be mock or real');
+
+    expect(() =>
+      parseEnv({
+        DATABASE_URL: 'postgres://example',
+        SESSION_SECRET: 'test-session-secret-at-least-32-bytes',
+        FEISHU_AUTH_MODE: 'mock',
+        PORT: 'not-a-port',
+      }),
+    ).toThrow('PORT must be an integer between 1 and 65535');
+  });
 });

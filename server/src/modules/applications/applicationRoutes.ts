@@ -13,8 +13,8 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
       throw forbidden('只有平台管理员可以创建应用');
     }
 
-    const body = request.body as { name?: string };
-    if (!body.name || body.name.trim().length < 2) {
+    const body = request.body;
+    if (!isRecord(body) || typeof body.name !== 'string' || body.name.trim().length < 2) {
       throw new HttpError(400, 'INVALID_APPLICATION_NAME', '应用名称至少需要 2 个字符');
     }
     const normalizedName = body.name.trim();
@@ -70,4 +70,8 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
 
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
+}
+
+function isRecord(value: unknown): value is { name?: unknown } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

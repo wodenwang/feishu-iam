@@ -41,6 +41,19 @@ describe('applications API', () => {
     expect(response.json()).toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('returns 400 for non-object application payloads', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_invalid_payload', '应用管理员非法参数');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: null,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'INVALID_APPLICATION_NAME' });
+  });
+
   it('lets platform admins create applications with a one-time secret and audit log', async () => {
     const cookie = await loginAndBindAdmin(app, 'ou_app_admin_001', '应用管理员');
     const response = await app.inject({

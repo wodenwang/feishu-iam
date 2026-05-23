@@ -44,7 +44,7 @@ export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
 
   return {
     nodeEnv,
-    port: Number(env.PORT ?? 4100),
+    port: parsePort(env.PORT),
     databaseUrl,
     sessionCookieName: env.SESSION_COOKIE_NAME ?? 'iam_session',
     sessionSecret,
@@ -70,8 +70,25 @@ function normalizeNodeEnv(value: string | undefined): ServerConfig['nodeEnv'] {
 }
 
 function normalizeFeishuAuthMode(value: string | undefined): FeishuAuthMode {
+  if (!value) {
+    return 'mock';
+  }
   if (value === 'real') {
     return 'real';
   }
-  return 'mock';
+  if (value === 'mock') {
+    return 'mock';
+  }
+  throw new Error('FEISHU_AUTH_MODE must be mock or real');
+}
+
+function parsePort(value: string | undefined): number {
+  if (!value) {
+    return 4100;
+  }
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('PORT must be an integer between 1 and 65535');
+  }
+  return port;
 }

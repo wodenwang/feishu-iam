@@ -72,6 +72,24 @@ describe('mock Feishu login', () => {
     expect(response.json().requestId).toEqual(expect.any(String));
   });
 
+  it('returns 400 for non-object mock users and invalid statuses', async () => {
+    const nullPayload = await app.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      payload: null,
+    });
+    const invalidStatus = await app.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      payload: { feishuUserId: 'ou_auth_invalid_status', name: '非法状态用户', status: 'blocked' },
+    });
+
+    expect(nullPayload.statusCode).toBe(400);
+    expect(nullPayload.json()).toMatchObject({ code: 'INVALID_MOCK_FEISHU_USER' });
+    expect(invalidStatus.statusCode).toBe(400);
+    expect(invalidStatus.json()).toMatchObject({ code: 'INVALID_MOCK_FEISHU_USER', message: 'mock 飞书用户状态无效' });
+  });
+
   it('does not expose mock login when mock mode is disabled', async () => {
     await app.close();
     app = await buildApp({ pool, sessionCookieName: 'iam_session', allowMockLogin: false });

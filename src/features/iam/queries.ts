@@ -3,6 +3,7 @@ import {
   batchDisableApplications,
   createApplication,
   getApplication,
+  getLatestSyncRun,
   getCurrentSession,
   getDashboardSummary,
   listApplicationPermissionRegistrations,
@@ -12,10 +13,13 @@ import {
   listFeishuDepartments,
   listIamPermissionTree,
   listRoles,
+  listSyncRuns,
   recordRuntimeSecretCopy,
+  retrySyncRun,
   rotateApplicationSecret,
+  startManualSync,
 } from './mockApi';
-import type { ApplicationStatus, AuditAction, CreateApplicationInput, ListRolesRequest, RoleStatus } from './types';
+import type { ApplicationStatus, AuditAction, AuditResult, CreateApplicationInput, ListRolesRequest, RoleStatus } from './types';
 
 interface ListApplicationsParams {
   keyword?: string;
@@ -26,6 +30,11 @@ interface ListApplicationsParams {
 
 interface ListAuditLogsParams {
   action?: AuditAction;
+  result?: AuditResult;
+  keyword?: string;
+  applicationId?: string;
+  createdAtFrom?: string;
+  createdAtTo?: string;
   page: number;
   pageSize: number;
 }
@@ -60,6 +69,8 @@ export const iamQueryKeys = {
   feishuDepartments: ['iam', 'feishuDepartments'] as const,
   directoryUsers: (params: ListDirectoryUsersParams) => ['iam', 'directoryUsers', params] as const,
   auditLogs: (params: ListAuditLogsParams) => ['iam', 'auditLogs', params] as const,
+  syncRuns: (params: { page: number; pageSize: number }) => ['iam', 'syncRuns', params] as const,
+  latestSyncRun: ['iam', 'latestSyncRun'] as const,
 };
 
 export function useCurrentSession() {
@@ -173,5 +184,43 @@ export function useAuditLogs(params: ListAuditLogsParams) {
   return useQuery({
     queryKey: iamQueryKeys.auditLogs(params),
     queryFn: () => listAuditLogs(params),
+  });
+}
+
+export function useSyncRuns(params: { page: number; pageSize: number }) {
+  return useQuery({
+    queryKey: iamQueryKeys.syncRuns(params),
+    queryFn: () => listSyncRuns(params),
+  });
+}
+
+export function useLatestSyncRun() {
+  return useQuery({
+    queryKey: iamQueryKeys.latestSyncRun,
+    queryFn: getLatestSyncRun,
+  });
+}
+
+export function useStartManualSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: startManualSync,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
+    },
+  });
+}
+
+export function useRetrySyncRun() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (syncRunId: string) => retrySyncRun(syncRunId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
+    },
   });
 }

@@ -1,7 +1,8 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import { Result } from 'antd';
 import { PermissionGuard } from '../components/PermissionGuard';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { ForbiddenPage } from '../pages/Errors/Forbidden';
+import { GlobalErrorPage } from '../pages/Errors/GlobalError';
 import { InitializePage } from '../pages/Initialize';
 import { LoginPage } from '../pages/Login';
 import { routeItems } from '../router/routes';
@@ -21,7 +22,7 @@ export function App() {
               element={
                 <PermissionGuard
                   permission={item.permission}
-                  fallback={<Result status="403" title="无权限" subTitle={`缺少权限码：${item.permission}`} />}
+                  fallback={<ForbiddenPage />}
                 >
                   {item.element}
                 </PermissionGuard>
@@ -29,7 +30,7 @@ export function App() {
             />
           ))}
         </Route>
-        <Route path="*" element={<Result status="404" title="页面不存在" />} />
+        <Route path="*" element={<GlobalErrorPage />} />
       </Routes>
     </Router>
   );

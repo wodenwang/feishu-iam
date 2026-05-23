@@ -8,6 +8,7 @@ import {
   iamPermissionTree,
   iamRoles,
   platformAdminSession,
+  syncRuns,
 } from './mockData';
 import type {
   Application,
@@ -24,6 +25,7 @@ import type {
   ListRolesRequest,
   PageRequest,
   PageResult,
+  SyncRun,
 } from './types';
 
 interface MockIamStore {
@@ -33,6 +35,7 @@ interface MockIamStore {
   directoryUsers: DirectoryUser[];
   permissionRegistrations: ApplicationPermissionRegistration[];
   auditLogs: AuditLog[];
+  syncRuns: SyncRun[];
 }
 
 const cloneApplication = (application: Application): Application => ({
@@ -49,6 +52,10 @@ const cloneCurrentSession = (session: CurrentSession): CurrentSession => ({
 });
 
 const cloneAuditLog = (auditLog: AuditLog): AuditLog => ({ ...auditLog });
+const cloneSyncRun = (syncRun: SyncRun): SyncRun => ({
+  ...syncRun,
+  diffSummary: { ...syncRun.diffSummary },
+});
 const clonePermissionRegistration = (
   registration: ApplicationPermissionRegistration,
 ): ApplicationPermissionRegistration => ({ ...registration });
@@ -72,11 +79,13 @@ const createMockIamStore = (): MockIamStore => ({
   directoryUsers: directoryUsers.map(cloneDirectoryUser),
   permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
   auditLogs: auditLogs.map(cloneAuditLog),
+  syncRuns: syncRuns.map(cloneSyncRun),
 });
 
 let mockIamStore = createMockIamStore();
 let mockCurrentSession = platformAdminSession;
 let nextApplicationsListError: Error | undefined;
+let nextAuditLogsListError: Error | undefined;
 
 const wait = (ms = 80) =>
   new Promise<void>((resolve) => {
@@ -116,6 +125,7 @@ export function resetMockIamStore() {
   mockIamStore = createMockIamStore();
   mockCurrentSession = platformAdminSession;
   nextApplicationsListError = undefined;
+  nextAuditLogsListError = undefined;
 }
 
 export function setMockCurrentSession(session: CurrentSession) {
@@ -124,6 +134,10 @@ export function setMockCurrentSession(session: CurrentSession) {
 
 export function rejectNextApplicationsList(error: Error) {
   nextApplicationsListError = error;
+}
+
+export function rejectNextAuditLogsList(error: Error) {
+  nextAuditLogsListError = error;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -311,6 +325,7 @@ export async function rotateApplicationSecret(applicationId: string, secretType:
     {
       id: `audit_secret_rotate_${Date.now()}`,
       action: 'secret.rotate',
+      result: 'success',
       actorFeishuUserId: mockCurrentSession.user.feishuUserId,
       applicationId,
       message: secretType === 'appsecret' ? '轮换 appsecret' : '轮换 API secret',
@@ -330,6 +345,7 @@ export async function recordRuntimeSecretCopy(applicationId: string): Promise<Au
   const auditLog: AuditLog = {
     id: `audit_secret_copy_${Date.now()}`,
     action: 'secret.copy',
+    result: 'success',
     actorFeishuUserId: mockCurrentSession.user.feishuUserId,
     applicationId,
     message: '复制运行时环境变量',
@@ -351,10 +367,109 @@ export async function listApplicationPermissionRegistrations(
     .map(clonePermissionRegistration);
 }
 
-export async function listAuditLogs(request: PageRequest & { action?: AuditLog['action'] }): Promise<PageResult<AuditLog>> {
+export async function listAuditLogs(
+  request: PageRequest & {
+    action?: AuditLog['action'];
+    result?: AuditLog['result'];
+    keyword?: string;
+    applicationId?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+  },
+): Promise<PageResult<AuditLog>> {
   await wait();
 
-  const filtered = request.action ? mockIamStore.auditLogs.filter((item) => item.action === request.action) : mockIamStore.auditLogs;
+  if (nextAuditLogsListError) {
+    const error = nextAuditLogsListError;
+    nextAuditLogsListError = undefined;
+    throw error;
+  }
+
+  const keyword = request.keyword?.trim().toLowerCase();
+  const filtered = mockIamStore.auditLogs.filter((item) => {
+    const createdAt = new Date(item.createdAt).getTime();
+    const createdAtFrom = request.createdAtFrom ? new Date(request.createdAtFrom).getTime() : undefined;
+    const createdAtTo = request.createdAtTo ? new Date(request.createdAtTo).getTime() : undefined;
+    const matchesKeyword = keyword
+      ? [item.message, item.requestId, item.actorFeishuUserId, item.applicationId]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(keyword))
+      : true;
+
+    return (
+      (!request.action || item.action === request.action) &&
+      (!request.result || item.result === request.result) &&
+      (!request.applicationId || item.applicationId === request.applicationId) &&
+      (!createdAtFrom || createdAt >= createdAtFrom) &&
+      (!createdAtTo || createdAt <= createdAtTo) &&
+      matchesKeyword
+    );
+  });
 
   return paginate(filtered.map(cloneAuditLog), request);
+}
+
+export async function listSyncRuns(request: PageRequest): Promise<PageResult<SyncRun>> {
+  await wait();
+  return paginate(mockIamStore.syncRuns.map(cloneSyncRun), request);
+}
+
+export async function getLatestSyncRun(): Promise<SyncRun | undefined> {
+  await wait();
+  return mockIamStore.syncRuns[0] ? cloneSyncRun(mockIamStore.syncRuns[0]) : undefined;
+}
+
+export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {
+  await wait();
+
+  const source = mockIamStore.syncRuns.find((item) => item.id === syncRunId);
+  if (!source) {
+    throw new Error('sync run not found');
+  }
+
+  const now = new Date().toISOString();
+  const retryRun: SyncRun = {
+    ...source,
+    id: `sync_run_retry_${Date.now()}`,
+    trigger: 'retry',
+    status: 'running',
+    startedAt: now,
+    finishedAt: undefined,
+    durationSeconds: undefined,
+    errorMessage: undefined,
+    failedCount: 0,
+    diffSummary: { ...source.diffSummary, failedUsers: 0 },
+  };
+
+  mockIamStore.syncRuns = [retryRun, ...mockIamStore.syncRuns];
+  return cloneSyncRun(retryRun);
+}
+
+export async function startManualSync(): Promise<SyncRun> {
+  await wait();
+
+  const now = new Date().toISOString();
+  const syncRun: SyncRun = {
+    id: `sync_run_manual_${Date.now()}`,
+    trigger: 'manual',
+    status: 'running',
+    startedAt: now,
+    userChanges: 0,
+    departmentChanges: 0,
+    operatorFeishuUserId: mockCurrentSession.user.feishuUserId,
+    requestBatchCount: 1,
+    successCount: 0,
+    failedCount: 0,
+    diffSummary: {
+      createdUsers: 0,
+      updatedUsers: 0,
+      resignedUsers: 0,
+      failedUsers: 0,
+      createdDepartments: 0,
+      updatedDepartments: 0,
+    },
+  };
+
+  mockIamStore.syncRuns = [syncRun, ...mockIamStore.syncRuns];
+  return cloneSyncRun(syncRun);
 }

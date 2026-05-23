@@ -11,9 +11,13 @@ import type { CurrentSession, PermissionCode } from '../features/iam/types';
 import { ApplicationDetailPage } from '../pages/Applications/Detail';
 import { ApplicationsListPage } from '../pages/Applications/List';
 import { ApplicationOnboardingPage } from '../pages/Applications/Onboarding';
+import { AuditLogsPage } from '../pages/AuditLogs';
 import { DashboardPage } from '../pages/Dashboard';
 import { DirectoryPage } from '../pages/Directory';
+import { ForbiddenPage } from '../pages/Errors/Forbidden';
+import { GlobalErrorPage } from '../pages/Errors/GlobalError';
 import { RolesPage } from '../pages/Roles';
+import { SyncPage } from '../pages/Sync';
 
 export interface RouteItem {
   path: string;
@@ -22,10 +26,6 @@ export interface RouteItem {
   showInMenu: boolean;
   icon: ReactNode;
   element: ReactNode;
-}
-
-function Placeholder({ title }: { title: string }) {
-  return <div>{title}</div>;
 }
 
 export const routeItems: RouteItem[] = [
@@ -83,7 +83,7 @@ export const routeItems: RouteItem[] = [
     permission: 'sync:view',
     showInMenu: true,
     icon: <SyncOutlined />,
-    element: <Placeholder title="飞书同步" />,
+    element: <SyncPage />,
   },
   {
     path: '/audit-logs',
@@ -91,7 +91,23 @@ export const routeItems: RouteItem[] = [
     permission: 'audit:view',
     showInMenu: true,
     icon: <AuditOutlined />,
-    element: <Placeholder title="审计日志" />,
+    element: <AuditLogsPage />,
+  },
+  {
+    path: '/403',
+    label: '无权限',
+    permission: 'dashboard:view',
+    showInMenu: false,
+    icon: <SafetyCertificateOutlined />,
+    element: <ForbiddenPage />,
+  },
+  {
+    path: '/fallback',
+    label: '全局错误',
+    permission: 'dashboard:view',
+    showInMenu: false,
+    icon: <DashboardOutlined />,
+    element: <GlobalErrorPage />,
   },
 ];
 

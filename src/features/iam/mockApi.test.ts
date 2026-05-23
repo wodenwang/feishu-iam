@@ -5,6 +5,7 @@ import {
   getCurrentSession,
   listApplications,
   listAuditLogs,
+  listSyncRuns,
   resetMockIamStore,
 } from './mockApi';
 import { applications as fixtureApplications } from './mockData';
@@ -102,5 +103,20 @@ describe('iam mock API', () => {
       actorFeishuUserId: 'ou_feishu_admin_001',
       requestId: expect.stringMatching(/^req_/),
     });
+  });
+
+  it('keeps sync run audit links consistent with run status', async () => {
+    const syncRuns = await listSyncRuns({ page: 1, pageSize: 20 });
+    const auditLogs = await listAuditLogs({ page: 1, pageSize: 20 });
+
+    const successRun = syncRuns.items.find((item) => item.id === 'sync_run_202605230000');
+    const successAudit = auditLogs.items.find((item) => item.id === successRun?.auditLogId);
+    const failedRun = syncRuns.items.find((item) => item.id === 'sync_run_202605230035');
+    const failedAudit = auditLogs.items.find((item) => item.id === failedRun?.auditLogId);
+
+    expect(successRun).toMatchObject({ status: 'succeeded', requestId: 'req_sync_success_001' });
+    expect(successAudit).toMatchObject({ action: 'sync.run', result: 'success', requestId: 'req_sync_success_001' });
+    expect(failedRun).toMatchObject({ status: 'failed', requestId: 'req_sync_failed_001' });
+    expect(failedAudit).toMatchObject({ action: 'sync.run', result: 'failed', requestId: 'req_sync_failed_001' });
   });
 });

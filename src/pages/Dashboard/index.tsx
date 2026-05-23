@@ -15,6 +15,7 @@ const syncStatusLabels: Record<SyncStatus, { text: string; color: string }> = {
 const auditActionLabels: Record<AuditLog['action'], string> = {
   login: '飞书登录',
   'application.create': '创建应用',
+  'application.api_call': '应用 API 调用',
   'secret.copy': '复制密钥',
   'secret.rotate': '轮换密钥',
   'role.update': '更新角色',

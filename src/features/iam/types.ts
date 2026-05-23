@@ -17,14 +17,18 @@ export type PermissionCode =
 export type ApplicationStatus = 'active' | 'disabled' | 'draft';
 export type RoleStatus = 'active' | 'disabled';
 export type SyncStatus = 'success' | 'partial_failed' | 'failed' | 'running';
+export type SyncRunStatus = 'running' | 'succeeded' | 'failed';
+export type SyncTrigger = 'manual' | 'scheduled' | 'retry';
 export type AuditAction =
   | 'login'
   | 'application.create'
+  | 'application.api_call'
   | 'secret.copy'
   | 'secret.rotate'
   | 'role.update'
   | 'permission.query'
   | 'sync.run';
+export type AuditResult = 'success' | 'failed';
 
 export interface FeishuUser {
   feishuUserId: string;
@@ -151,11 +155,40 @@ export interface PageResult<T> {
 export interface AuditLog {
   id: string;
   action: AuditAction;
+  result: AuditResult;
   actorFeishuUserId: string;
   applicationId?: string;
   message: string;
   requestId: string;
   createdAt: string;
+}
+
+export interface SyncDiffSummary {
+  createdUsers: number;
+  updatedUsers: number;
+  resignedUsers: number;
+  failedUsers: number;
+  createdDepartments: number;
+  updatedDepartments: number;
+}
+
+export interface SyncRun {
+  id: string;
+  trigger: SyncTrigger;
+  status: SyncRunStatus;
+  startedAt: string;
+  finishedAt?: string;
+  durationSeconds?: number;
+  userChanges: number;
+  departmentChanges: number;
+  operatorFeishuUserId: string;
+  requestBatchCount: number;
+  successCount: number;
+  failedCount: number;
+  diffSummary: SyncDiffSummary;
+  requestId?: string;
+  errorMessage?: string;
+  auditLogId?: string;
 }
 
 export interface SyncSummary {

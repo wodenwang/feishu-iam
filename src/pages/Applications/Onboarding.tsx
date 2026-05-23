@@ -95,8 +95,8 @@ export function ApplicationOnboardingPage() {
     {
       title: '复制运行时环境变量',
       content: (
-        <Space direction="vertical" size={12}>
-          <Alert type="warning" showIcon message="运行时密钥只能进入部署环境变量，不能进入仓库、文档或测试日志。" />
+        <Space orientation="vertical" size={12}>
+          <Alert type="warning" showIcon title="运行时密钥只能进入部署环境变量，不能进入仓库、文档或测试日志。" />
           <Button type="primary" icon={<CopyOutlined />} onClick={() => setSecretModalOpen(true)}>
             复制 `.env` 配置
           </Button>
@@ -107,7 +107,7 @@ export function ApplicationOnboardingPage() {
     {
       title: '导出 Agent Prompt',
       content: (
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <pre style={codeBlockStyle}>{agentPrompt}</pre>
           <Button icon={<FileTextOutlined />} onClick={copyAgentPrompt}>
             复制 Agent Prompt
@@ -121,7 +121,7 @@ export function ApplicationOnboardingPage() {
         <Alert
           type="info"
           showIcon
-          message="第三方系统通过 Application API 注册权限组和权限点。"
+          title="第三方系统通过 Application API 注册权限组和权限点。"
           description="权限点命名建议使用 domain.resource:action，并保持与业务菜单、按钮动作一致。"
         />
       ),
@@ -138,7 +138,7 @@ export function ApplicationOnboardingPage() {
   ];
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         应用接入向导
       </Typography.Title>
@@ -155,12 +155,12 @@ export function ApplicationOnboardingPage() {
       <Row gutter={16} align="top">
         <Col xs={24} lg={16}>
           <Card title={stepDetails[currentStep].title} loading={applicationsQuery.isLoading}>
-            {application ? stepDetails[currentStep].content : <Alert type="error" showIcon message="没有可接入的应用" />}
+            {application ? stepDetails[currentStep].content : <Alert type="error" showIcon title="没有可接入的应用" />}
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card title="接入检查清单">
-            <Space direction="vertical" size={12}>
+            <Space orientation="vertical" size={12}>
               <Typography.Text>
                 <CheckCircleOutlined /> 回调地址已配置
               </Typography.Text>
@@ -180,7 +180,7 @@ export function ApplicationOnboardingPage() {
       </Row>
 
       <Card title="Agent Prompt">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <pre style={codeBlockStyle}>{agentPrompt}</pre>
           <Button icon={<CopyOutlined />} onClick={copyAgentPrompt}>
             复制 Agent Prompt
@@ -197,8 +197,8 @@ export function ApplicationOnboardingPage() {
         onOk={confirmRuntimeEnvCopy}
         onCancel={() => setSecretModalOpen(false)}
       >
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Alert type="warning" showIcon message={secretWarning} />
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <Alert type="warning" showIcon title={secretWarning} />
           <pre style={codeBlockStyle}>{runtimeEnv}</pre>
         </Space>
       </Modal>

@@ -110,7 +110,7 @@ export function ApplicationDetailPage() {
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         应用详情
       </Typography.Title>
@@ -121,7 +121,7 @@ export function ApplicationDetailPage() {
             key: 'overview',
             label: '概览',
             children: (
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
                 <Card loading={applicationQuery.isLoading}>
                   {application ? (
                     <Descriptions bordered column={2} size="middle">
@@ -210,7 +210,7 @@ export function ApplicationDetailPage() {
                       <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                         description={
-                          <Space direction="vertical" size={4}>
+                          <Space orientation="vertical" size={4}>
                             <Typography.Text>该应用还没有注册权限点</Typography.Text>
                             <Typography.Text type="secondary">第三方系统需要调用 Application API 注册权限组和权限点。</Typography.Text>
                             <Button type="link">查看接入文档</Button>

@@ -11,6 +11,9 @@ export default defineConfig({
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env.CI,
   },
+  use: {
+    baseURL: 'http://127.0.0.1:5173',
+  },
   projects: [
     { name: 'desktop-1440', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 960 } } },
     { name: 'laptop-1280', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } } },

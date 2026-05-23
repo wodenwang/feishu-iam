@@ -144,7 +144,7 @@ export function RolesPage() {
         dataIndex: 'name',
         fixed: 'left',
         render: (_, role) => (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Typography.Text strong>{role.name}</Typography.Text>
             <Typography.Text type="secondary">{role.description}</Typography.Text>
           </Space>
@@ -201,7 +201,7 @@ export function RolesPage() {
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         角色授权
       </Typography.Title>
@@ -290,7 +290,7 @@ export function RolesPage() {
 
       <Drawer
         title={activeRole ? '编辑角色' : '新建角色'}
-        width={520}
+        size={520}
         open={roleDrawerOpen}
         destroyOnClose
         onClose={() => setRoleDrawerOpen(false)}
@@ -324,7 +324,7 @@ export function RolesPage() {
 
       <Drawer
         title={`配置授权${activeRole ? `：${activeRole.name}` : ''}`}
-        width={840}
+        size={840}
         open={authorizationOpen}
         destroyOnClose
         onClose={() => setAuthorizationOpen(false)}
@@ -337,7 +337,7 @@ export function RolesPage() {
           </Space>
         }
       >
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
           <Descriptions bordered size="small" column={2}>
             <Descriptions.Item label="角色">{activeRole?.name}</Descriptions.Item>
             <Descriptions.Item label="应用">{activeRole?.applicationName}</Descriptions.Item>
@@ -392,7 +392,7 @@ export function RolesPage() {
         }}
         onCancel={() => setSummaryOpen(false)}
       >
-        <Space direction="vertical">
+        <Space orientation="vertical">
           <Typography.Text>新增权限：{authorizationSummary.addedPermissions} 个</Typography.Text>
           <Typography.Text>移除权限：{authorizationSummary.removedPermissions} 个</Typography.Text>
           <Typography.Text>新增组织：{authorizationSummary.addedDepartments} 个</Typography.Text>

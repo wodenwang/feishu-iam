@@ -49,7 +49,7 @@ export function DirectoryPage() {
         dataIndex: 'displayName',
         fixed: 'left',
         render: (_, user) => (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Typography.Text strong>{user.displayName}</Typography.Text>
             <Typography.Text type="secondary">飞书 user_id：{user.feishuUserId}</Typography.Text>
           </Space>
@@ -86,19 +86,19 @@ export function DirectoryPage() {
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         组织与用户
       </Typography.Title>
       <Alert
         showIcon
         type="info"
-        message="只读目录投影"
+        title="只读目录投影"
         description="组织结构与用户信息只来自飞书同步结果，本页面不直接编辑飞书组织或用户。"
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 16 }}>
-        <Card title="部门树" bodyStyle={{ minHeight: 480 }}>
+        <Card title="部门树" styles={{ body: { minHeight: 480 } }}>
           <Tree
             defaultExpandAll
             treeData={departmentTree}
@@ -131,7 +131,7 @@ export function DirectoryPage() {
 
       <Drawer
         title="用户详情"
-        width={560}
+        size={560}
         open={Boolean(selectedUser)}
         destroyOnClose
         onClose={() => setSelectedUser(undefined)}

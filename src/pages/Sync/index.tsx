@@ -23,7 +23,7 @@ function SyncRunStatusTag({ run }: { run: SyncRun }) {
   const status = statusLabels[run.status];
 
   return (
-    <Space direction="vertical" size={4}>
+    <Space orientation="vertical" size={4}>
       <Tag color={status.color}>{status.text}</Tag>
       {run.status === 'running' ? <Progress percent={45} size="small" status="active" aria-label="Running Progress" /> : null}
       {run.status === 'failed' && run.errorMessage ? (
@@ -115,7 +115,7 @@ export function SyncPage() {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         飞书同步
       </Typography.Title>
@@ -165,10 +165,10 @@ export function SyncPage() {
         }
       >
         {!canRunSync ? (
-          <Alert type="info" showIcon message={syncRunPermissionTip} style={{ marginBottom: 16 }} />
+          <Alert type="info" showIcon title={syncRunPermissionTip} style={{ marginBottom: 16 }} />
         ) : null}
         {syncRunsQuery.isError ? (
-          <Alert type="error" showIcon message="同步任务加载失败" action={<Button onClick={() => syncRunsQuery.refetch()}>重试</Button>} />
+          <Alert type="error" showIcon title="同步任务加载失败" action={<Button onClick={() => syncRunsQuery.refetch()}>重试</Button>} />
         ) : syncRuns.length === 0 && !syncRunsQuery.isLoading ? (
           <Empty description="No runs Empty" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
@@ -186,7 +186,7 @@ export function SyncPage() {
 
       <Drawer
         title={selectedRun ? `同步详情：${selectedRun.id}` : '同步详情'}
-        width={640}
+        size={640}
         open={Boolean(selectedRun)}
         destroyOnClose
         onClose={() => setSelectedRun(undefined)}

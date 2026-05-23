@@ -94,7 +94,7 @@ export function AuditLogsPage() {
   };
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         审计日志
       </Typography.Title>
@@ -175,9 +175,9 @@ export function AuditLogsPage() {
           <Alert
             type="error"
             showIcon
-            message="加载审计日志失败"
+            title="加载审计日志失败"
             description={
-              <Space direction="vertical" size={4}>
+              <Space orientation="vertical" size={4}>
                 <Typography.Text>Request ID：{auditLogsErrorRequestId}</Typography.Text>
                 <Typography.Text type="secondary">请保留 Request ID 后重试，若仍失败可交由管理员排查审计服务。</Typography.Text>
               </Space>
@@ -199,7 +199,7 @@ export function AuditLogsPage() {
 
       <Drawer
         title="审计日志详情"
-        width={620}
+        size={620}
         open={Boolean(selectedLog)}
         destroyOnClose
         onClose={() => setSelectedLog(undefined)}

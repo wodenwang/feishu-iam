@@ -197,7 +197,7 @@ export function ApplicationsListPage() {
   const isSearchEmpty = !applicationsQuery.isLoading && dataSource.length === 0 && Boolean(filters.keyword || filters.status);
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         应用管理
       </Typography.Title>
@@ -312,7 +312,7 @@ export function ApplicationsListPage() {
 
       <Drawer
         title="创建应用"
-        width={520}
+        size={520}
         open={drawerOpen}
         destroyOnClose
         onClose={() => setDrawerOpen(false)}

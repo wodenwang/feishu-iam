@@ -24,7 +24,7 @@ export function AdminLayout() {
     return (
       <Layout style={{ minHeight: '100vh' }}>
         <Content style={{ display: 'grid', placeItems: 'center' }}>
-          <Spin tip="加载飞书会话" />
+          <Spin description="加载飞书会话" />
         </Content>
       </Layout>
     );
@@ -34,7 +34,7 @@ export function AdminLayout() {
     return (
       <Layout style={{ minHeight: '100vh' }}>
         <Content style={{ padding: 24 }}>
-          <Alert type="error" showIcon message="无法加载当前飞书会话" description="请检查飞书登录态或稍后重试。" />
+          <Alert type="error" showIcon title="无法加载当前飞书会话" description="请检查飞书登录态或稍后重试。" />
         </Content>
       </Layout>
     );

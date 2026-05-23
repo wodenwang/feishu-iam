@@ -59,7 +59,7 @@ export function DashboardPage() {
   const syncStatus = summary ? syncStatusLabels[summary.lastSync.status] : undefined;
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
         工作台
       </Typography.Title>
@@ -131,13 +131,13 @@ export function DashboardPage() {
         <Col xs={24} xl={8}>
           <Card title="最近同步摘要">
             {summary && syncStatus ? (
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                 <Space>
                   <Typography.Text>同步状态</Typography.Text>
                   <Tag color={syncStatus.color}>{syncStatus.text}</Tag>
                 </Space>
                 {summary.lastSync.status === 'partial_failed' ? (
-                  <Alert type="warning" showIcon message="部分失败" description={summary.lastSync.message} />
+                  <Alert type="warning" showIcon title="部分失败" description={summary.lastSync.message} />
                 ) : null}
                 <Typography.Text>部门：{summary.lastSync.departmentTotal}</Typography.Text>
                 <Typography.Text>用户：{summary.lastSync.userTotal}</Typography.Text>
@@ -145,7 +145,7 @@ export function DashboardPage() {
                 <Typography.Text type="secondary">完成时间：{formatDateTime(summary.lastSync.finishedAt)}</Typography.Text>
               </Space>
             ) : (
-              <Alert type="info" showIcon message="正在加载同步摘要" />
+              <Alert type="info" showIcon title="正在加载同步摘要" />
             )}
           </Card>
         </Col>

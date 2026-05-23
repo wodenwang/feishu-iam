@@ -63,6 +63,13 @@ const applicationAdminSession: CurrentSession = {
   applicationIds: ['app_demo_crm'],
 };
 
+async function findDemoCrmRow() {
+  const cell = await screen.findByText('Demo CRM');
+  const row = cell.closest('tr');
+  expect(row).not.toBeNull();
+  return row!;
+}
+
 describe('ApplicationsListPage', () => {
   beforeEach(() => {
     resetMockIamStore();
@@ -81,9 +88,10 @@ describe('ApplicationsListPage', () => {
     ['应用名称', 'appkey', '状态', '权限组', '权限点', '应用管理员', '最近 API 调用', '创建时间', '操作'].forEach((column) => {
       expect(screen.getAllByText(column).length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('查看')).toBeInTheDocument();
-    expect(screen.getByText('接入配置')).toBeInTheDocument();
-    expect(screen.getAllByText('停用').length).toBeGreaterThan(0);
+    const row = await findDemoCrmRow();
+    expect(within(row).getByText('查看')).toBeInTheDocument();
+    expect(within(row).getByText('接入配置')).toBeInTheDocument();
+    expect(within(row).getAllByText('停用').length).toBeGreaterThan(0);
   });
 
   it('filters applications by status select', async () => {
@@ -103,8 +111,8 @@ describe('ApplicationsListPage', () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await screen.findByText('Demo CRM');
-    await user.click(screen.getByRole('button', { name: '停用' }));
+    const row = await findDemoCrmRow();
+    await user.click(within(row).getByRole('button', { name: '停用' }));
 
     expect(await screen.findByText('停用 Demo CRM？')).toBeInTheDocument();
     const confirmation = screen.getByRole('tooltip');
@@ -116,15 +124,14 @@ describe('ApplicationsListPage', () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await screen.findByText('Demo CRM');
-    await user.click(screen.getByRole('button', { name: '停用' }));
+    const row = await findDemoCrmRow();
+    await user.click(within(row).getByRole('button', { name: '停用' }));
     const confirmation = await screen.findByRole('tooltip');
     await user.click(within(confirmation).getByRole('button', { name: /停\s*用/ }));
 
     expect(await screen.findByText('已停用 Demo CRM')).toBeInTheDocument();
     await waitFor(() => {
-      const updatedRow = screen.getByRole('row', { name: /Demo CRM/ });
-      expect(within(updatedRow).getAllByText('停用').length).toBeGreaterThan(1);
+      expect(within(row).getAllByText('停用').length).toBeGreaterThan(1);
     });
   });
 
@@ -132,8 +139,7 @@ describe('ApplicationsListPage', () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await screen.findByText('Demo CRM');
-    const row = screen.getByRole('row', { name: /Demo CRM/ });
+    const row = await findDemoCrmRow();
     await user.click(within(row).getByRole('checkbox'));
 
     const batchDisableButton = screen.getByRole('button', { name: /批量停用/ });
@@ -145,8 +151,7 @@ describe('ApplicationsListPage', () => {
     await user.click(within(modal).getByRole('button', { name: /确\s*认\s*停\s*用/ }));
 
     await waitFor(() => {
-      const updatedRow = screen.getByRole('row', { name: /Demo CRM/ });
-      expect(within(updatedRow).getAllByText('停用').length).toBeGreaterThan(1);
+      expect(within(row).getAllByText('停用').length).toBeGreaterThan(1);
     });
   });
 
@@ -154,11 +159,11 @@ describe('ApplicationsListPage', () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await screen.findByText('Demo CRM');
-    await user.click(screen.getByRole('button', { name: '查看' }));
+    const row = await findDemoCrmRow();
+    await user.click(within(row).getByRole('button', { name: '查看' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/app_demo_crm');
 
-    await user.click(screen.getByRole('button', { name: '接入配置' }));
+    await user.click(within(row).getByRole('button', { name: '接入配置' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/onboarding');
   });
 

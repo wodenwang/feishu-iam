@@ -32,6 +32,8 @@ describe('GlobalErrorPage', () => {
 
     expect(screen.getByText('全局错误')).toBeInTheDocument();
     expect(screen.getByText(/页面加载失败/)).toBeInTheDocument();
+    expect(screen.getByText('需要处理')).toBeInTheDocument();
+    expect(screen.getByText('Admin Console 诊断')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /重\s*试/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '返回工作台' })).toBeInTheDocument();
 
@@ -45,8 +47,10 @@ describe('GlobalErrorPage', () => {
     expect(within(recoveryCard!).getByText('影响范围')).toBeInTheDocument();
     expect(within(recoveryCard!).getByText(/当前页面不可用/)).toBeInTheDocument();
     expect(within(recoveryCard!).getByText('排查入口')).toBeInTheDocument();
-    expect(within(recoveryCard!).getByText(/审计日志/)).toBeInTheDocument();
+    expect(within(recoveryCard!).getAllByText(/审计日志/).length).toBeGreaterThan(0);
     expect(within(recoveryCard!).getByRole('button', { name: '复制 Request ID' })).toBeInTheDocument();
+    expect(within(recoveryCard!).getByText('恢复建议')).toBeInTheDocument();
+    expect(within(recoveryCard!).getByText(/不要在反馈中附带 secret、token 或飞书应用凭证/)).toBeInTheDocument();
   });
 
   it('copies request id and calls retry callback', async () => {

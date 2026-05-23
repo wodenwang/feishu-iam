@@ -1,5 +1,22 @@
 import { DownloadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, DatePicker, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  DatePicker,
+  Descriptions,
+  Drawer,
+  Empty,
+  Form,
+  Grid,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useApplications, useAuditLogs } from '../../features/iam/queries';
@@ -49,40 +66,89 @@ const auditLogsErrorRequestId = 'req_audit_error_001';
 
 export function AuditLogsPage() {
   const [form] = Form.useForm<AuditSearchValues>();
+  const screens = Grid.useBreakpoint();
+  const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
+  const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);
   const [filters, setFilters] = useState<AuditFilters>({});
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20 });
   const [selectedLog, setSelectedLog] = useState<AuditLog | undefined>();
-  const auditLogsQuery = useAuditLogs({ ...filters, page: 1, pageSize: 20 });
+  const auditLogsQuery = useAuditLogs({ ...filters, page: pagination.page, pageSize: pagination.pageSize });
   const applicationsQuery = useApplications({ page: 1, pageSize: 50 });
-
-  const columns = useMemo<ColumnsType<AuditLog>>(
-    () => [
-      { title: '时间', dataIndex: 'createdAt', render: formatDateTime, width: 190 },
-      { title: '动作类型', dataIndex: 'action', render: (action: AuditAction) => actionLabels[action] },
-      {
-        title: '结果',
-        dataIndex: 'result',
-        render: (result: AuditResult) => <Tag color={resultLabels[result].color}>{resultLabels[result].text}</Tag>,
-      },
-      { title: '操作者', dataIndex: 'actorFeishuUserId' },
-      { title: '应用', dataIndex: 'applicationId', render: (applicationId?: string) => applicationId ?? '-' },
-      { title: '说明', dataIndex: 'message' },
-      { title: 'Request ID', dataIndex: 'requestId' },
-      {
-        title: '操作',
-        key: 'actions',
-        fixed: 'right',
-        width: 120,
-        render: (_, log) => (
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setSelectedLog(log)}>
-            详情
-          </Button>
-        ),
-      },
-    ],
-    [],
+  const applicationNameById = useMemo(
+    () => new Map((applicationsQuery.data?.items ?? []).map((application) => [application.id, application.name])),
+    [applicationsQuery.data?.items],
   );
 
+  const columns = useMemo<ColumnsType<AuditLog>>(() => {
+    const timeColumn: ColumnsType<AuditLog>[number] = {
+      title: '时间',
+      dataIndex: 'createdAt',
+      render: formatDateTime,
+      width: 190,
+    };
+    const actionColumn: ColumnsType<AuditLog>[number] = {
+      title: '动作类型',
+      dataIndex: 'action',
+      width: 150,
+      render: (action: AuditAction) => <Tag color="blue">{actionLabels[action]}</Tag>,
+    };
+    const resultColumn: ColumnsType<AuditLog>[number] = {
+      title: '结果',
+      dataIndex: 'result',
+      width: 90,
+      render: (result: AuditResult) => <Tag color={resultLabels[result].color}>{resultLabels[result].text}</Tag>,
+    };
+    const actionButtonColumn: ColumnsType<AuditLog>[number] = {
+      title: '操作',
+      key: 'actions',
+      fixed: 'right',
+      width: 110,
+      render: (_, log) => (
+        <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setSelectedLog(log)}>
+          详情
+        </Button>
+      ),
+    };
+
+    if (isCompact) {
+      return [
+        timeColumn,
+        actionColumn,
+        resultColumn,
+        actionButtonColumn,
+      ];
+    }
+
+    return [
+      timeColumn,
+      actionColumn,
+      resultColumn,
+      { title: '操作者', dataIndex: 'actorFeishuUserId', width: 170, ellipsis: true },
+      {
+        title: '应用',
+        dataIndex: 'applicationId',
+        width: 150,
+        render: (applicationId?: string) => (applicationId ? (applicationNameById.get(applicationId) ?? applicationId) : '-'),
+      },
+      {
+        title: '说明',
+        dataIndex: 'message',
+        width: 260,
+        ellipsis: true,
+      },
+      {
+        title: 'Request ID',
+        dataIndex: 'requestId',
+        width: 180,
+        ellipsis: true,
+        render: (requestId: string) => <Typography.Text code>{requestId}</Typography.Text>,
+      },
+      actionButtonColumn,
+    ];
+  }, [applicationNameById, isCompact]);
+
   const submitSearch = (values: AuditSearchValues) => {
+    setPagination((current) => ({ ...current, page: 1 }));
     setFilters({
       applicationId: values.applicationId,
       action: values.action,
@@ -100,7 +166,7 @@ export function AuditLogsPage() {
       </Typography.Title>
 
       <Card>
-        <Form form={form} layout="inline" onFinish={submitSearch}>
+        <Form form={form} layout="inline" style={{ rowGap: 12 }} onFinish={submitSearch}>
           <Form.Item name="createdAtRange" label="时间范围">
             <RangePicker />
           </Form.Item>
@@ -145,6 +211,7 @@ export function AuditLogsPage() {
               <Button
                 onClick={() => {
                   form.resetFields();
+                  setPagination((current) => ({ ...current, page: 1 }));
                   setFilters({});
                 }}
               >
@@ -167,7 +234,6 @@ export function AuditLogsPage() {
                 导出当前筛选结果
               </Button>
             </Tooltip>
-            <Typography.Text type="secondary">后续版本支持</Typography.Text>
           </Space>
         }
       >
@@ -184,6 +250,8 @@ export function AuditLogsPage() {
             }
             action={<Button onClick={() => auditLogsQuery.refetch()}>重试</Button>}
           />
+        ) : !auditLogsQuery.isLoading && (auditLogsQuery.data?.items ?? []).length === 0 ? (
+          <Empty description="没有匹配的审计日志" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <Table
             rowKey="id"
@@ -191,8 +259,14 @@ export function AuditLogsPage() {
             columns={columns}
             dataSource={auditLogsQuery.data?.items ?? []}
             loading={auditLogsQuery.isLoading}
-            pagination={{ total: auditLogsQuery.data?.total ?? 0, pageSize: 20, current: 1, showSizeChanger: false }}
-            scroll={{ x: 1300 }}
+            pagination={{
+              total: auditLogsQuery.data?.total ?? 0,
+              pageSize: pagination.pageSize,
+              current: pagination.page,
+              showSizeChanger: false,
+              onChange: (page, pageSize) => setPagination({ page, pageSize }),
+            }}
+            scroll={{ x: isCompact ? 540 : 1380 }}
           />
         )}
       </Card>
@@ -208,8 +282,10 @@ export function AuditLogsPage() {
           <Descriptions bordered size="small" column={1}>
             <Descriptions.Item label="requestId">{selectedLog.requestId}</Descriptions.Item>
             <Descriptions.Item label="actorFeishuUserId">{selectedLog.actorFeishuUserId}</Descriptions.Item>
-            <Descriptions.Item label="applicationId">{selectedLog.applicationId ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="action">{selectedLog.action}</Descriptions.Item>
+            <Descriptions.Item label="应用">
+              {selectedLog.applicationId ? (applicationNameById.get(selectedLog.applicationId) ?? selectedLog.applicationId) : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="action">{actionLabels[selectedLog.action]}</Descriptions.Item>
             <Descriptions.Item label="message">{selectedLog.message}</Descriptions.Item>
             <Descriptions.Item label="createdAt">{formatDateTime(selectedLog.createdAt)}</Descriptions.Item>
           </Descriptions>

@@ -58,7 +58,6 @@ describe('AuditLogsPage', () => {
     expect(screen.getByLabelText('keyword')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /刷新/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /导出当前筛选结果/ })).toBeDisabled();
-    expect(screen.getByText('后续版本支持')).toBeInTheDocument();
 
     expect(await screen.findByText('req_sync_failed_001')).toBeInTheDocument();
     ['时间', '动作类型', '结果', '操作者', '应用', '说明', 'Request ID', '操作'].forEach((column) => {
@@ -83,7 +82,7 @@ describe('AuditLogsPage', () => {
     expect(within(drawer).getByText('actorFeishuUserId')).toBeInTheDocument();
     expect(within(drawer).getByText('ou_feishu_admin_001')).toBeInTheDocument();
     expect(within(drawer).getByText('action')).toBeInTheDocument();
-    expect(within(drawer).getByText('sync.run')).toBeInTheDocument();
+    expect(within(drawer).getByText('同步任务')).toBeInTheDocument();
   });
 
   it('shows retryable error block when loading audit logs fails and recovers after retry', async () => {

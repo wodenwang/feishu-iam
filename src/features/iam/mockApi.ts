@@ -160,7 +160,13 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 }
 
 export async function listApplications(
-  request: PageRequest & { keyword?: string; status?: ApplicationStatus },
+  request: PageRequest & {
+    keyword?: string;
+    status?: ApplicationStatus;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    allowedApplicationIds?: string[];
+  },
 ): Promise<PageResult<Application>> {
   await wait();
 
@@ -171,12 +177,27 @@ export async function listApplications(
   }
 
   const keyword = request.keyword?.trim().toLowerCase();
+  const sessionApplicationScope =
+    mockCurrentSession.roles.includes('application_admin') && !mockCurrentSession.roles.includes('platform_admin')
+      ? mockCurrentSession.applicationIds
+      : undefined;
+  const allowedApplicationIds = request.allowedApplicationIds ?? sessionApplicationScope;
+  const scopeFiltered = allowedApplicationIds
+    ? mockIamStore.applications.filter((item) => allowedApplicationIds.includes(item.id))
+    : mockIamStore.applications;
   const keywordFiltered = keyword
-    ? mockIamStore.applications.filter(
+    ? scopeFiltered.filter(
         (item) => item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword),
       )
-    : mockIamStore.applications;
-  const filtered = request.status ? keywordFiltered.filter((item) => item.status === request.status) : keywordFiltered;
+    : scopeFiltered;
+  const statusFiltered = request.status ? keywordFiltered.filter((item) => item.status === request.status) : keywordFiltered;
+  const filtered = statusFiltered.filter((item) => {
+    const createdAt = new Date(item.createdAt).getTime();
+    const createdAtFrom = request.createdAtFrom ? new Date(request.createdAtFrom).getTime() : undefined;
+    const createdAtTo = request.createdAtTo ? new Date(request.createdAtTo).getTime() : undefined;
+
+    return (!createdAtFrom || createdAt >= createdAtFrom) && (!createdAtTo || createdAt <= createdAtTo);
+  });
 
   return paginate(filtered.map(cloneApplication), request);
 }
@@ -268,8 +289,8 @@ export async function createApplication(input: CreateApplicationInput): Promise<
     apiSecretPreview: 'api_****_new',
     callbackUrls: input.callbackUrls,
     allowedOrigins: input.allowedOrigins,
-    ownerFeishuUserId: input.ownerFeishuUserId,
-    ownerName: platformAdminSession.user.displayName,
+    ownerFeishuUserId: input.ownerFeishuUserId ?? mockCurrentSession.user.feishuUserId,
+    ownerName: input.ownerFeishuUserId ? platformAdminSession.user.displayName : mockCurrentSession.user.displayName,
     permissionGroupCount: 0,
     permissionPointCount: 0,
     agentPrompt: [

@@ -7,6 +7,7 @@ import {
   Drawer,
   Empty,
   Form,
+  Grid,
   Input,
   Modal,
   Popconfirm,
@@ -18,6 +19,7 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { Dayjs } from 'dayjs';
 import type { Key } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +31,14 @@ const { RangePicker } = DatePicker;
 interface SearchValues {
   keyword?: string;
   status?: ApplicationStatus;
+  createdAtRange?: [Dayjs, Dayjs];
+}
+
+interface ApplicationFilters {
+  keyword?: string;
+  status?: ApplicationStatus;
+  createdAtFrom?: string;
+  createdAtTo?: string;
 }
 
 interface CreateApplicationFormValues {
@@ -36,7 +46,7 @@ interface CreateApplicationFormValues {
   code: string;
   description?: string;
   callbackUrl: string;
-  ownerFeishuUserId: string;
+  ownerFeishuUserId?: string;
 }
 
 const statusLabels: Record<ApplicationStatus, { text: string; color: string }> = {
@@ -51,14 +61,26 @@ export function ApplicationsListPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm<SearchValues>();
   const [createForm] = Form.useForm<CreateApplicationFormValues>();
-  const [filters, setFilters] = useState<SearchValues>({});
+  const screens = Grid.useBreakpoint();
+  const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
+  const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);
+  const [filters, setFilters] = useState<ApplicationFilters>({});
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20 });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [batchDisableOpen, setBatchDisableOpen] = useState(false);
   const [refreshFeedback, setRefreshFeedback] = useState('');
   const [locallyDisabledApplicationIds, setLocallyDisabledApplicationIds] = useState<string[]>([]);
   const currentSessionQuery = useCurrentSession();
-  const applicationsQuery = useApplications({ ...filters, page: 1, pageSize: 20 });
+  const isApplicationAdminOnly = Boolean(
+    currentSessionQuery.data?.roles.includes('application_admin') && !currentSessionQuery.data.roles.includes('platform_admin'),
+  );
+  const applicationsQuery = useApplications({
+    ...filters,
+    allowedApplicationIds: isApplicationAdminOnly ? (currentSessionQuery.data?.applicationIds ?? []) : undefined,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+  });
   const createApplicationMutation = useCreateApplication();
   const batchDisableApplicationsMutation = useBatchDisableApplications();
   const canManageApplications = Boolean(
@@ -81,26 +103,77 @@ export function ApplicationsListPage() {
     [applicationsQuery, batchDisableApplicationsMutation, canManageApplications],
   );
 
-  const columns = useMemo<ColumnsType<Application>>(
-    () => [
-      {
-        title: '应用名称',
-        dataIndex: 'name',
-        fixed: 'left',
+  const columns = useMemo<ColumnsType<Application>>(() => {
+    const nameColumn: ColumnsType<Application>[number] = {
+      title: '应用名称',
+      dataIndex: 'name',
+      fixed: 'left',
+      width: isCompact ? 220 : 180,
+      render: (_, application) => (
+        <Space orientation="vertical" size={0}>
+          <Typography.Text strong>{application.name}</Typography.Text>
+          <Typography.Text type="secondary">{application.code}</Typography.Text>
+        </Space>
+      ),
+    };
+    const statusColumn: ColumnsType<Application>[number] = {
+      title: '状态',
+      dataIndex: 'status',
+      width: 90,
+      render: (status: ApplicationStatus, record) => {
+        const effectiveStatus = locallyDisabledApplicationIds.includes(record.id) ? 'disabled' : status;
+        const config = statusLabels[effectiveStatus];
+        return <Tag color={config.color}>{config.text}</Tag>;
       },
+    };
+    const actionColumn: ColumnsType<Application>[number] = {
+      title: '操作',
+      key: 'actions',
+      fixed: 'right',
+      width: isCompact ? 150 : 180,
+      render: (_, record) => (
+        <Space size={8} wrap={isCompact}>
+          <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
+            查看
+          </Button>
+          <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
+            接入配置
+          </Button>
+          {canManageApplications && !isCompact ? (
+            <Popconfirm title={`停用 ${record.name}？`} okText="停用" cancelText="取消" onConfirm={() => confirmRowDisable(record)}>
+              <Button type="link" size="small" danger>
+                停用
+              </Button>
+            </Popconfirm>
+          ) : null}
+        </Space>
+      ),
+    };
+
+    if (isCompact) {
+      return [
+        nameColumn,
+        statusColumn,
+        {
+          title: '管理员',
+          dataIndex: 'ownerName',
+          width: 120,
+          ellipsis: true,
+        },
+        actionColumn,
+      ];
+    }
+
+    return [
+      nameColumn,
       {
         title: 'appkey',
         dataIndex: 'appKey',
+        width: 220,
+        ellipsis: true,
+        render: (appKey: string) => <Typography.Text code>{appKey}</Typography.Text>,
       },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        render: (status: ApplicationStatus, record) => {
-          const effectiveStatus = locallyDisabledApplicationIds.includes(record.id) ? 'disabled' : status;
-          const config = statusLabels[effectiveStatus];
-          return <Tag color={config.color}>{config.text}</Tag>;
-        },
-      },
+      statusColumn,
       {
         title: '权限组',
         dataIndex: 'permissionGroupCount',
@@ -114,43 +187,23 @@ export function ApplicationsListPage() {
       {
         title: '应用管理员',
         dataIndex: 'ownerName',
+        width: 130,
       },
       {
         title: '最近 API 调用',
         dataIndex: 'lastApiCalledAt',
         render: formatDateTime,
+        width: 180,
       },
       {
         title: '创建时间',
         dataIndex: 'createdAt',
         render: formatDateTime,
-      },
-      {
-        title: '操作',
-        key: 'actions',
-        fixed: 'right',
         width: 180,
-        render: (_, record) => (
-          <Space size={8}>
-            <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
-              查看
-            </Button>
-            <Button type="link" size="small" onClick={() => navigate('/applications/onboarding')}>
-              接入配置
-            </Button>
-            {canManageApplications ? (
-              <Popconfirm title={`停用 ${record.name}？`} okText="停用" cancelText="取消" onConfirm={() => confirmRowDisable(record)}>
-                <Button type="link" size="small" danger>
-                  停用
-                </Button>
-              </Popconfirm>
-            ) : null}
-          </Space>
-        ),
       },
-    ],
-    [canManageApplications, confirmRowDisable, locallyDisabledApplicationIds, navigate],
-  );
+      actionColumn,
+    ];
+  }, [canManageApplications, confirmRowDisable, isCompact, locallyDisabledApplicationIds, navigate]);
 
   const submitCreateApplication = async (values: CreateApplicationFormValues) => {
     if (!canManageApplications) {
@@ -166,11 +219,16 @@ export function ApplicationsListPage() {
       ownerFeishuUserId: values.ownerFeishuUserId,
     };
 
-    await createApplicationMutation.mutateAsync(input);
-    message.success('应用已创建');
+    const createdApplication = await createApplicationMutation.mutateAsync(input);
     setDrawerOpen(false);
     createForm.resetFields();
     await applicationsQuery.refetch();
+    Modal.success({
+      title: '应用已创建',
+      content: '请继续查看应用详情并完成接入配置，避免只停留在列表记录。',
+      okText: '查看详情',
+      onOk: () => navigate(`/applications/${createdApplication.id}`),
+    });
   };
 
   const confirmBatchDisable = async () => {
@@ -206,7 +264,16 @@ export function ApplicationsListPage() {
         <Form
           form={form}
           layout="inline"
-          onFinish={(values) => setFilters({ keyword: values.keyword?.trim() || undefined, status: values.status })}
+          style={{ rowGap: 12 }}
+          onFinish={(values) => {
+            setPagination((current) => ({ ...current, page: 1 }));
+            setFilters({
+              keyword: values.keyword?.trim() || undefined,
+              status: values.status,
+              createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
+              createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
+            });
+          }}
         >
           <Form.Item name="keyword" label="关键词">
             <Input allowClear placeholder="搜索应用名称 / 编码" aria-label="keyword" style={{ width: 240 }} />
@@ -235,6 +302,7 @@ export function ApplicationsListPage() {
               <Button
                 onClick={() => {
                   form.resetFields();
+                  setPagination((current) => ({ ...current, page: 1 }));
                   setFilters({});
                 }}
               >
@@ -301,11 +369,12 @@ export function ApplicationsListPage() {
             }
             pagination={{
               total: applicationsQuery.data?.total ?? 0,
-              pageSize: 20,
-              current: 1,
+              pageSize: pagination.pageSize,
+              current: pagination.page,
               showSizeChanger: false,
+              onChange: (page, pageSize) => setPagination({ page, pageSize }),
             }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: isCompact ? 620 : 1280 }}
           />
         )}
       </Card>
@@ -328,16 +397,29 @@ export function ApplicationsListPage() {
         <Form
           form={createForm}
           layout="vertical"
-          initialValues={{ ownerFeishuUserId: 'ou_feishu_admin_001' }}
           onFinish={submitCreateApplication}
         >
-          <Form.Item name="name" label="应用名称" rules={[{ required: true, message: '请输入应用名称' }]}>
+          <Form.Item
+            name="name"
+            label="应用名称"
+            rules={[
+              { required: true, message: '请输入应用名称' },
+              { min: 2, max: 50, message: '应用名称需为 2-50 个字符' },
+            ]}
+          >
             <Input placeholder="例如：Demo CRM" />
           </Form.Item>
-          <Form.Item name="code" label="应用编码" rules={[{ required: true, message: '请输入应用编码' }]}>
+          <Form.Item
+            name="code"
+            label="应用编码"
+            rules={[
+              { required: true, message: '请输入应用编码' },
+              { pattern: /^[a-z0-9-]+$/, message: '仅支持小写字母、数字和短横线' },
+            ]}
+          >
             <Input placeholder="例如：demo-crm" />
           </Form.Item>
-          <Form.Item name="description" label="描述">
+          <Form.Item name="description" label="描述" rules={[{ max: 200, message: '描述不能超过 200 个字符' }]}>
             <Input.TextArea rows={3} placeholder="填写应用用途和接入范围" />
           </Form.Item>
           <Form.Item
@@ -350,8 +432,10 @@ export function ApplicationsListPage() {
           >
             <Input placeholder="https://example.com/auth/callback" />
           </Form.Item>
-          <Form.Item name="ownerFeishuUserId" label="应用管理员" rules={[{ required: true, message: '请选择应用管理员' }]}>
+          <Form.Item name="ownerFeishuUserId" label="应用管理员">
             <Select
+              allowClear
+              placeholder="默认使用当前飞书管理员"
               options={[
                 {
                   value: 'ou_feishu_admin_001',

@@ -24,6 +24,9 @@ import type { ApplicationStatus, AuditAction, AuditResult, CreateApplicationInpu
 interface ListApplicationsParams {
   keyword?: string;
   status?: ApplicationStatus;
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  allowedApplicationIds?: string[];
   page: number;
   pageSize: number;
 }

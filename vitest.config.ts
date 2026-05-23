@@ -8,5 +8,6 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    fileParallelism: false,
   },
 });

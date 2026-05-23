@@ -137,7 +137,7 @@ export interface CreateApplicationInput {
   description?: string;
   callbackUrls: string[];
   allowedOrigins: string[];
-  ownerFeishuUserId: string;
+  ownerFeishuUserId?: string;
 }
 
 export interface PageRequest {

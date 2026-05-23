@@ -1,11 +1,22 @@
-import { CheckCircleOutlined, CopyOutlined, FileTextOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  CopyOutlined,
+  FileTextOutlined,
+  PlayCircleOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 import { Alert, Button, Card, Col, Descriptions, Modal, Row, Space, Steps, Tag, Typography, message } from 'antd';
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApplications, useRecordRuntimeSecretCopy } from '../../features/iam/queries';
 import type { Application } from '../../features/iam/types';
 
 const secretWarning =
   '以下内容包含 secret。只允许写入运行时环境变量，不得提交到 Git、AGENTS.md、CLAUDE.md、README 或测试日志。';
+
+const apiDocsUrl = '/docs/application-api';
 
 const codeBlockStyle = {
   background: '#f5f5f5',
@@ -17,6 +28,14 @@ const codeBlockStyle = {
   fontFamily: 'Menlo, Monaco, Consolas, "Courier New", monospace',
   fontSize: 13,
 } as const;
+
+type CheckStatus = 'pending' | 'pass' | 'fail';
+
+const checkStatusMeta: Record<CheckStatus, { color: string; text: string; icon: ReactNode }> = {
+  pending: { color: 'default', text: '待检查', icon: <SafetyCertificateOutlined aria-hidden="true" /> },
+  pass: { color: 'success', text: '通过', icon: <CheckCircleOutlined aria-hidden="true" /> },
+  fail: { color: 'error', text: '失败', icon: <CloseCircleOutlined aria-hidden="true" /> },
+};
 
 function buildAgentPrompt(application: Application) {
   const callbackUrl = application.callbackUrls[0] ?? 'https://your-app.example.com/auth/callback';
@@ -54,15 +73,62 @@ async function copyText(value: string) {
 }
 
 export function ApplicationOnboardingPage() {
-  const applicationsQuery = useApplications({ page: 1, pageSize: 1 });
+  const [searchParams] = useSearchParams();
+  const requestedApplicationId = searchParams.get('applicationId') ?? undefined;
+  const applicationsQuery = useApplications({ page: 1, pageSize: 50 });
   const recordRuntimeSecretCopyMutation = useRecordRuntimeSecretCopy();
   const [currentStep, setCurrentStep] = useState(0);
   const [secretModalOpen, setSecretModalOpen] = useState(false);
   const [auditFeedback, setAuditFeedback] = useState('');
-  const application = applicationsQuery.data?.items[0];
+  const [checksHaveRun, setChecksHaveRun] = useState(false);
+  const [checkFeedback, setCheckFeedback] = useState('');
+  const application =
+    applicationsQuery.data?.items.find((item) => item.id === requestedApplicationId) ?? applicationsQuery.data?.items[0];
 
   const agentPrompt = useMemo(() => (application ? buildAgentPrompt(application) : ''), [application]);
   const runtimeEnv = useMemo(() => (application ? buildRuntimeEnv(application) : ''), [application]);
+  const checkItems = useMemo(() => {
+    const callbackConfigured = Boolean(application?.callbackUrls.length && application.allowedOrigins.length);
+    const promptUsesPlaceholders =
+      Boolean(agentPrompt) &&
+      !agentPrompt.includes(application?.appSecretPreview ?? '') &&
+      !agentPrompt.includes(application?.apiSecretPreview ?? '');
+
+    return [
+      {
+        key: 'callback',
+        title: '回调地址和允许来源',
+        description: checksHaveRun ? '已检查应用回调地址与浏览器允许来源配置。' : '等待检查应用配置是否可用于 OIDC 回调。',
+        status: checksHaveRun ? (callbackConfigured ? 'pass' : 'fail') : 'pending',
+      },
+      {
+        key: 'secret',
+        title: '运行时 secret 分离',
+        description: checksHaveRun ? '检查是否已经通过二次确认复制运行时配置。' : '复制 `.env` 前不会在 Agent Prompt 中暴露 secret。',
+        status: checksHaveRun ? (auditFeedback ? 'pass' : 'fail') : 'pending',
+      },
+      {
+        key: 'prompt',
+        title: 'Agent Prompt 占位符',
+        description: checksHaveRun ? 'Agent Prompt 仅包含 app key、端点和占位符。' : '等待检查 Prompt 是否误带 secret 预览值。',
+        status: checksHaveRun ? (promptUsesPlaceholders ? 'pass' : 'fail') : 'pending',
+      },
+      {
+        key: 'permissions',
+        title: '权限组和权限点注册',
+        description: checksHaveRun
+          ? '当前页面未发现已注册权限点，请第三方系统按 API 文档注册后复查。'
+          : '等待第三方系统调用 Application API 注册权限模型。',
+        status: checksHaveRun ? 'fail' : 'pending',
+      },
+      {
+        key: 'login',
+        title: '登录和权限查询',
+        description: checksHaveRun ? '需要 demo 应用完成飞书登录回调后再次验证。' : '等待实际发起飞书登录和权限查询。',
+        status: checksHaveRun ? 'fail' : 'pending',
+      },
+    ] satisfies Array<{ key: string; title: string; description: string; status: CheckStatus }>;
+  }, [agentPrompt, application, auditFeedback, checksHaveRun]);
 
   const confirmRuntimeEnvCopy = async () => {
     if (!application) {
@@ -81,6 +147,11 @@ export function ApplicationOnboardingPage() {
     message.success('Agent Prompt 已复制');
   };
 
+  const runConnectionCheck = () => {
+    setChecksHaveRun(true);
+    setCheckFeedback('接入检查已完成，仍有项目需要处理。');
+  };
+
   const stepDetails = [
     {
       title: '配置回调地址',
@@ -97,7 +168,7 @@ export function ApplicationOnboardingPage() {
       content: (
         <Space orientation="vertical" size={12}>
           <Alert type="warning" showIcon title="运行时密钥只能进入部署环境变量，不能进入仓库、文档或测试日志。" />
-          <Button type="primary" icon={<CopyOutlined />} onClick={() => setSecretModalOpen(true)}>
+          <Button type="primary" icon={<CopyOutlined aria-hidden="true" />} onClick={() => setSecretModalOpen(true)}>
             复制 `.env` 配置
           </Button>
           {auditFeedback ? <Typography.Text type="success">{auditFeedback}</Typography.Text> : null}
@@ -109,9 +180,14 @@ export function ApplicationOnboardingPage() {
       content: (
         <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           <pre style={codeBlockStyle}>{agentPrompt}</pre>
-          <Button icon={<FileTextOutlined />} onClick={copyAgentPrompt}>
-            复制 Agent Prompt
-          </Button>
+          <Space wrap>
+            <Button icon={<CopyOutlined aria-hidden="true" />} onClick={copyAgentPrompt}>
+              复制 Agent Prompt
+            </Button>
+            <Button icon={<FileTextOutlined aria-hidden="true" />} href={apiDocsUrl} target="_blank" rel="noreferrer">
+              查看 API 文档
+            </Button>
+          </Space>
         </Space>
       ),
     },
@@ -122,7 +198,7 @@ export function ApplicationOnboardingPage() {
           type="info"
           showIcon
           title="第三方系统通过 Application API 注册权限组和权限点。"
-          description="权限点命名建议使用 domain.resource:action，并保持与业务菜单、按钮动作一致。"
+          description="权限点命名建议使用 domain.resource:action，并保持与业务菜单、按钮动作一致。注册完成后回到右侧运行接入检查。"
         />
       ),
     },
@@ -132,6 +208,7 @@ export function ApplicationOnboardingPage() {
         <Descriptions bordered column={1} size="middle">
           <Descriptions.Item label="登录验证">使用飞书 OIDC 完成授权回调。</Descriptions.Item>
           <Descriptions.Item label="权限查询">调用 Application API 查询当前飞书用户权限点。</Descriptions.Item>
+          <Descriptions.Item label="接入检查">点击右侧“运行接入检查”确认当前页面可见配置与接入状态。</Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -159,34 +236,42 @@ export function ApplicationOnboardingPage() {
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title="接入检查清单">
-            <Space orientation="vertical" size={12}>
-              <Typography.Text>
-                <CheckCircleOutlined /> 回调地址已配置
-              </Typography.Text>
-              <Typography.Text>
-                <SafetyCertificateOutlined /> 运行时 secret 单独复制
-              </Typography.Text>
-              <Typography.Text>
-                <CheckCircleOutlined /> Agent Prompt 使用占位符
-              </Typography.Text>
-              <Typography.Text>
-                <CheckCircleOutlined /> 权限组和权限点待注册
-              </Typography.Text>
-              <Tag color="processing">待验证登录和权限查询</Tag>
+          <Card
+            title="接入检查清单"
+            extra={
+              <Button
+                size="small"
+                icon={<PlayCircleOutlined aria-hidden="true" />}
+                onClick={runConnectionCheck}
+                disabled={!application}
+              >
+                运行接入检查
+              </Button>
+            }
+          >
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+              {checkItems.map((item) => {
+                const meta = checkStatusMeta[item.status];
+                return (
+                  <Space key={item.key} align="start" size={10} style={{ width: '100%' }}>
+                    <Tag icon={meta.icon} color={meta.color} style={{ marginInlineEnd: 0 }}>
+                      {meta.text}
+                    </Tag>
+                    <Space orientation="vertical" size={2}>
+                      <Typography.Text strong>{item.title}</Typography.Text>
+                      <Typography.Text type="secondary">{item.description}</Typography.Text>
+                    </Space>
+                  </Space>
+                );
+              })}
+              <Button block icon={<FileTextOutlined aria-hidden="true" />} href={apiDocsUrl} target="_blank" rel="noreferrer">
+                查看 API 文档
+              </Button>
+              {checkFeedback ? <Typography.Text type="warning">{checkFeedback}</Typography.Text> : null}
             </Space>
           </Card>
         </Col>
       </Row>
-
-      <Card title="Agent Prompt">
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-          <pre style={codeBlockStyle}>{agentPrompt}</pre>
-          <Button icon={<CopyOutlined />} onClick={copyAgentPrompt}>
-            复制 Agent Prompt
-          </Button>
-        </Space>
-      </Card>
 
       <Modal
         title="复制运行时密钥"

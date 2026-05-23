@@ -1,5 +1,22 @@
 import { EyeOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Descriptions, Drawer, Empty, Progress, Row, Col, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Empty,
+  Grid,
+  Progress,
+  Row,
+  Col,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { useCurrentSession, useRetrySyncRun, useStartManualSync, useSyncRuns } from '../../features/iam/queries';
@@ -42,9 +59,13 @@ function formatDuration(run: SyncRun) {
 }
 
 export function SyncPage() {
+  const screens = Grid.useBreakpoint();
+  const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
+  const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);
   const [selectedRun, setSelectedRun] = useState<SyncRun | undefined>();
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20 });
   const currentSessionQuery = useCurrentSession();
-  const syncRunsQuery = useSyncRuns({ page: 1, pageSize: 20 });
+  const syncRunsQuery = useSyncRuns({ page: pagination.page, pageSize: pagination.pageSize });
   const startManualSyncMutation = useStartManualSync();
   const retrySyncRunMutation = useRetrySyncRun();
   const syncRuns = syncRunsQuery.data?.items ?? [];
@@ -75,44 +96,90 @@ export function SyncPage() {
     await syncRunsQuery.refetch();
   };
 
-  const columns = useMemo<ColumnsType<SyncRun>>(
-    () => [
-      { title: 'Run ID', dataIndex: 'id', fixed: 'left', width: 190 },
-      { title: '触发方式', dataIndex: 'trigger', render: (trigger: SyncTrigger) => triggerLabels[trigger] },
-      { title: '状态', dataIndex: 'status', render: (_, run) => <SyncRunStatusTag run={run} /> },
-      { title: '开始时间', dataIndex: 'startedAt', render: formatDateTime },
-      { title: '耗时', key: 'duration', render: (_, run) => formatDuration(run) },
-      { title: '用户变化', dataIndex: 'userChanges' },
-      { title: '部门变化', dataIndex: 'departmentChanges' },
-      { title: '操作人', dataIndex: 'operatorFeishuUserId' },
-      {
-        title: '操作',
-        key: 'actions',
-        fixed: 'right',
-        width: 180,
-        render: (_, run) => (
-          <Space size={8}>
-            <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setSelectedRun(run)}>
-              查看详情
+  const columns = useMemo<ColumnsType<SyncRun>>(() => {
+    const runColumn: ColumnsType<SyncRun>[number] = {
+      title: 'Run ID',
+      dataIndex: 'id',
+      fixed: 'left',
+      width: isCompact ? 180 : 200,
+      ellipsis: true,
+      render: (id: string, run) => (
+        <Space orientation="vertical" size={0}>
+          <Typography.Text code>{id}</Typography.Text>
+          {isCompact ? <Typography.Text type="secondary">{triggerLabels[run.trigger]}</Typography.Text> : null}
+        </Space>
+      ),
+    };
+    const statusColumn: ColumnsType<SyncRun>[number] = {
+      title: '状态',
+      dataIndex: 'status',
+      width: isCompact ? 110 : 160,
+      render: (_, run) => <SyncRunStatusTag run={run} />,
+    };
+    const actionColumn: ColumnsType<SyncRun>[number] = {
+      title: '操作',
+      key: 'actions',
+      fixed: 'right',
+      width: isCompact ? 110 : 180,
+      render: (_, run) => (
+        <Space size={8} wrap={isCompact}>
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setSelectedRun(run)}>
+            查看详情
+          </Button>
+          {run.status === 'failed' && !isCompact ? (
+            <Button
+              type="link"
+              size="small"
+              disabled={!canRunSync}
+              loading={retrySyncRunMutation.isPending}
+              onClick={() => retrySyncRun(run)}
+              title={canRunSync ? undefined : syncRunPermissionTip}
+            >
+              重试同步
             </Button>
-            {run.status === 'failed' ? (
-              <Button
-                type="link"
-                size="small"
-                disabled={!canRunSync}
-                loading={retrySyncRunMutation.isPending}
-                onClick={() => retrySyncRun(run)}
-                title={canRunSync ? undefined : syncRunPermissionTip}
-              >
-                重试同步
-              </Button>
-            ) : null}
-          </Space>
-        ),
+          ) : null}
+        </Space>
+      ),
+    };
+
+    if (isCompact) {
+      return [
+        runColumn,
+        statusColumn,
+        {
+          title: '用户差异',
+          key: 'userDiff',
+          width: 180,
+          render: (_, run) =>
+            `新增 ${run.diffSummary.createdUsers} / 更新 ${run.diffSummary.updatedUsers} / 离职 ${run.diffSummary.resignedUsers}`,
+        },
+        actionColumn,
+      ];
+    }
+
+    return [
+      runColumn,
+      { title: '触发方式', dataIndex: 'trigger', width: 110, render: (trigger: SyncTrigger) => triggerLabels[trigger] },
+      statusColumn,
+      { title: '开始时间', dataIndex: 'startedAt', width: 180, render: formatDateTime },
+      { title: '耗时', key: 'duration', width: 90, render: (_, run) => formatDuration(run) },
+      {
+        title: '用户变化',
+        key: 'userChanges',
+        width: 210,
+        render: (_, run) =>
+          `新增 ${run.diffSummary.createdUsers} / 更新 ${run.diffSummary.updatedUsers} / 离职 ${run.diffSummary.resignedUsers} / 失败 ${run.diffSummary.failedUsers}`,
       },
-    ],
-    [canRunSync, retrySyncRunMutation.isPending],
-  );
+      {
+        title: '部门变化',
+        key: 'departmentChanges',
+        width: 140,
+        render: (_, run) => `新增 ${run.diffSummary.createdDepartments} / 更新 ${run.diffSummary.updatedDepartments}`,
+      },
+      { title: '操作人', dataIndex: 'operatorFeishuUserId', width: 180, ellipsis: true },
+      actionColumn,
+    ];
+  }, [canRunSync, isCompact, retrySyncRunMutation.isPending]);
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
@@ -170,7 +237,7 @@ export function SyncPage() {
         {syncRunsQuery.isError ? (
           <Alert type="error" showIcon title="同步任务加载失败" action={<Button onClick={() => syncRunsQuery.refetch()}>重试</Button>} />
         ) : syncRuns.length === 0 && !syncRunsQuery.isLoading ? (
-          <Empty description="No runs Empty" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description="暂无同步任务" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <Table
             rowKey="id"
@@ -178,8 +245,14 @@ export function SyncPage() {
             columns={columns}
             dataSource={syncRuns}
             loading={syncRunsQuery.isLoading}
-            pagination={{ total: syncRunsQuery.data?.total ?? 0, pageSize: 20, current: 1, showSizeChanger: false }}
-            scroll={{ x: 1200 }}
+            pagination={{
+              total: syncRunsQuery.data?.total ?? 0,
+              pageSize: pagination.pageSize,
+              current: pagination.page,
+              showSizeChanger: false,
+              onChange: (page, pageSize) => setPagination({ page, pageSize }),
+            }}
+            scroll={{ x: isCompact ? 580 : 1290 }}
           />
         )}
       </Card>

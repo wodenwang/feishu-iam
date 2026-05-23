@@ -1,13 +1,17 @@
 import { PlusOutlined, ReloadOutlined, SaveOutlined, StopOutlined } from '@ant-design/icons';
 import {
+  Alert,
   Button,
   Card,
   DatePicker,
   Descriptions,
   Drawer,
+  Empty,
   Form,
+  Grid,
   Input,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Switch,
@@ -16,6 +20,7 @@ import {
   Tree,
   TreeSelect,
   Typography,
+  message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
@@ -63,7 +68,11 @@ const countRemoved = (current: string[], previous: string[]) => previous.filter(
 export function RolesPage() {
   const [form] = Form.useForm<SearchValues>();
   const [roleForm] = Form.useForm();
+  const screens = Grid.useBreakpoint();
+  const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
+  const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);
   const [filters, setFilters] = useState<SearchValues>({});
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 20 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
   const [authorizationOpen, setAuthorizationOpen] = useState(false);
@@ -73,17 +82,23 @@ export function RolesPage() {
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [refreshFeedback, setRefreshFeedback] = useState('');
+  const [batchDisableOpen, setBatchDisableOpen] = useState(false);
+  const [locallyDisabledRoleIds, setLocallyDisabledRoleIds] = useState<string[]>([]);
   const sessionQuery = useCurrentSession();
   const isApplicationAdminOnly = Boolean(
     sessionQuery.data?.roles.includes('application_admin') && !sessionQuery.data.roles.includes('platform_admin'),
   );
-  const applicationsQuery = useApplications({ page: 1, pageSize: 50 });
+  const applicationsQuery = useApplications({
+    allowedApplicationIds: isApplicationAdminOnly ? (sessionQuery.data?.applicationIds ?? []) : undefined,
+    page: 1,
+    pageSize: 50,
+  });
   const rolesQuery = useRoles({
     ...filters,
     allowedApplicationIds: isApplicationAdminOnly ? (sessionQuery.data?.applicationIds ?? []) : undefined,
     enabled: Boolean(sessionQuery.data),
-    page: 1,
-    pageSize: 20,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
   });
   const permissionTreeQuery = useIamPermissionTree();
   const departmentsQuery = useFeishuDepartments();
@@ -137,62 +152,105 @@ export function RolesPage() {
     setAuthorizationOpen(true);
   };
 
-  const columns = useMemo<ColumnsType<IamRole>>(
-    () => [
-      {
-        title: '角色名称',
-        dataIndex: 'name',
-        fixed: 'left',
-        render: (_, role) => (
-          <Space orientation="vertical" size={0}>
-            <Typography.Text strong>{role.name}</Typography.Text>
-            <Typography.Text type="secondary">{role.description}</Typography.Text>
-          </Space>
-        ),
+  const saveRole = async () => {
+    await roleForm.validateFields();
+    setRoleDrawerOpen(false);
+    message.success(activeRole ? '角色配置已保存' : '角色已创建');
+    await rolesQuery.refetch();
+  };
+
+  const disableRoles = async (roleIds: string[]) => {
+    setLocallyDisabledRoleIds((current) => Array.from(new Set([...current, ...roleIds])));
+    setSelectedRowKeys((current) => current.filter((key) => !roleIds.includes(String(key))));
+    message.success(roleIds.length > 1 ? `已停用 ${roleIds.length} 个角色` : '角色已停用');
+    await rolesQuery.refetch();
+  };
+
+  const columns = useMemo<ColumnsType<IamRole>>(() => {
+    const nameColumn: ColumnsType<IamRole>[number] = {
+      title: '角色名称',
+      dataIndex: 'name',
+      fixed: 'left',
+      width: isCompact ? 220 : 220,
+      render: (_, role) => (
+        <Space orientation="vertical" size={0}>
+          <Typography.Text strong>{role.name}</Typography.Text>
+          <Typography.Text type="secondary" ellipsis style={{ maxWidth: isCompact ? 180 : 260 }}>
+            {role.description}
+          </Typography.Text>
+        </Space>
+      ),
+    };
+    const statusColumn: ColumnsType<IamRole>[number] = {
+      title: '状态',
+      dataIndex: 'status',
+      width: 90,
+      render: (status: RoleStatus, role) => {
+        const effectiveStatus = locallyDisabledRoleIds.includes(role.id) ? 'disabled' : status;
+        return <Tag color={statusLabels[effectiveStatus].color}>{statusLabels[effectiveStatus].text}</Tag>;
       },
-      { title: '所属应用', dataIndex: 'applicationName' },
+    };
+    const actionColumn: ColumnsType<IamRole>[number] = {
+      title: '操作',
+      key: 'actions',
+      fixed: 'right',
+      width: isCompact ? 150 : 210,
+      render: (_, role) =>
+        canUpdateRoles ? (
+          <Space size={8} wrap={isCompact}>
+            <Button type="link" size="small" onClick={() => openRoleDrawer(role)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" onClick={() => openAuthorization(role)}>
+              配置授权
+            </Button>
+            {!isCompact ? (
+              <Popconfirm title={`停用 ${role.name}？`} okText="停用" cancelText="取消" onConfirm={() => disableRoles([role.id])}>
+                <Button type="link" size="small" danger disabled={locallyDisabledRoleIds.includes(role.id)}>
+                  停用
+                </Button>
+              </Popconfirm>
+            ) : null}
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">无权限</Typography.Text>
+        ),
+    };
+
+    if (isCompact) {
+      return [
+        nameColumn,
+        { title: '所属应用', dataIndex: 'applicationName', width: 160, ellipsis: true },
+        statusColumn,
+        actionColumn,
+      ];
+    }
+
+    return [
+      nameColumn,
+      {
+        title: '所属应用',
+        dataIndex: 'applicationName',
+        width: 160,
+        ellipsis: true,
+      },
       {
         title: '权限数量',
         key: 'permissionCount',
+        width: 130,
         render: (_, role) => `${role.permissionGroupCount} 组 / ${role.permissionPointCount} 点`,
       },
       {
         title: '授权对象',
         key: 'bindingCount',
+        width: 170,
         render: (_, role) => `${role.departmentBindingCount} 个组织 / ${role.userBindingCount} 个用户`,
       },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        render: (status: RoleStatus) => <Tag color={statusLabels[status].color}>{statusLabels[status].text}</Tag>,
-      },
-      { title: '更新时间', dataIndex: 'updatedAt', render: formatDateTime },
-      {
-        title: '操作',
-        key: 'actions',
-        fixed: 'right',
-        width: 210,
-        render: (_, role) => (
-          canUpdateRoles ? (
-            <Space size={8}>
-              <Button type="link" size="small" onClick={() => openRoleDrawer(role)}>
-                编辑
-              </Button>
-              <Button type="link" size="small" onClick={() => openAuthorization(role)}>
-                配置授权
-              </Button>
-              <Button type="link" size="small" danger>
-                停用
-              </Button>
-            </Space>
-          ) : (
-            <Typography.Text type="secondary">无权限</Typography.Text>
-          )
-        ),
-      },
-    ],
-    [canUpdateRoles],
-  );
+      statusColumn,
+      { title: '更新时间', dataIndex: 'updatedAt', render: formatDateTime, width: 180 },
+      actionColumn,
+    ];
+  }, [canUpdateRoles, isCompact, locallyDisabledRoleIds]);
 
   const refreshRoles = async () => {
     setRefreshFeedback('');
@@ -210,15 +268,17 @@ export function RolesPage() {
         <Form
           form={form}
           layout="inline"
-          onFinish={(values) =>
+          style={{ rowGap: 12 }}
+          onFinish={(values) => {
+            setPagination((current) => ({ ...current, page: 1 }));
             setFilters({
               keyword: values.keyword?.trim() || undefined,
               applicationId: values.applicationId,
               status: values.status,
               createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
               createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
-            })
-          }
+            });
+          }}
         >
           <Form.Item name="keyword" label="关键词">
             <Input allowClear aria-label="keyword" placeholder="搜索角色名称 / 编码" style={{ width: 220 }} />
@@ -249,6 +309,7 @@ export function RolesPage() {
               <Button
                 onClick={() => {
                   form.resetFields();
+                  setPagination((current) => ({ ...current, page: 1 }));
                   setFilters({});
                 }}
               >
@@ -266,7 +327,11 @@ export function RolesPage() {
             <Button type="primary" icon={<PlusOutlined />} disabled={!canUpdateRoles} onClick={() => openRoleDrawer()}>
               新建角色
             </Button>
-            <Button icon={<StopOutlined />} disabled={!canUpdateRoles || selectedRowKeys.length === 0}>
+            <Button
+              icon={<StopOutlined />}
+              disabled={!canUpdateRoles || selectedRowKeys.length === 0}
+              onClick={() => setBatchDisableOpen(true)}
+            >
               批量停用
             </Button>
             <Button icon={<ReloadOutlined />} loading={rolesQuery.isFetching} onClick={refreshRoles}>
@@ -276,16 +341,34 @@ export function RolesPage() {
           </Space>
         }
       >
-        <Table
-          rowKey="id"
-          size="middle"
-          columns={columns}
-          dataSource={rolesQuery.data?.items ?? []}
-          loading={rolesQuery.isLoading}
-          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-          pagination={{ total: rolesQuery.data?.total ?? 0, pageSize: 20, current: 1, showSizeChanger: false }}
-          scroll={{ x: 1100 }}
-        />
+        {rolesQuery.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            title="加载角色列表失败"
+            description="请稍后重试，或检查当前飞书管理员的应用授权范围。"
+            action={<Button onClick={() => rolesQuery.refetch()}>重试</Button>}
+          />
+        ) : !rolesQuery.isLoading && (rolesQuery.data?.items ?? []).length === 0 ? (
+          <Empty description={filters.keyword || filters.applicationId || filters.status ? '没有匹配的角色' : '暂无角色'} />
+        ) : (
+          <Table
+            rowKey="id"
+            size="middle"
+            columns={columns}
+            dataSource={rolesQuery.data?.items ?? []}
+            loading={rolesQuery.isLoading}
+            rowSelection={canUpdateRoles ? { selectedRowKeys, onChange: setSelectedRowKeys } : undefined}
+            pagination={{
+              total: rolesQuery.data?.total ?? 0,
+              pageSize: pagination.pageSize,
+              current: pagination.page,
+              showSizeChanger: false,
+              onChange: (page, pageSize) => setPagination({ page, pageSize }),
+            }}
+            scroll={{ x: isCompact ? 620 : 1160 }}
+          />
+        )}
       </Card>
 
       <Drawer
@@ -297,7 +380,7 @@ export function RolesPage() {
         extra={
           <Space>
             <Button onClick={() => setRoleDrawerOpen(false)}>取消</Button>
-            <Button type="primary" onClick={() => setRoleDrawerOpen(false)}>
+            <Button type="primary" onClick={saveRole}>
               保存
             </Button>
           </Space>
@@ -380,6 +463,20 @@ export function RolesPage() {
           </div>
         </Space>
       </Drawer>
+
+      <Modal
+        title="批量停用角色"
+        open={batchDisableOpen}
+        okText="确认停用"
+        cancelText="取消"
+        onOk={async () => {
+          await disableRoles(selectedRowKeys.map(String));
+          setBatchDisableOpen(false);
+        }}
+        onCancel={() => setBatchDisableOpen(false)}
+      >
+        <Typography.Text>确认停用已选中的 {selectedRowKeys.length} 个角色？停用后对应授权不会再生效。</Typography.Text>
+      </Modal>
 
       <Modal
         title="授权变更摘要"

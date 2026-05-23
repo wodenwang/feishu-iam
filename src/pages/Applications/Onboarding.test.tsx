@@ -71,9 +71,11 @@ describe('ApplicationOnboardingPage', () => {
   });
 
   it('renders Agent Prompt with secret placeholders and without preview secrets', async () => {
+    const user = userEvent.setup();
     renderApplicationOnboarding();
 
     await screen.findByText('Demo CRM');
+    await user.click(screen.getByRole('button', { name: /3 导出 Agent Prompt/ }));
     const promptBlock = screen.getByText(/你正在把业务系统接入 feishu-iam/);
     const promptText = promptBlock.textContent ?? '';
 
@@ -81,6 +83,24 @@ describe('ApplicationOnboardingPage', () => {
     expect(promptText).toContain('IAM_API_SECRET=IAM_API_SECRET');
     expect(promptText).not.toContain(applications[0].appSecretPreview);
     expect(promptText).not.toContain(applications[0].apiSecretPreview);
+    expect(screen.getAllByText(/你正在把业务系统接入 feishu-iam/)).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: '查看 API 文档' })).toHaveLength(2);
+  });
+
+  it('shows actionable onboarding checks instead of a static completed checklist', async () => {
+    const user = userEvent.setup();
+    renderApplicationOnboarding();
+
+    await screen.findByText('Demo CRM');
+    expect(screen.getAllByText('待检查')).toHaveLength(5);
+    expect(screen.getByRole('button', { name: /运行接入检查/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '查看 API 文档' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /运行接入检查/ }));
+
+    expect(screen.getAllByText('通过')).toHaveLength(2);
+    expect(screen.getAllByText('失败')).toHaveLength(3);
+    expect(screen.getByText(/请第三方系统按 API 文档注册后复查/)).toBeInTheDocument();
   });
 
   it('opens confirmation modal before copying .env and shows audit feedback after confirming', async () => {

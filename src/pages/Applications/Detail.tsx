@@ -26,7 +26,7 @@ export function ApplicationDetailPage() {
   const [localStatus, setLocalStatus] = useState<ApplicationStatus | undefined>();
   const applicationQuery = useApplication(id);
   const permissionRegistrationsQuery = useApplicationPermissionRegistrations(id);
-  const auditLogsQuery = useAuditLogs({ page: 1, pageSize: 20 });
+  const auditLogsQuery = useAuditLogs({ applicationId: id, page: 1, pageSize: 20 });
   const currentSessionQuery = useCurrentSession();
   const disableMutation = useBatchDisableApplications();
   const rotateSecretMutation = useRotateApplicationSecret();
@@ -244,7 +244,7 @@ export function ApplicationDetailPage() {
                   rowKey="id"
                   size="middle"
                   columns={auditColumns}
-                  dataSource={(auditLogsQuery.data?.items ?? []).filter((item) => item.applicationId === id)}
+                  dataSource={auditLogsQuery.data?.items ?? []}
                   loading={auditLogsQuery.isLoading}
                   pagination={false}
                 />

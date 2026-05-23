@@ -3,6 +3,10 @@ import {
   applications,
   auditLogs,
   dashboardSummary,
+  directoryUsers,
+  feishuDepartments,
+  iamPermissionTree,
+  iamRoles,
   platformAdminSession,
 } from './mockData';
 import type {
@@ -13,12 +17,20 @@ import type {
   CreateApplicationInput,
   CurrentSession,
   DashboardSummary,
+  DirectoryUser,
+  FeishuDepartment,
+  IamPermissionNode,
+  IamRole,
+  ListRolesRequest,
   PageRequest,
   PageResult,
 } from './types';
 
 interface MockIamStore {
   applications: Application[];
+  roles: IamRole[];
+  departments: FeishuDepartment[];
+  directoryUsers: DirectoryUser[];
   permissionRegistrations: ApplicationPermissionRegistration[];
   auditLogs: AuditLog[];
 }
@@ -40,9 +52,24 @@ const cloneAuditLog = (auditLog: AuditLog): AuditLog => ({ ...auditLog });
 const clonePermissionRegistration = (
   registration: ApplicationPermissionRegistration,
 ): ApplicationPermissionRegistration => ({ ...registration });
+const cloneRole = (role: IamRole): IamRole => ({
+  ...role,
+  permissionKeys: [...role.permissionKeys],
+  departmentIds: [...role.departmentIds],
+  userIds: [...role.userIds],
+});
+const cloneDepartment = (department: FeishuDepartment): FeishuDepartment => ({ ...department });
+const cloneDirectoryUser = (user: DirectoryUser): DirectoryUser => ({ ...user });
+const clonePermissionNode = (node: IamPermissionNode): IamPermissionNode => ({
+  ...node,
+  children: node.children?.map(clonePermissionNode),
+});
 
 const createMockIamStore = (): MockIamStore => ({
   applications: applications.map(cloneApplication),
+  roles: iamRoles.map(cloneRole),
+  departments: feishuDepartments.map(cloneDepartment),
+  directoryUsers: directoryUsers.map(cloneDirectoryUser),
   permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
   auditLogs: auditLogs.map(cloneAuditLog),
 });
@@ -138,6 +165,65 @@ export async function listApplications(
   const filtered = request.status ? keywordFiltered.filter((item) => item.status === request.status) : keywordFiltered;
 
   return paginate(filtered.map(cloneApplication), request);
+}
+
+export async function listRoles(request: ListRolesRequest): Promise<PageResult<IamRole>> {
+  await wait();
+
+  const keyword = request.keyword?.trim().toLowerCase();
+  const sessionApplicationScope =
+    mockCurrentSession.roles.includes('application_admin') && !mockCurrentSession.roles.includes('platform_admin')
+      ? mockCurrentSession.applicationIds
+      : undefined;
+  const allowedApplicationIds = request.allowedApplicationIds ?? sessionApplicationScope;
+  const scopeFiltered = allowedApplicationIds
+    ? mockIamStore.roles.filter((item) => allowedApplicationIds.includes(item.applicationId))
+    : mockIamStore.roles;
+  const keywordFiltered = keyword
+    ? scopeFiltered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(keyword) ||
+          item.code.toLowerCase().includes(keyword) ||
+          item.applicationName.toLowerCase().includes(keyword),
+      )
+    : scopeFiltered;
+  const applicationFiltered = request.applicationId
+    ? keywordFiltered.filter((item) => item.applicationId === request.applicationId)
+    : keywordFiltered;
+  const statusFiltered = request.status ? applicationFiltered.filter((item) => item.status === request.status) : applicationFiltered;
+  const filtered = statusFiltered.filter((item) => {
+    const createdAt = new Date(item.createdAt).getTime();
+    const createdAtFrom = request.createdAtFrom ? new Date(request.createdAtFrom).getTime() : undefined;
+    const createdAtTo = request.createdAtTo ? new Date(request.createdAtTo).getTime() : undefined;
+
+    return (!createdAtFrom || createdAt >= createdAtFrom) && (!createdAtTo || createdAt <= createdAtTo);
+  });
+
+  return paginate(filtered.map(cloneRole), request);
+}
+
+export async function listIamPermissionTree(): Promise<IamPermissionNode[]> {
+  await wait();
+  return iamPermissionTree.map(clonePermissionNode);
+}
+
+export async function listFeishuDepartments(): Promise<FeishuDepartment[]> {
+  await wait();
+  return mockIamStore.departments.map(cloneDepartment);
+}
+
+export async function listDirectoryUsers(request: PageRequest & { departmentId?: string }): Promise<PageResult<DirectoryUser>> {
+  await wait();
+
+  const department = request.departmentId
+    ? mockIamStore.departments.find((item) => item.id === request.departmentId)
+    : undefined;
+  const filtered =
+    department && department.id !== 'dept_root'
+      ? mockIamStore.directoryUsers.filter((item) => item.departmentPath.startsWith(department.path))
+      : mockIamStore.directoryUsers;
+
+  return paginate(filtered.map(cloneDirectoryUser), request);
 }
 
 export async function getApplication(applicationId: string): Promise<Application> {

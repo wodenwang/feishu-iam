@@ -15,6 +15,7 @@ export type PermissionCode =
   | 'audit:view';
 
 export type ApplicationStatus = 'active' | 'disabled' | 'draft';
+export type RoleStatus = 'active' | 'disabled';
 export type SyncStatus = 'success' | 'partial_failed' | 'failed' | 'running';
 export type AuditAction =
   | 'login'
@@ -70,6 +71,60 @@ export interface ApplicationPermissionRegistration {
   permissionName: string;
   status: 'active' | 'disabled';
   updatedAt: string;
+}
+
+export interface IamPermissionNode {
+  key: string;
+  title: string;
+  children?: IamPermissionNode[];
+}
+
+export interface IamRole {
+  id: string;
+  applicationId: string;
+  applicationName: string;
+  name: string;
+  code: string;
+  description?: string;
+  status: RoleStatus;
+  permissionGroupCount: number;
+  permissionPointCount: number;
+  departmentBindingCount: number;
+  userBindingCount: number;
+  permissionKeys: string[];
+  departmentIds: string[];
+  userIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListRolesRequest extends PageRequest {
+  keyword?: string;
+  applicationId?: string;
+  status?: RoleStatus;
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  allowedApplicationIds?: string[];
+}
+
+export interface FeishuDepartment {
+  id: string;
+  name: string;
+  parentId?: string;
+  path: string;
+  userCount: number;
+  updatedAt: string;
+}
+
+export interface DirectoryUser extends FeishuUser {
+  departmentId: string;
+  departmentName: string;
+  email?: string;
+  mobile?: string;
+  syncedAt: string;
+  localRoleSummary: string;
+  lastLoginAt?: string;
+  lastPermissionQueriedAt?: string;
 }
 
 export interface CreateApplicationInput {

@@ -1,4 +1,14 @@
-import type { Application, ApplicationPermissionRegistration, AuditLog, CurrentSession, DashboardSummary } from './types';
+import type {
+  Application,
+  ApplicationPermissionRegistration,
+  AuditLog,
+  CurrentSession,
+  DashboardSummary,
+  DirectoryUser,
+  FeishuDepartment,
+  IamPermissionNode,
+  IamRole,
+} from './types';
 
 export const platformAdminSession: CurrentSession = {
   user: {
@@ -47,6 +57,27 @@ export const applications: Application[] = [
     createdAt: '2026-05-23T00:00:00.000Z',
     updatedAt: '2026-05-23T00:00:00.000Z',
   },
+  {
+    id: 'app_demo_finance',
+    name: 'Demo Finance',
+    code: 'demo-finance',
+    description: '财务系统接入演示应用',
+    status: 'active',
+    appKey: 'app_demo_finance_key',
+    appSecretPreview: 'sec_****_finance',
+    apiKey: 'api_demo_finance_key',
+    apiSecretPreview: 'api_****_finance',
+    callbackUrls: ['https://finance.example.com/auth/callback'],
+    allowedOrigins: ['https://finance.example.com'],
+    ownerFeishuUserId: 'ou_feishu_admin_001',
+    ownerName: '王文哲',
+    permissionGroupCount: 1,
+    permissionPointCount: 2,
+    lastApiCalledAt: '2026-05-22T09:00:00.000Z',
+    agentPrompt: '将 IAM_APP_SECRET 和 IAM_API_SECRET 作为环境变量写入 finance 系统，禁止提交到 Git。',
+    createdAt: '2026-05-22T08:00:00.000Z',
+    updatedAt: '2026-05-22T08:00:00.000Z',
+  },
 ];
 
 export const auditLogs: AuditLog[] = [
@@ -71,6 +102,133 @@ export const applicationPermissionRegistrations: ApplicationPermissionRegistrati
     permissionName: '查看客户',
     status: 'active',
     updatedAt: '2026-05-23T00:12:00.000Z',
+  },
+];
+
+export const iamPermissionTree: IamPermissionNode[] = [
+  {
+    key: 'crm.customer',
+    title: '客户管理',
+    children: [
+      { key: 'crm.customer:read', title: '查看客户' },
+      { key: 'crm.customer:update', title: '编辑客户' },
+    ],
+  },
+  {
+    key: 'crm.contract',
+    title: '合同管理',
+    children: [
+      { key: 'crm.contract:read', title: '查看合同' },
+      { key: 'crm.contract:approve', title: '审批合同' },
+    ],
+  },
+];
+
+export const iamRoles: IamRole[] = [
+  {
+    id: 'role_demo_crm_sales_admin',
+    applicationId: 'app_demo_crm',
+    applicationName: 'Demo CRM',
+    name: '销售主管',
+    code: 'sales-manager',
+    description: '负责客户与合同审批的业务主管角色',
+    status: 'active',
+    permissionGroupCount: 2,
+    permissionPointCount: 4,
+    departmentBindingCount: 1,
+    userBindingCount: 2,
+    permissionKeys: ['crm.customer', 'crm.customer:read', 'crm.customer:update', 'crm.contract:read', 'crm.contract:approve'],
+    departmentIds: ['dept_sales'],
+    userIds: ['ou_feishu_admin_001', 'ou_sales_001'],
+    createdAt: '2026-05-23T00:05:00.000Z',
+    updatedAt: '2026-05-23T00:22:00.000Z',
+  },
+  {
+    id: 'role_demo_finance_readonly',
+    applicationId: 'app_demo_finance',
+    applicationName: 'Demo Finance',
+    name: '财务只读',
+    code: 'finance-readonly',
+    description: '仅可查看财务系统基础数据的角色',
+    status: 'active',
+    permissionGroupCount: 1,
+    permissionPointCount: 1,
+    departmentBindingCount: 0,
+    userBindingCount: 0,
+    permissionKeys: ['finance.report:read'],
+    departmentIds: [],
+    userIds: [],
+    createdAt: '2026-05-22T08:10:00.000Z',
+    updatedAt: '2026-05-22T08:20:00.000Z',
+  },
+];
+
+export const feishuDepartments: FeishuDepartment[] = [
+  {
+    id: 'dept_root',
+    name: '飞书 IAM 演示组织',
+    path: '飞书 IAM 演示组织',
+    userCount: 3,
+    updatedAt: '2026-05-23T00:03:00.000Z',
+  },
+  {
+    id: 'dept_it',
+    name: '信息化中心',
+    parentId: 'dept_root',
+    path: '飞书 IAM 演示组织 / 信息化中心',
+    userCount: 1,
+    updatedAt: '2026-05-23T00:03:00.000Z',
+  },
+  {
+    id: 'dept_sales',
+    name: '销售部',
+    parentId: 'dept_root',
+    path: '飞书 IAM 演示组织 / 销售部',
+    userCount: 2,
+    updatedAt: '2026-05-23T00:03:00.000Z',
+  },
+];
+
+export const directoryUsers: DirectoryUser[] = [
+  {
+    feishuUserId: 'ou_feishu_admin_001',
+    displayName: '王文哲',
+    departmentId: 'dept_it',
+    departmentName: '信息化中心',
+    departmentPath: '飞书 IAM 演示组织 / 信息化中心',
+    status: 'active',
+    email: 'wenzhe@example.com',
+    mobile: '13812345678',
+    syncedAt: '2026-05-23T00:03:00.000Z',
+    localRoleSummary: '平台管理员；Demo CRM / 销售主管',
+    lastLoginAt: '2026-05-23T00:18:00.000Z',
+    lastPermissionQueriedAt: '2026-05-23T00:20:00.000Z',
+  },
+  {
+    feishuUserId: 'ou_sales_001',
+    displayName: '陈销售',
+    departmentId: 'dept_sales',
+    departmentName: '销售部',
+    departmentPath: '飞书 IAM 演示组织 / 销售部',
+    status: 'active',
+    email: 'sales@example.com',
+    mobile: '13987654321',
+    syncedAt: '2026-05-23T00:03:00.000Z',
+    localRoleSummary: 'Demo CRM / 销售主管',
+    lastLoginAt: '2026-05-22T11:30:00.000Z',
+    lastPermissionQueriedAt: '2026-05-23T00:16:00.000Z',
+  },
+  {
+    feishuUserId: 'ou_sales_disabled_002',
+    displayName: '李停用',
+    departmentId: 'dept_sales',
+    departmentName: '销售部',
+    departmentPath: '飞书 IAM 演示组织 / 销售部',
+    status: 'disabled',
+    email: 'disabled@example.com',
+    mobile: '13700001111',
+    syncedAt: '2026-05-23T00:03:00.000Z',
+    localRoleSummary: '无本地角色绑定',
   },
 ];
 

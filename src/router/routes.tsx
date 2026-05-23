@@ -12,6 +12,8 @@ import { ApplicationDetailPage } from '../pages/Applications/Detail';
 import { ApplicationsListPage } from '../pages/Applications/List';
 import { ApplicationOnboardingPage } from '../pages/Applications/Onboarding';
 import { DashboardPage } from '../pages/Dashboard';
+import { DirectoryPage } from '../pages/Directory';
+import { RolesPage } from '../pages/Roles';
 
 export interface RouteItem {
   path: string;
@@ -65,7 +67,7 @@ export const routeItems: RouteItem[] = [
     permission: 'role:view',
     showInMenu: true,
     icon: <SafetyCertificateOutlined />,
-    element: <Placeholder title="角色授权" />,
+    element: <RolesPage />,
   },
   {
     path: '/directory',
@@ -73,7 +75,7 @@ export const routeItems: RouteItem[] = [
     permission: 'directory:view',
     showInMenu: true,
     icon: <DeploymentUnitOutlined />,
-    element: <Placeholder title="组织与用户" />,
+    element: <DirectoryPage />,
   },
   {
     path: '/sync',

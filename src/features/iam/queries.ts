@@ -8,10 +8,14 @@ import {
   listApplicationPermissionRegistrations,
   listApplications,
   listAuditLogs,
+  listDirectoryUsers,
+  listFeishuDepartments,
+  listIamPermissionTree,
+  listRoles,
   recordRuntimeSecretCopy,
   rotateApplicationSecret,
 } from './mockApi';
-import type { ApplicationStatus, AuditAction, CreateApplicationInput } from './types';
+import type { ApplicationStatus, AuditAction, CreateApplicationInput, ListRolesRequest, RoleStatus } from './types';
 
 interface ListApplicationsParams {
   keyword?: string;
@@ -26,6 +30,24 @@ interface ListAuditLogsParams {
   pageSize: number;
 }
 
+interface ListRolesParams {
+  keyword?: string;
+  applicationId?: string;
+  status?: RoleStatus;
+  createdAtFrom?: string;
+  createdAtTo?: string;
+  allowedApplicationIds?: string[];
+  enabled?: boolean;
+  page: number;
+  pageSize: number;
+}
+
+interface ListDirectoryUsersParams {
+  departmentId?: string;
+  page: number;
+  pageSize: number;
+}
+
 export const iamQueryKeys = {
   session: ['iam', 'session'] as const,
   dashboardSummary: ['iam', 'dashboardSummary'] as const,
@@ -33,6 +55,10 @@ export const iamQueryKeys = {
   application: (applicationId: string) => ['iam', 'application', applicationId] as const,
   applicationPermissionRegistrations: (applicationId: string) =>
     ['iam', 'applicationPermissionRegistrations', applicationId] as const,
+  roles: (params: ListRolesParams) => ['iam', 'roles', params] as const,
+  iamPermissionTree: ['iam', 'permissionTree'] as const,
+  feishuDepartments: ['iam', 'feishuDepartments'] as const,
+  directoryUsers: (params: ListDirectoryUsersParams) => ['iam', 'directoryUsers', params] as const,
   auditLogs: (params: ListAuditLogsParams) => ['iam', 'auditLogs', params] as const,
 };
 
@@ -54,6 +80,37 @@ export function useApplications(params: ListApplicationsParams) {
   return useQuery({
     queryKey: iamQueryKeys.applications(params),
     queryFn: () => listApplications(params),
+  });
+}
+
+export function useRoles(params: ListRolesParams) {
+  const { enabled = true, ...request } = params;
+
+  return useQuery({
+    queryKey: iamQueryKeys.roles(request),
+    queryFn: () => listRoles(request satisfies ListRolesRequest),
+    enabled,
+  });
+}
+
+export function useIamPermissionTree() {
+  return useQuery({
+    queryKey: iamQueryKeys.iamPermissionTree,
+    queryFn: listIamPermissionTree,
+  });
+}
+
+export function useFeishuDepartments() {
+  return useQuery({
+    queryKey: iamQueryKeys.feishuDepartments,
+    queryFn: listFeishuDepartments,
+  });
+}
+
+export function useDirectoryUsers(params: ListDirectoryUsersParams) {
+  return useQuery({
+    queryKey: iamQueryKeys.directoryUsers(params),
+    queryFn: () => listDirectoryUsers(params),
   });
 }
 

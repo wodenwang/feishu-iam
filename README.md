@@ -13,13 +13,14 @@
 
 ## 当前状态
 
-当前仓库已经进入 `v0.1.0` Admin Console 原型收口阶段：
+当前仓库已经进入 `v0.1.2` 内部可验收接入闭环阶段：
 
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
 - 已保留 Pencil 原型、实现截图、QA 记录和 E2E 测试。
 - `v0.1.1` 已新增本地 Fastify + PostgreSQL runtime slice，用于验证 mock 飞书登录、平台管理员绑定、应用创建和审计日志闭环。
-- 真实飞书 OAuth、第三方 Demo、前端 HTTP service 切换和交付部署仍在后续独立切片中。
+- `v0.1.2` 已新增 Application API HMAC 鉴权、权限组/权限点注册、角色授权、权限查询、mock directory projection、第三方 Demo 壳和本地验收脚本。
+- 真实飞书 OAuth、前端 HTTP service 切换和交付部署仍在后续独立切片中。
 
 ## 本地运行
 
@@ -46,6 +47,27 @@ npm run e2e -- tests/e2e/runtime-api.spec.ts
 ```
 
 `FEISHU_AUTH_MODE=mock` 只允许本地开发和测试使用，生产环境必须使用真实飞书认证配置。
+
+## v0.1.2 Access Loop
+
+本切片提供内部验收链路：mock 飞书登录、平台管理员绑定、创建应用、Application API 注册权限、创建角色并授权飞书用户、第三方应用查询当前用户权限、审计回溯。
+
+启动后端后运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 bash scripts/verify-v0.1.2-access-loop.sh
+```
+
+第三方 Demo 壳位于 `examples/thirdparty-demo`。先通过验收脚本或手动流程创建应用并注册权限，再用返回的 Application API credential 启动：
+
+```bash
+cd examples/thirdparty-demo
+IAM_BASE_URL=http://127.0.0.1:4100 \
+IAM_APP_KEY=<app_key> \
+IAM_API_SECRET=<api_secret> \
+DEMO_AUTH_MODE=mock \
+npm run dev
+```
 
 发布前检查：
 

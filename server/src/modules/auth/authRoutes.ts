@@ -31,6 +31,18 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
     );
     await options.pool.query(
       `
+        insert into directory_users(feishu_user_id, name, email, department_id, status, updated_at)
+        values ($1, $2, $3, $4, $5, now())
+        on conflict (feishu_user_id)
+        do update set name = excluded.name,
+                      email = excluded.email,
+                      status = excluded.status,
+                      updated_at = now()
+      `,
+      [user.feishuUserId, user.name, user.email ?? null, null, user.status],
+    );
+    await options.pool.query(
+      `
         insert into iam_sessions(token_hash, feishu_user_id, expires_at)
         values (encode(digest($1, 'sha256'), 'hex'), $2, now() + interval '8 hours')
       `,

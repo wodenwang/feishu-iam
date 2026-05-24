@@ -10,7 +10,9 @@ export async function createApplication(client: DbClient, input: CreateApplicati
   const id = crypto.randomUUID();
   const appKey = `app_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
   const appSecret = `sec_${crypto.randomUUID().replaceAll('-', '')}`;
+  const apiSecret = `api_sec_${crypto.randomUUID().replaceAll('-', '')}`;
   const secretHash = crypto.createHash('sha256').update(appSecret).digest('hex');
+  const apiSecretHash = crypto.createHash('sha256').update(apiSecret).digest('hex');
 
   const result = await client.query(
     `
@@ -21,6 +23,10 @@ export async function createApplication(client: DbClient, input: CreateApplicati
     [id, appKey, input.name, input.createdByFeishuUserId],
   );
   await client.query('insert into application_secrets(application_id, secret_hash) values ($1, $2)', [id, secretHash]);
+  await client.query('insert into application_api_credentials(application_id, api_secret_hash) values ($1, $2)', [
+    id,
+    apiSecretHash,
+  ]);
 
-  return { ...result.rows[0], appSecret };
+  return { ...result.rows[0], appSecret, apiSecret };
 }

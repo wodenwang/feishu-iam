@@ -3,9 +3,10 @@ import { expect, test } from '@playwright/test';
 test.describe('v0.1.1 runtime API smoke', () => {
   test('mock Feishu login, bind admin, create app, and read audit logs', async ({ request }, testInfo) => {
     const runtimeBaseUrl = process.env.RUNTIME_API_BASE_URL ?? 'http://127.0.0.1:4100';
+    const suffix = `${testInfo.project.name}_${Date.now()}`;
     const login = await request.post(`${runtimeBaseUrl}/api/dev/feishu/mock-login`, {
       data: {
-        feishuUserId: 'ou_runtime_admin',
+        feishuUserId: 'ou_v012_verify_admin',
         name: '运行时管理员',
         email: 'runtime-admin@example.com',
       },
@@ -22,7 +23,7 @@ test.describe('v0.1.1 runtime API smoke', () => {
 
     const app = await request.post(`${runtimeBaseUrl}/api/applications`, {
       headers: { cookie },
-      data: { name: `v0.1.1 Runtime Demo ${testInfo.project.name}` },
+      data: { name: `v0.1.1 Runtime Demo ${suffix}` },
     });
     expect(app.ok()).toBe(true);
     const appJson = await app.json();

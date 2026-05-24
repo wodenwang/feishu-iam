@@ -14,6 +14,16 @@ export async function createTestPool(): Promise<DbPool> {
 
 export async function resetDatabase(pool: DbPool): Promise<void> {
   await pool.query(`
+    drop table if exists application_api_nonces cascade;
+    drop table if exists role_user_bindings cascade;
+    drop table if exists role_department_bindings cascade;
+    drop table if exists role_permission_points cascade;
+    drop table if exists roles cascade;
+    drop table if exists permission_points cascade;
+    drop table if exists permission_groups cascade;
+    drop table if exists application_api_credentials cascade;
+    drop table if exists directory_users cascade;
+    drop table if exists directory_departments cascade;
     drop table if exists audit_logs cascade;
     drop table if exists application_secrets cascade;
     drop table if exists applications cascade;

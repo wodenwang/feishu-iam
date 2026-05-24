@@ -1,291 +1,148 @@
 # feishu-iam
 
-`feishu-iam` 是一个以飞书作为身份、组织结构、登录入口和授权数据源的 IAM 系统。
+`feishu-iam` 是一个以飞书作为唯一身份源的轻量 IAM Admin Console。它帮助团队把内部业务系统接入飞书身份、组织和权限体系：应用可以注册权限点，管理员可以按飞书用户或部门授权，第三方系统可以查询当前用户的权限点并据此控制页面和接口。
 
-## 项目边界
+## 项目价值
 
-- 飞书是组织结构和用户的唯一来源。
-- 不维护独立的 username / password 登录系统。
-- 所有用户认证流程依赖飞书。
-- 系统超级管理员身份必须绑定到飞书用户。
-- 系统绑定一个专用自建飞书应用。
-- 所有飞书 API 权限来自该专用自建飞书应用。
+- **飞书唯一身份源**：不维护独立 username/password，登录和管理员身份都绑定飞书用户。
+- **第三方应用接入**：创建应用后获得 Application API 配置，业务系统可注册权限组和权限点。
+- **角色授权闭环**：平台管理员可把权限点授权给飞书用户或部门。
+- **审计可追溯**：应用创建、权限注册、授权变更、权限查询和 secret 复制动作都有审计记录。
+- **可快速部署**：提供 Fastify + PostgreSQL runtime、Vite Admin Console 和 Docker Compose 启动路径。
 
-## 当前状态
+## 当前能力
 
-当前仓库已经进入 `v0.1.8` 真实飞书登录闭环阶段：
+当前版本：`v0.1.11`
 
-- 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
-- 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
-- 已保留 Pencil 原型、实现截图、QA 记录和 E2E 测试。
-- `v0.1.1` 已新增本地 Fastify + PostgreSQL runtime slice，用于验证 mock 飞书登录、平台管理员绑定、应用创建和审计日志闭环。
-- `v0.1.2` 已新增 Application API HMAC 鉴权、权限组/权限点注册、角色授权、权限查询、mock directory projection、第三方 Demo 壳和本地验收脚本。
-- `v0.1.3` 已新增 Admin Console HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
-- `v0.1.4` 已新增 `/directory` HTTP runtime-backed 只读浏览，可查看部门树、用户分页列表、部门筛选、详情 Drawer 和 requestId 错误态。
-- `v0.1.5` 已新增 `/roles` HTTP runtime-backed 角色管理，可查看角色列表、创建/编辑角色、停用角色、保存授权和查看 requestId 错误态。
-- `v0.1.6` 已新增 Docker Compose 最小部署入口，可用 `feishu-iam` + `postgres` 两个容器完成 runtime 启动和 `/api/health` 健康检查。
-- `v0.1.8` 已新增 Admin Console 真实飞书 OAuth 登录入口，可用专用自建飞书应用完成登录、IAM session 创建和首次平台管理员绑定。
-- 第三方应用 OAuth server、Sync、Dashboard、Application Detail、Onboarding、备份监控和更完整的自动化部署仍在后续独立切片中。
+- Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
+- Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
+- Application API 支持 HMAC 鉴权、权限组/权限点注册和当前用户权限查询。
+- 角色授权支持创建、编辑、停用和绑定权限点、飞书用户、飞书部门。
+- `/directory` 支持飞书组织和用户投影的只读浏览。
+- 登录页、Admin Shell、UserMenu、退出登录和核心表格状态已经按 Ant Design 后台模式重构。
 
-## v0.1.8 真实飞书登录
+## 技术栈
 
-`v0.1.8` 的主目标是让生产部署不再依赖 mock 登录。Admin Console 登录链路为：
+- Frontend: React, TypeScript, Vite, Ant Design, React Router, TanStack Query
+- Backend: Fastify, PostgreSQL
+- Testing: Vitest, Playwright
+- Deployment: Docker Compose
 
-```text
-/login
-  -> GET /api/auth/feishu/start
-  -> 飞书授权页
-  -> GET /api/auth/feishu/callback?code=...&state=...
-  -> IAM session cookie
-  -> /initialize 或 /applications
-```
+## 5 分钟本地启动
 
-必须配置专用自建飞书应用：
-
-```text
-FEISHU_AUTH_MODE=real
-FEISHU_APP_ID=<replace-me>
-FEISHU_APP_SECRET=<replace-me>
-FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
-```
-
-飞书后台的 redirect URI 必须与 `FEISHU_REDIRECT_URI` 完全一致。真实 `FEISHU_APP_SECRET` 只能写入服务器侧 `.env`、CI secret 或 secret manager，不能写入仓库、README、AGENTS、CLAUDE、示例代码、测试 fixture 或部署报告。
-
-当前版本不保存飞书 `user_access_token` 或 `refresh_token`。callback 只用 token 获取当次登录用户信息，然后创建本系统的 `iam_session`。
-
-## v0.1.6 Docker Compose 部署
-
-`v0.1.6` 的主目标是补齐最小部署基础设施，不新增 IAM 业务页面。
-
-Compose 常驻容器：
-
-- `feishu-iam`：服务 Vite build 后的前端静态资源和 Fastify API。
-- `postgres`：PostgreSQL 数据库。
-
-持久化路径：
-
-- `./data/postgres:/var/lib/postgresql/data`
-
-应用日志默认通过 Docker 查看：
-
-```bash
-docker compose logs -f feishu-iam
-docker compose logs -f postgres
-```
-
-本地或服务器部署步骤：
-
-```bash
-cp .env.example .env
-```
-
-编辑 `.env`，至少设置：
-
-```text
-FEISHU_IAM_HOST_PORT=8002
-FEISHU_IAM_NODE_IMAGE=node:24-alpine
-POSTGRES_IMAGE=postgres:16-alpine
-POSTGRES_PASSWORD=<replace-me-postgres-password>
-SESSION_SECRET=<replace-me-at-least-32-characters>
-FEISHU_AUTH_MODE=real
-FEISHU_APP_ID=<replace-me>
-FEISHU_APP_SECRET=<replace-me>
-FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
-```
-
-启动：
-
-```bash
-docker compose up -d --build
-docker compose ps
-curl http://127.0.0.1:${FEISHU_IAM_HOST_PORT:-8002}/api/health
-```
-
-生产环境必须使用 `FEISHU_AUTH_MODE=real`。`NODE_ENV=production` 下如果配置 `FEISHU_AUTH_MODE=mock`，服务会拒绝启动。
-
-如果部署服务器无法访问 Docker Hub，可以把镜像源改为可访问的代理。例如 `bpmt-120` 当前可使用：
-
-```text
-FEISHU_IAM_NODE_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/node:24-alpine
-POSTGRES_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgres:16-alpine
-```
-
-### bpmt-120 部署约定
-
-当前目标服务器为 `bpmt-120`，部署目录为：
-
-```text
-/home/bpmt/feishu-iam
-```
-
-远端已有 `/home/bpmt/nginx` 作为统一反向代理。部署时读取远端 nginx 配置和监听端口，选择下一个空闲应用端口。当前已知 `8000`、`8001` 被占用，因此优先使用 `8002`；如果部署时 `8002` 已被占用，则递增使用 `8003`。
-
-## v0.1.3 HTTP mode 本地验收
-
-`v0.1.3` 的主验收路径是 HTTP runtime，而不是 mock-only 前端。
-
-1. 启动本地 PostgreSQL，并设置 `DATABASE_URL`。
-2. 启动 Fastify runtime：
+1. 安装依赖：
 
    ```bash
+   npm install
+   ```
+
+2. 准备 PostgreSQL。你可以使用本机 PostgreSQL，也可以用 Docker 临时启动：
+
+   ```bash
+   docker run --rm --name feishu-iam-postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     -e POSTGRES_DB=feishu_iam \
+     -p 5432:5432 \
+     postgres:16-alpine
+   ```
+
+3. 启动后端 runtime：
+
+   ```bash
+   DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam \
    SESSION_SECRET=local-session-secret-at-least-32-bytes \
    FEISHU_AUTH_MODE=mock \
    npm run server:dev
    ```
 
-3. 启动 Vite HTTP mode：
+4. 启动前端：
 
    ```bash
    VITE_IAM_API_MODE=http npm run dev -- --host 127.0.0.1
    ```
 
-4. 使用 gstack `/browser` 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、创建应用、审计日志检查。
+5. 打开：
 
-5. 可选运行 v0.1.3 HTTP mode E2E。显式设置 `E2E_RESET_DATABASE=true` 时，Playwright 会使用 `TEST_DATABASE_URL` 或 `DATABASE_URL` 重置并迁移本地 runtime DB，避免其他本地测试残留 platform admin：
-
-   ```bash
-   E2E_RESET_DATABASE=true \
-   DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
-   VITE_IAM_API_MODE=http \
-   npm run e2e -- tests/e2e/v0.1.3-admin-console-http.spec.ts
+   ```text
+   http://127.0.0.1:5173/login
    ```
 
-## v0.1.4 Directory HTTP mode 本地验收
+本地开发模式可以使用 `Mock 开发登录（仅本地）` 进入系统。生产环境必须使用真实飞书登录。
 
-`v0.1.4` 的主验收路径只覆盖 `/directory`，不包含 Roles 授权保存、Sync、Dashboard、Application Detail 或 Onboarding。
+## 快速 Docker Compose 部署
 
-1. 启动本地 PostgreSQL，并设置 `DATABASE_URL`。
-2. 启动 Fastify runtime：
-
-   ```bash
-   SESSION_SECRET=local-session-secret-at-least-32-bytes \
-   FEISHU_AUTH_MODE=mock \
-   npm run server:dev
-   ```
-
-3. 启动 Vite HTTP mode：
+1. 复制配置模板：
 
    ```bash
-   VITE_IAM_API_MODE=http npm run dev -- --host 127.0.0.1
+   cp .env.example .env
    ```
 
-4. 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、进入 `/directory`，检查：
+2. 编辑 `.env`，至少设置：
 
-   - Header 显示 `HTTP runtime`。
-   - 左侧显示部门树。
-   - 右侧用户列表支持分页。
-   - 点击部门后用户列表按部门筛选。
-   - 点击 `查看详情` 打开只读用户详情 Drawer。
-   - 401、403、API error 显示可追踪 `requestId`。
+   ```text
+   FEISHU_IAM_HOST_PORT=8002
+   POSTGRES_PASSWORD=<replace-me-postgres-password>
+   SESSION_SECRET=<replace-me-at-least-32-characters>
+   FEISHU_AUTH_MODE=real
+   FEISHU_APP_ID=<replace-me>
+   FEISHU_APP_SECRET=<replace-me>
+   FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
+   ```
 
-5. 可选运行 v0.1.4 HTTP mode E2E：
+3. 在飞书开放平台把 redirect URI 配成与 `FEISHU_REDIRECT_URI` 完全一致。
+
+4. 启动：
 
    ```bash
-   E2E_RESET_DATABASE=true \
-   DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
-   VITE_IAM_API_MODE=http \
-   npm run e2e -- tests/e2e/v0.1.4-directory-http.spec.ts
+   docker compose up -d --build
+   docker compose ps
+   curl http://127.0.0.1:${FEISHU_IAM_HOST_PORT:-8002}/api/health
    ```
 
-## v0.1.5 Roles HTTP mode 本地验收
+## 第三方应用接入路径
 
-`v0.1.5` 的主验收路径只覆盖 `/roles`，不扩大 `/directory` 只读浏览边界，不包含 Sync、Dashboard、Application Detail 或 Onboarding。
+1. 平台管理员通过飞书登录 Admin Console。
+2. 进入 `应用管理`，创建业务系统应用。
+3. 在应用详情查看 `appKey`、Application API endpoint、权限注册结果和最近调用记录。
+4. 在 `应用接入向导` 复制 Agent Prompt 或运行时环境变量模板。
+5. 第三方系统通过 Application API 注册权限组和权限点。
+6. 平台管理员在 `角色授权` 中把权限点授权给飞书用户或部门。
+7. 第三方系统调用当前用户权限查询接口，根据权限点控制页面和接口。
 
-1. 启动本地 PostgreSQL，并设置 `DATABASE_URL`。
-2. 启动 Fastify runtime：
+Application API 请求使用 HMAC header 鉴权。真实 secret 只应写入运行时环境变量或 secret manager，不应写入代码仓库。
 
-   ```bash
-   SESSION_SECRET=local-session-secret-at-least-32-bytes \
-   FEISHU_AUTH_MODE=mock \
-   npm run server:dev
-   ```
+## 安全边界
 
-3. 启动 Vite HTTP mode：
+- 飞书是组织结构、用户和登录认证的唯一来源。
+- 不新增独立 username/password 登录体系。
+- 生产环境禁止 `FEISHU_AUTH_MODE=mock`。
+- 不提交飞书 App Secret、tokens、应用 secret、导出用户列表或同步快照。
+- Agent Prompt 默认只包含 secret 占位符，不包含真实 secret。
+- 创建应用返回的 secret 只显示一次，后续页面只显示占位符或状态。
 
-   ```bash
-   VITE_IAM_API_MODE=http npm run dev -- --host 127.0.0.1
-   ```
-
-4. 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、进入 `/roles`，检查：
-
-   - Header 显示 `HTTP runtime`。
-   - 角色列表来自 Fastify runtime。
-   - 可以新建和编辑角色。
-   - 可以保存角色授权。
-   - 可以停用角色。
-   - 401、403、409、API error 显示可追踪 `requestId`。
-
-5. 可选运行 v0.1.5 HTTP mode E2E：
-
-   ```bash
-   E2E_RESET_DATABASE=true \
-   DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
-   VITE_IAM_API_MODE=http \
-   npm run e2e -- tests/e2e/v0.1.5-roles-http.spec.ts
-   ```
-
-## 本地运行
-
-```bash
-npm install
-npm run dev
-```
-
-## v0.1.1 Runtime Slice
-
-本切片提供本地 mock Feishu 登录、平台管理员绑定、应用创建和审计日志闭环。
-
-```bash
-cp .env.example .env
-npm install
-npm run server:dev
-```
-
-另一个终端运行：
+## 常用验证命令
 
 ```bash
 npm run server:test
-npm run e2e -- tests/e2e/runtime-api.spec.ts
-```
-
-`FEISHU_AUTH_MODE=mock` 只允许本地开发和测试使用，生产环境必须使用真实飞书认证配置。
-
-## v0.1.2 Access Loop
-
-本切片提供内部验收链路：mock 飞书登录、平台管理员绑定、创建应用、Application API 注册权限、创建角色并授权飞书用户、第三方应用查询当前用户权限、审计回溯。
-
-启动后端后运行：
-
-```bash
-RUNTIME_API_BASE_URL=http://127.0.0.1:4100 bash scripts/verify-v0.1.2-access-loop.sh
-```
-
-第三方 Demo 壳位于 `examples/thirdparty-demo`。先通过验收脚本或手动流程创建应用并注册权限，再用返回的 Application API credential 启动：
-
-```bash
-cd examples/thirdparty-demo
-IAM_BASE_URL=http://127.0.0.1:4100 \
-IAM_APP_KEY=<app_key> \
-IAM_API_SECRET=<api_secret> \
-DEMO_AUTH_MODE=mock \
-npm run dev
-```
-
-发布前检查：
-
-```bash
-npm run build
 npm test
+npm run build
+npm run server:build
 npm run e2e
 ```
 
-## 项目文档
+针对 HTTP runtime 的本地 E2E 通常需要显式测试数据库，例如：
 
-- [架构说明](docs/architecture.md)
-- [v0.1 产品规格说明](docs/v0.1-product-spec.md)
-- [Agent 协作规范](AGENTS.md)
-- [v0.1 Access Loop 实施计划](docs/superpowers/plans/2026-05-23-v0.1-access-loop.md)
+```bash
+E2E_RESET_DATABASE=true \
+TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55433/feishu_iam_test \
+VITE_IAM_API_MODE=http \
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+npm run e2e
+```
 
-## 安全说明
+## 文档入口
 
-不要提交飞书应用 secret、tenant access token、private key、本地 `.env`、导出的用户数据或同步快照。
+- 产品规格：[docs/v0.1-product-spec.md](docs/v0.1-product-spec.md)
+- 架构说明：[docs/architecture.md](docs/architecture.md)
+- 项目 AI 开发规范：[AGENTS.md](AGENTS.md)
+- 设计规范：[DESIGN.md](DESIGN.md)

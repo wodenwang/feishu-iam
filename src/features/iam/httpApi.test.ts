@@ -45,6 +45,84 @@ describe('httpApi', () => {
     });
   });
 
+  it('loads runtime application detail', async () => {
+    httpRequestMock.mockResolvedValue({
+      id: 'app-id',
+      app_key: 'app_key_1',
+      name: 'Demo CRM',
+      status: 'active',
+      created_by_feishu_user_id: 'ou_admin',
+      created_by_name: '平台管理员',
+      created_at: '2026-05-25T00:00:00.000Z',
+      permission_group_count: 1,
+      permission_point_count: 2,
+      last_api_called_at: '2026-05-25T00:10:00.000Z',
+    });
+    const { getApplication } = await import('./httpApi');
+
+    const application = await getApplication('app-id');
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/applications/app-id');
+    expect(application).toMatchObject({
+      id: 'app-id',
+      appKey: 'app_key_1',
+      ownerName: '平台管理员',
+      permissionGroupCount: 1,
+      permissionPointCount: 2,
+      lastApiCalledAt: '2026-05-25T00:10:00.000Z',
+      appSecretPreview: 'sec_****',
+      apiSecretPreview: 'api_****',
+    });
+  });
+
+  it('loads runtime application permission registrations', async () => {
+    httpRequestMock.mockResolvedValue({
+      items: [
+        {
+          id: 'registration-id',
+          application_id: 'app-id',
+          group_code: 'crm.customer',
+          group_name: '客户管理',
+          permission_code: 'crm.customer:view',
+          permission_name: '查看客户',
+          permission_status: 'active',
+          updated_at: '2026-05-25T00:00:00.000Z',
+        },
+      ],
+    });
+    const { listApplicationPermissionRegistrations } = await import('./httpApi');
+
+    const registrations = await listApplicationPermissionRegistrations('app-id');
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/applications/app-id/permission-registrations');
+    expect(registrations).toEqual([
+      {
+        id: 'registration-id',
+        applicationId: 'app-id',
+        groupCode: 'crm.customer',
+        groupName: '客户管理',
+        permissionCode: 'crm.customer:view',
+        permissionName: '查看客户',
+        status: 'active',
+        updatedAt: '2026-05-25T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('records runtime secret copy events without sending secret values', async () => {
+    httpRequestMock.mockResolvedValue({ ok: true });
+    const { recordRuntimeSecretCopy } = await import('./httpApi');
+
+    await recordRuntimeSecretCopy('app-id', 'agent_prompt');
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/applications/app-id/secret-copy-events', {
+      method: 'POST',
+      body: { kind: 'agent_prompt' },
+    });
+    expect(JSON.stringify(httpRequestMock.mock.calls[0])).not.toContain('sec_');
+    expect(JSON.stringify(httpRequestMock.mock.calls[0])).not.toContain('api_sec_');
+  });
+
   it('loads runtime departments', async () => {
     httpRequestMock.mockResolvedValue({
       items: [
@@ -86,6 +164,25 @@ describe('httpApi', () => {
 
     expect(httpRequestMock).toHaveBeenCalledWith('/api/directory/users', {
       query: { departmentId: 'dept_sales', page: 2, pageSize: 20 },
+    });
+  });
+
+  it('passes application audit filters to the runtime API', async () => {
+    httpRequestMock.mockResolvedValue({ items: [], page: 1, pageSize: 20, total: 0 });
+    const { listAuditLogs } = await import('./httpApi');
+
+    await listAuditLogs({ applicationId: 'app-id', page: 1, pageSize: 20 });
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/audit-logs', {
+      query: {
+        page: 1,
+        pageSize: 20,
+        action: undefined,
+        result: undefined,
+        keyword: undefined,
+        targetId: 'app-id',
+        targetType: 'application',
+      },
     });
   });
 

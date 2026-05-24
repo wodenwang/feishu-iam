@@ -135,18 +135,12 @@ export function ApplicationsListPage() {
       width: isCompact ? 150 : 180,
       render: (_, record) => (
         <Space size={8} wrap={isCompact}>
-          {apiMode === 'mock' ? (
-            <>
-              <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
-                查看
-              </Button>
-              <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
-                接入配置
-              </Button>
-            </>
-          ) : (
-            <Typography.Text type="secondary">HTTP mode</Typography.Text>
-          )}
+          <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
+            查看
+          </Button>
+          <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
+            接入配置
+          </Button>
           {canDisable && !isCompact ? (
             <Popconfirm title={`停用 ${record.name}？`} okText="停用" cancelText="取消" onConfirm={() => confirmRowDisable(record)}>
               <Button type="link" size="small" danger>

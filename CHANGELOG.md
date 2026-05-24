@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.11 - 应用接入配置闭环
+
+- 新增应用详情 HTTP runtime，可查看应用基础信息、创建人、权限组/权限点数量、最近 Application API 调用和 secret 签发状态。
+- 新增应用权限注册结果接口，Admin Console 可展示第三方系统通过 Application API 注册的权限组和权限点。
+- 新增应用 secret copy 审计事件，复制运行时配置或 Agent Prompt 时记录动作但不保存 secret 明文。
+- 应用详情和接入向导 HTTP mode 不再依赖 mock-only 方法，Agent Prompt 和 `.env` 模板只使用 secret 占位符。
+- 审计日志支持按应用 target 过滤，便于在应用详情中查看应用相关接入事件。
+- README 重构为公开项目入口文档，突出项目价值、快速本地启动、快速 Docker Compose 部署、第三方接入路径和安全边界，并移除机器私有部署信息。
+
 ## v0.1.10 - Admin Console 前端重构
 
 - 按 Ant Design Pro 风格重构 Admin Shell、Header 右上角 UserMenu、品牌 logo、登录页和退出登录流程。

@@ -536,7 +536,10 @@ export async function rotateApplicationSecret(applicationId: string, secretType:
   return cloneApplication(rotatedApplication);
 }
 
-export async function recordRuntimeSecretCopy(applicationId: string): Promise<AuditLog> {
+export async function recordRuntimeSecretCopy(
+  applicationId: string,
+  kind: 'runtime_env' | 'agent_prompt' = 'runtime_env',
+): Promise<AuditLog> {
   await wait();
 
   const now = new Date().toISOString();
@@ -546,7 +549,7 @@ export async function recordRuntimeSecretCopy(applicationId: string): Promise<Au
     result: 'success',
     actorFeishuUserId: mockCurrentSession.user.feishuUserId,
     applicationId,
-    message: '复制运行时环境变量',
+    message: kind === 'agent_prompt' ? '复制 Agent Prompt' : '复制运行时环境变量',
     requestId: `req_${Date.now()}`,
     createdAt: now,
   };

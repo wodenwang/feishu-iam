@@ -101,8 +101,8 @@ describe('ApplicationOnboardingPage', () => {
 
     await user.click(screen.getByRole('button', { name: /运行接入检查/ }));
 
-    expect(screen.getAllByText('通过')).toHaveLength(2);
-    expect(screen.getAllByText('失败')).toHaveLength(3);
+    expect(screen.getAllByText('通过')).toHaveLength(3);
+    expect(screen.getAllByText('失败')).toHaveLength(2);
     expect(screen.getByText(/请第三方系统按 API 文档注册后复查/)).toBeInTheDocument();
   });
 

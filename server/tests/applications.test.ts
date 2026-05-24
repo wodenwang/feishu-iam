@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import crypto from 'node:crypto';
 import type { DbPool } from '../src/db/pool';
 import { buildTestApp } from './helpers/testApp';
 import { createTestPool } from './helpers/testDb';
@@ -203,6 +204,129 @@ describe('applications API', () => {
     });
     expect(response.json().application).not.toHaveProperty('appSecret');
     expect(response.json().application).not.toHaveProperty('apiSecret');
+  });
+
+  it('returns runtime application detail without secret plaintext', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_detail_001', '应用详情管理员');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '详情应用' },
+    });
+    const applicationId = created.json().application.id;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: applicationId,
+      name: '详情应用',
+      created_by_feishu_user_id: 'ou_app_admin_detail_001',
+      created_by_name: '应用详情管理员',
+      permission_group_count: 0,
+      permission_point_count: 0,
+      secret_status: {
+        app_secret: 'issued',
+        api_secret: 'issued',
+      },
+    });
+    expect(JSON.stringify(response.json())).not.toContain(created.json().appSecret);
+    expect(JSON.stringify(response.json())).not.toContain(created.json().apiSecret);
+  });
+
+  it('rejects non-admin runtime application detail reads', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_app_admin_detail_002', '详情管理员二');
+    const userCookie = await loginCookie(app, 'ou_app_non_admin_detail_002', '普通详情用户');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie: adminCookie },
+      payload: { name: '禁止详情应用' },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${created.json().application.id}`,
+      headers: { cookie: userCookie },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('lists permission registrations for an application', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_permission_001', '权限注册管理员');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '权限注册应用' },
+    });
+    const applicationId = created.json().application.id;
+    const groupId = crypto.randomUUID();
+    const pointId = crypto.randomUUID();
+    await pool.query(
+      'insert into permission_groups(id, application_id, code, name) values ($1, $2, $3, $4)',
+      [groupId, applicationId, 'crm.customer', '客户管理'],
+    );
+    await pool.query(
+      'insert into permission_points(id, application_id, group_id, code, name) values ($1, $2, $3, $4, $5)',
+      [pointId, applicationId, groupId, 'crm.customer:view', '查看客户'],
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}/permission-registrations`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      items: [
+        {
+          application_id: applicationId,
+          group_code: 'crm.customer',
+          group_name: '客户管理',
+          permission_code: 'crm.customer:view',
+          permission_name: '查看客户',
+          permission_status: 'active',
+        },
+      ],
+    });
+  });
+
+  it('records secret copy audit without accepting secret plaintext', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_secret_copy_001', '密钥复制管理员');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '密钥复制应用' },
+    });
+    const applicationId = created.json().application.id;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/applications/${applicationId}/secret-copy-events`,
+      headers: { cookie },
+      payload: { kind: 'runtime_env' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const audit = await pool.query(
+      "select action, target_id, metadata::text as metadata from audit_logs where action = 'secret.copy'",
+    );
+    expect(audit.rows[0]).toMatchObject({
+      action: 'secret.copy',
+      target_id: applicationId,
+    });
+    expect(audit.rows[0].metadata).toContain('runtime_env');
+    expect(audit.rows[0].metadata).not.toContain(created.json().appSecret);
+    expect(audit.rows[0].metadata).not.toContain(created.json().apiSecret);
   });
 });
 

@@ -1,5 +1,6 @@
 import type {
   Application,
+  ApplicationPermissionRegistration,
   AuditAction,
   AuditLog,
   AuditResult,
@@ -26,8 +27,16 @@ interface RuntimeApplication {
   status: Application['status'];
   created_at: string;
   updated_at?: string;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
   permission_group_count?: number;
   permission_point_count?: number;
+  last_api_called_at?: string | null;
+  last_permission_query_at?: string | null;
+  secret_status?: {
+    app_secret?: string;
+    api_secret?: string;
+  };
 }
 
 interface RuntimeAuditLog {
@@ -93,6 +102,18 @@ interface RuntimePermissionNode {
   children?: RuntimePermissionNode[] | null;
 }
 
+interface RuntimePermissionRegistration {
+  id?: string | null;
+  application_id?: string | null;
+  group_code: string;
+  group_name: string;
+  group_status?: 'active' | 'disabled' | null;
+  permission_code?: string | null;
+  permission_name?: string | null;
+  permission_status?: 'active' | 'disabled' | null;
+  updated_at?: string | null;
+}
+
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
   const value = payload as {
     authenticated?: boolean;
@@ -124,12 +145,13 @@ export function mapRuntimeApplication(item: RuntimeApplication): Application {
     appSecretPreview: 'sec_****',
     apiKey: item.app_key,
     apiSecretPreview: 'api_****',
-    callbackUrls: [],
-    allowedOrigins: [],
-    ownerFeishuUserId: '-',
-    ownerName: '-',
+    callbackUrls: ['https://your-app.example.com/auth/callback'],
+    allowedOrigins: ['https://your-app.example.com'],
+    ownerFeishuUserId: item.created_by_feishu_user_id ?? '-',
+    ownerName: item.created_by_name ?? '-',
     permissionGroupCount: item.permission_group_count ?? 0,
     permissionPointCount: item.permission_point_count ?? 0,
+    lastApiCalledAt: item.last_api_called_at ?? item.last_permission_query_at ?? undefined,
     agentPrompt: '',
     createdAt: item.created_at,
     updatedAt: item.updated_at ?? item.created_at,
@@ -217,6 +239,20 @@ export function mapRuntimePermissionTree(items: RuntimePermissionNode[]): IamPer
     title: item.title,
     children: item.children ? mapRuntimePermissionTree(item.children) : undefined,
   }));
+}
+
+export function mapRuntimePermissionRegistration(item: RuntimePermissionRegistration): ApplicationPermissionRegistration {
+  const permissionCode = item.permission_code ?? `${item.group_code}:*`;
+  return {
+    id: item.id ?? `${item.group_code}:${permissionCode}`,
+    applicationId: item.application_id ?? '-',
+    groupCode: item.group_code,
+    groupName: item.group_name,
+    permissionCode,
+    permissionName: item.permission_name ?? '权限组占位',
+    status: item.permission_status ?? item.group_status ?? 'active',
+    updatedAt: item.updated_at ?? '',
+  };
 }
 
 export function mapPageResult<Input, Output>(

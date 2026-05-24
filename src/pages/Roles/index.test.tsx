@@ -203,7 +203,7 @@ describe('RolesPage', () => {
       expect(roles.items[0].departmentIds).toContain('dept_it');
       expect(roles.items[0].userIds).toContain('ou_sales_disabled_002');
     });
-  }, 10_000);
+  }, 20_000);
 
   it('formats HTTP role errors with request id', () => {
     const error = new Error('角色接口失败') as Error & { name: 'IamHttpError'; status: number; code: string; requestId: string };

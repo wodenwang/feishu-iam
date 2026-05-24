@@ -56,6 +56,8 @@ cp .env.example .env
 
 ```text
 FEISHU_IAM_HOST_PORT=8002
+FEISHU_IAM_NODE_IMAGE=node:24-alpine
+POSTGRES_IMAGE=postgres:16-alpine
 POSTGRES_PASSWORD=<replace-me-postgres-password>
 SESSION_SECRET=<replace-me-at-least-32-characters>
 FEISHU_AUTH_MODE=real
@@ -73,6 +75,13 @@ curl http://127.0.0.1:${FEISHU_IAM_HOST_PORT:-8002}/api/health
 ```
 
 生产环境必须使用 `FEISHU_AUTH_MODE=real`。`NODE_ENV=production` 下如果配置 `FEISHU_AUTH_MODE=mock`，服务会拒绝启动。
+
+如果部署服务器无法访问 Docker Hub，可以把镜像源改为可访问的代理。例如 `bpmt-120` 当前可使用：
+
+```text
+FEISHU_IAM_NODE_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/node:24-alpine
+POSTGRES_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgres:16-alpine
+```
 
 ### bpmt-120 部署约定
 

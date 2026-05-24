@@ -1,5 +1,11 @@
 # 更新日志
 
+## v0.1.7 - 部署镜像源兼容
+
+- Dockerfile 支持通过 `NODE_IMAGE` build arg 覆盖 Node base image。
+- Docker Compose 支持通过 `FEISHU_IAM_NODE_IMAGE` 和 `POSTGRES_IMAGE` 使用 Docker Hub 镜像代理。
+- 补充 `bpmt-120` 无法直连 Docker Hub 时的镜像源配置说明。
+
 ## v0.1.6 - 最小部署基础设施
 
 - 新增 Dockerfile 和 Docker Compose 部署入口，常驻容器为 `feishu-iam` 与 `postgres`。

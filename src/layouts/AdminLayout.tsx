@@ -1,6 +1,8 @@
-import { Alert, Breadcrumb, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Breadcrumb, Grid, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getIamApiMode } from '../features/iam/apiMode';
+import { isIamHttpError } from '../features/iam/httpClient';
 import { useCurrentSession } from '../features/iam/queries';
 import type { AdminRole } from '../features/iam/types';
 import { getMenuSelectedKey, getVisibleMenuItems, matchRouteItem, routeItems } from '../router/routes';
@@ -15,10 +17,15 @@ const roleLabels: Record<AdminRole, string> = {
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
   const sessionQuery = useCurrentSession();
   const session = sessionQuery.data;
+  const apiMode = getIamApiMode();
+  const environmentTag = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
+  const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
+  const compactHeader = !screens.lg;
 
   if (sessionQuery.isLoading) {
     return (
@@ -31,16 +38,36 @@ export function AdminLayout() {
   }
 
   if (sessionQuery.isError || !session) {
+    const error = sessionQuery.error;
+    const isHttpError = isIamHttpError(error);
+    const isUnauthenticatedSession = error instanceof Error && error.message === 'UNAUTHENTICATED_SESSION';
+    const title = (isHttpError && error.status === 401) || isUnauthenticatedSession ? '会话已过期' : '无法加载当前飞书会话';
+    const description = isHttpError
+      ? `${error.message}${error.requestId ? `（Request ID: ${error.requestId}）` : ''}`
+      : isUnauthenticatedSession
+        ? '请先通过飞书登录后再访问 Admin Console。'
+        : '请检查飞书登录态或稍后重试。';
+
     return (
       <Layout style={{ minHeight: '100vh' }}>
         <Content style={{ padding: 24 }}>
-          <Alert type="error" showIcon title="无法加载当前飞书会话" description="请检查飞书登录态或稍后重试。" />
+          <Alert
+            type={(isHttpError && error.status === 401) || isUnauthenticatedSession ? 'warning' : 'error'}
+            showIcon
+            title={title}
+            description={description}
+            action={(isHttpError && error.status === 401) || isUnauthenticatedSession ? <Link to="/login">重新登录</Link> : undefined}
+          />
         </Content>
       </Layout>
     );
   }
 
-  const menuItems: MenuProps['items'] = getVisibleMenuItems(routeItems, session).map((item) => ({
+  const visibleRoutes =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path === '/applications' || item.path === '/audit-logs')
+      : getVisibleMenuItems(routeItems, session);
+  const menuItems: MenuProps['items'] = visibleRoutes.map((item) => ({
     key: item.path,
     icon: item.icon,
     label: item.label,
@@ -69,16 +96,21 @@ export function AdminLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 24px',
+            gap: 16,
+            padding: compactHeader ? '0 16px' : '0 24px',
           }}
         >
-          <Space size={12}>
-            <Typography.Text strong>feishu-iam</Typography.Text>
-            <Tag color="blue">本地环境</Tag>
+          <Space size={12} style={{ flexShrink: 0, minWidth: 0 }}>
+            {!compactHeader ? <Typography.Text strong>feishu-iam</Typography.Text> : null}
+            <Tag color={apiMode === 'http' ? 'green' : 'blue'}>{environmentTag}</Tag>
           </Space>
-          <Space size={8}>
-            <Typography.Text>{session.user.displayName}</Typography.Text>
-            <Typography.Text type="secondary">{session.user.feishuUserId}</Typography.Text>
+          <Space size={8} style={{ minWidth: 0, justifyContent: 'flex-end', overflow: 'hidden' }}>
+            <Typography.Text style={{ whiteSpace: 'nowrap' }}>{session.user.displayName}</Typography.Text>
+            {!compactHeader ? (
+              <Typography.Text type="secondary" ellipsis={{ tooltip: session.user.feishuUserId }} style={{ maxWidth: 220 }}>
+                {session.user.feishuUserId}
+              </Typography.Text>
+            ) : null}
             {session.roles.map((role) => (
               <Tag key={role}>{roleLabels[role]}</Tag>
             ))}
@@ -87,7 +119,7 @@ export function AdminLayout() {
         <Content style={{ padding: 24 }}>
           <Breadcrumb
             items={[
-              { title: <Link to="/dashboard">首页</Link> },
+              { title: <Link to={defaultAdminPath}>首页</Link> },
               { title: currentRoute?.label ?? '页面' },
             ]}
             style={{ marginBottom: 16 }}

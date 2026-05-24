@@ -29,7 +29,7 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     const client = await pool.connect();
     try {
       await client.query('begin');
-      const application = await createApplication(client, {
+      const created = await createApplication(client, {
         name: normalizedName,
         createdByFeishuUserId: request.actor.feishuUserId,
       });
@@ -39,13 +39,13 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
         actorFeishuUserId: request.actor.feishuUserId,
         action: 'application.create',
         targetType: 'application',
-        targetId: application.id,
+        targetId: created.application.id,
         result: 'success',
-        metadata: { appKey: application.app_key },
+        metadata: { appKey: created.application.app_key },
       });
       await client.query('commit');
 
-      return application;
+      return created;
     } catch (error) {
       await client.query('rollback');
       if (isUniqueViolation(error)) {
@@ -61,11 +61,79 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     if (!request.actor) {
       throw unauthorized();
     }
-    const result = await pool.query(
-      'select id, app_key, name, status, created_at from applications order by created_at desc limit 50',
-    );
-    return { items: result.rows };
+    const query = request.query as {
+      page?: string | number;
+      pageSize?: string | number;
+      keyword?: string;
+      status?: string;
+      createdAtFrom?: string;
+      createdAtTo?: string;
+    };
+    const page = normalizePositiveInteger(query.page, 1);
+    const pageSize = Math.min(normalizePositiveInteger(query.pageSize, 20), 100);
+    const offset = (page - 1) * pageSize;
+    const filters: string[] = [];
+    const values: Array<string | number> = [];
+
+    if (query.keyword) {
+      values.push(`%${query.keyword}%`);
+      filters.push(`(a.name ilike $${values.length} or a.app_key ilike $${values.length})`);
+    }
+    if (query.status) {
+      values.push(query.status);
+      filters.push(`a.status = $${values.length}`);
+    }
+    if (query.createdAtFrom) {
+      values.push(query.createdAtFrom);
+      filters.push(`a.created_at >= $${values.length}`);
+    }
+    if (query.createdAtTo) {
+      values.push(query.createdAtTo);
+      filters.push(`a.created_at <= $${values.length}`);
+    }
+
+    const whereClause = filters.length ? `where ${filters.join(' and ')}` : '';
+    const itemValues = [...values, pageSize, offset];
+    const limitIndex = values.length + 1;
+    const offsetIndex = values.length + 2;
+
+    const [items, total] = await Promise.all([
+      pool.query(
+        `
+          select a.id,
+                 a.app_key,
+                 a.name,
+                 a.status,
+                 a.created_at,
+                 count(distinct pg.id)::int as permission_group_count,
+                 count(distinct pp.id)::int as permission_point_count
+          from applications a
+          left join permission_groups pg on pg.application_id = a.id
+          left join permission_points pp on pp.application_id = a.id
+          ${whereClause}
+          group by a.id
+          order by a.created_at desc
+          limit $${limitIndex} offset $${offsetIndex}
+        `,
+        itemValues,
+      ),
+      pool.query(
+        `
+          select count(*)::int as total
+          from applications a
+          ${whereClause}
+        `,
+        values,
+      ),
+    ]);
+
+    return { items: items.rows, page, pageSize, total: total.rows[0].total };
   });
+}
+
+function normalizePositiveInteger(value: string | number | undefined, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function isUniqueViolation(error: unknown): boolean {

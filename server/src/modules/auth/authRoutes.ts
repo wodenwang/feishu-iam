@@ -11,6 +11,21 @@ interface AuthRouteOptions {
   allowMockLogin: boolean;
 }
 
+const platformAdminPermissions = [
+  'dashboard:view',
+  'application:view',
+  'application:create',
+  'application:update',
+  'application:disable',
+  'application:secret',
+  'role:view',
+  'role:update',
+  'directory:view',
+  'sync:view',
+  'sync:run',
+  'audit:view',
+];
+
 export async function registerAuthRoutes(app: FastifyInstance, options: AuthRouteOptions): Promise<void> {
   app.post('/api/dev/feishu/mock-login', async (request, reply) => {
     if (!options.allowMockLogin) {
@@ -61,8 +76,22 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
     return { feishuUserId: user.feishuUserId, name: user.name };
   });
 
-  app.get('/api/session/current', async (request) => ({
-    authenticated: Boolean(request.actor),
-    actor: request.actor,
-  }));
+  app.get('/api/session/current', async (request) => {
+    if (!request.actor) {
+      return { authenticated: false };
+    }
+
+    return {
+      authenticated: true,
+      user: {
+        feishuUserId: request.actor.feishuUserId,
+        displayName: request.actor.name,
+        departmentPath: '-',
+        status: 'active',
+      },
+      roles: request.actor.isPlatformAdmin ? ['platform_admin'] : [],
+      permissions: request.actor.isPlatformAdmin ? platformAdminPermissions : [],
+      applicationIds: [],
+    };
+  });
 }

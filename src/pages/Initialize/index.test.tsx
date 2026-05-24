@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { InitializePage } from './index';
 
 describe('InitializePage', () => {
@@ -19,8 +21,18 @@ describe('InitializePage', () => {
     });
   });
 
-  it('shows initialization status, four bootstrap steps, and actions', () => {
-    render(<InitializePage />);
+  it('shows initialization status, four bootstrap steps, and actions', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/initialize']}>
+          <InitializePage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
 
     expect(screen.getByRole('heading', { name: '系统初始化' })).toBeInTheDocument();
     expect(screen.getByText('当前系统尚未完成平台管理员绑定')).toBeInTheDocument();
@@ -28,7 +40,7 @@ describe('InitializePage', () => {
     expect(screen.getByText('设置 FEISHU_INITIAL_ADMIN_USER_ID')).toBeInTheDocument();
     expect(screen.getByText('重启服务')).toBeInTheDocument();
     expect(screen.getByText('使用飞书登录')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '重新检测配置' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '重新检测配置' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '查看部署文档' })).toBeInTheDocument();
   });
 });

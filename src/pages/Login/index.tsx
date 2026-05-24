@@ -7,7 +7,11 @@ type LoginPageProps = {
   status?: LoginStatus;
   environmentName?: string;
   deploymentUrl?: string;
+  apiModeLabel?: string;
+  devMockLoginVisible?: boolean;
+  devMockLoginLoading?: boolean;
   onLogin?: () => void;
+  onDevMockLogin?: () => void;
 };
 
 const statusContent: Record<Exclude<LoginStatus, 'idle' | 'callbackProcessing'>, { title: string; subTitle: string }> = {
@@ -33,7 +37,16 @@ function getDefaultDeploymentUrl() {
   return window.location.origin;
 }
 
-export function LoginPage({ status = 'idle', environmentName = '本地部署', deploymentUrl, onLogin }: LoginPageProps) {
+export function LoginPage({
+  status = 'idle',
+  environmentName = '本地部署',
+  deploymentUrl,
+  apiModeLabel,
+  devMockLoginVisible,
+  devMockLoginLoading,
+  onLogin,
+  onDevMockLogin,
+}: LoginPageProps) {
   const resolvedDeploymentUrl = deploymentUrl ?? getDefaultDeploymentUrl();
 
   if (status === 'callbackProcessing') {
@@ -76,9 +89,17 @@ export function LoginPage({ status = 'idle', environmentName = '本地部署', d
             )
           }
           extra={
-            <Button type="primary" icon={<LoginOutlined aria-hidden="true" />} size="large" onClick={onLogin}>
-              使用飞书登录
-            </Button>
+            <Space orientation="vertical" size={12}>
+              <Button type="primary" icon={<LoginOutlined aria-hidden="true" />} size="large" onClick={onLogin}>
+                使用飞书登录
+              </Button>
+              {devMockLoginVisible ? (
+                <Button loading={devMockLoginLoading} onClick={onDevMockLogin}>
+                  使用本地 mock 飞书登录
+                </Button>
+              ) : null}
+              {apiModeLabel ? <Typography.Text type="secondary">{apiModeLabel}</Typography.Text> : null}
+            </Space>
           }
         />
       </Space>

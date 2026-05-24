@@ -1,5 +1,9 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PermissionGuard } from '../components/PermissionGuard';
+import { getIamApiMode } from '../features/iam/apiMode';
+import * as httpApi from '../features/iam/httpApi';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { ForbiddenPage } from '../pages/Errors/Forbidden';
 import { GlobalErrorPage } from '../pages/Errors/GlobalError';
@@ -7,15 +11,53 @@ import { InitializePage } from '../pages/Initialize';
 import { LoginPage } from '../pages/Login';
 import { routeItems } from '../router/routes';
 
+function RuntimeLoginPage() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const apiMode = getIamApiMode();
+
+  return (
+    <LoginPage
+      apiModeLabel={apiMode === 'http' ? 'HTTP runtime' : 'Mock data'}
+      devMockLoginVisible={apiMode === 'http' && import.meta.env.DEV}
+      devMockLoginLoading={loading}
+      onDevMockLogin={async () => {
+        setLoading(true);
+        try {
+          await httpApi.mockFeishuLogin({
+            feishuUserId: 'ou_v012_verify_admin',
+            name: '本地平台管理员',
+            email: 'local-admin@example.com',
+          });
+          navigate('/initialize');
+        } finally {
+          setLoading(false);
+        }
+      }}
+    />
+  );
+}
+
 export function App() {
+  const apiMode = getIamApiMode();
+  const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
+  const runtimeRouteItems =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path === '/applications' || item.path === '/audit-logs')
+      : routeItems;
+  const disabledHttpRouteItems =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path !== '/applications' && item.path !== '/audit-logs')
+      : [];
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<RuntimeLoginPage />} />
         <Route path="/initialize" element={<InitializePage />} />
         <Route element={<AdminLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          {routeItems.map((item) => (
+          <Route index element={<Navigate to={defaultAdminPath} replace />} />
+          {runtimeRouteItems.map((item) => (
             <Route
               key={item.path}
               path={item.path}
@@ -28,6 +70,9 @@ export function App() {
                 </PermissionGuard>
               }
             />
+          ))}
+          {disabledHttpRouteItems.map((item) => (
+            <Route key={`http-disabled-${item.path}`} path={item.path} element={<Navigate to={defaultAdminPath} replace />} />
           ))}
         </Route>
         <Route path="*" element={<GlobalErrorPage />} />

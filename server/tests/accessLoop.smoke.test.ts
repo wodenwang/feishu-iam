@@ -244,5 +244,7 @@ async function createApplication(app: Awaited<ReturnType<typeof buildTestApp>>, 
     payload: { name },
   });
   expect(response.statusCode).toBe(200);
-  return response.json() as { id: string; app_key: string; apiSecret: string };
+  const body = response.json() as { application: { id: string; app_key: string }; apiSecret: string };
+  expect(body.apiSecret).toMatch(/^api_sec_/);
+  return { ...body.application, apiSecret: body.apiSecret };
 }

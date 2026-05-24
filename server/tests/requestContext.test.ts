@@ -21,7 +21,7 @@ describe('request context', () => {
     const response = await app.inject({ method: 'GET', url: '/api/session/current' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ authenticated: false, actor: null });
+    expect(response.json()).toEqual({ authenticated: false });
   });
 
   it('resolves a valid session cookie to the current Feishu actor', async () => {
@@ -35,11 +35,15 @@ describe('request context', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       authenticated: true,
-      actor: {
+      user: {
         feishuUserId: 'ou_request_context_001',
-        name: '请求上下文用户',
-        isPlatformAdmin: false,
+        displayName: '请求上下文用户',
+        departmentPath: '-',
+        status: 'active',
       },
+      roles: [],
+      permissions: [],
+      applicationIds: [],
     });
   });
 
@@ -58,8 +62,8 @@ describe('request context', () => {
       headers: { cookie: 'iam_session=missing-token' },
     });
 
-    expect(expired.json()).toMatchObject({ authenticated: false, actor: null });
-    expect(unknown.json()).toMatchObject({ authenticated: false, actor: null });
+    expect(expired.json()).toEqual({ authenticated: false });
+    expect(unknown.json()).toEqual({ authenticated: false });
   });
 });
 

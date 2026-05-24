@@ -1,33 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  batchDisableApplications,
-  createRole,
-  createApplication,
-  disableRoles,
-  getApplication,
-  getLatestSyncRun,
-  getCurrentSession,
-  getDashboardSummary,
-  listApplicationPermissionRegistrations,
-  listApplications,
-  listAuditLogs,
-  listDirectoryUsers,
-  listFeishuDepartments,
-  listIamPermissionTree,
-  listRoles,
-  listSyncRuns,
-  recordRuntimeSecretCopy,
-  retrySyncRun,
-  rotateApplicationSecret,
-  startManualSync,
-  updateRole,
-  updateRoleAuthorization,
-} from './mockApi';
+import { iamService } from './iamService';
 import type {
   ApplicationStatus,
   AuditAction,
   AuditResult,
+  Application,
   CreateApplicationInput,
+  CreateApplicationResult,
   ListRolesRequest,
   RoleStatus,
   UpdateRoleAuthorizationInput,
@@ -75,6 +54,7 @@ interface ListDirectoryUsersParams {
 
 export const iamQueryKeys = {
   session: ['iam', 'session'] as const,
+  initializationStatus: ['iam', 'initializationStatus'] as const,
   dashboardSummary: ['iam', 'dashboardSummary'] as const,
   applications: (params: ListApplicationsParams) => ['iam', 'applications', params] as const,
   application: (applicationId: string) => ['iam', 'application', applicationId] as const,
@@ -92,21 +72,40 @@ export const iamQueryKeys = {
 export function useCurrentSession() {
   return useQuery({
     queryKey: iamQueryKeys.session,
-    queryFn: getCurrentSession,
+    queryFn: iamService.getCurrentSession,
+  });
+}
+
+export function useInitializationStatus() {
+  return useQuery({
+    queryKey: iamQueryKeys.initializationStatus,
+    queryFn: iamService.getInitializationStatus,
+  });
+}
+
+export function useBindPlatformAdmin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: iamService.bindPlatformAdmin,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.initializationStatus });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.session });
+    },
   });
 }
 
 export function useDashboardSummary() {
   return useQuery({
     queryKey: iamQueryKeys.dashboardSummary,
-    queryFn: getDashboardSummary,
+    queryFn: iamService.getDashboardSummary,
   });
 }
 
 export function useApplications(params: ListApplicationsParams) {
   return useQuery({
     queryKey: iamQueryKeys.applications(params),
-    queryFn: () => listApplications(params),
+    queryFn: () => iamService.listApplications(params),
   });
 }
 
@@ -115,7 +114,7 @@ export function useRoles(params: ListRolesParams) {
 
   return useQuery({
     queryKey: iamQueryKeys.roles(request),
-    queryFn: () => listRoles(request satisfies ListRolesRequest),
+    queryFn: () => iamService.listRoles(request satisfies ListRolesRequest),
     enabled,
   });
 }
@@ -123,36 +122,36 @@ export function useRoles(params: ListRolesParams) {
 export function useIamPermissionTree() {
   return useQuery({
     queryKey: iamQueryKeys.iamPermissionTree,
-    queryFn: listIamPermissionTree,
+    queryFn: iamService.listIamPermissionTree,
   });
 }
 
 export function useFeishuDepartments() {
   return useQuery({
     queryKey: iamQueryKeys.feishuDepartments,
-    queryFn: listFeishuDepartments,
+    queryFn: iamService.listFeishuDepartments,
   });
 }
 
 export function useDirectoryUsers(params: ListDirectoryUsersParams) {
   return useQuery({
     queryKey: iamQueryKeys.directoryUsers(params),
-    queryFn: () => listDirectoryUsers(params),
+    queryFn: () => iamService.listDirectoryUsers(params),
   });
 }
 
 export function useApplication(applicationId: string) {
   return useQuery({
     queryKey: iamQueryKeys.application(applicationId),
-    queryFn: () => getApplication(applicationId),
+    queryFn: () => iamService.getApplication(applicationId),
   });
 }
 
 export function useCreateApplication() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (input: CreateApplicationInput) => createApplication(input),
+  return useMutation<Application | CreateApplicationResult, Error, CreateApplicationInput>({
+    mutationFn: (input: CreateApplicationInput) => iamService.createApplication(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] }),
   });
 }
@@ -161,7 +160,7 @@ export function useBatchDisableApplications() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (applicationIds: string[]) => batchDisableApplications(applicationIds),
+    mutationFn: (applicationIds: string[]) => iamService.batchDisableApplications(applicationIds),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] }),
   });
 }
@@ -171,7 +170,7 @@ export function useRotateApplicationSecret() {
 
   return useMutation({
     mutationFn: ({ applicationId, secretType }: { applicationId: string; secretType: 'appsecret' | 'apiSecret' }) =>
-      rotateApplicationSecret(applicationId, secretType),
+      iamService.rotateApplicationSecret(applicationId, secretType),
     onSuccess: (application) => {
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(application.id) });
       queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] });
@@ -184,7 +183,7 @@ export function useRecordRuntimeSecretCopy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (applicationId: string) => recordRuntimeSecretCopy(applicationId),
+    mutationFn: (applicationId: string) => iamService.recordRuntimeSecretCopy(applicationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] }),
   });
 }
@@ -192,7 +191,7 @@ export function useRecordRuntimeSecretCopy() {
 export function useApplicationPermissionRegistrations(applicationId: string) {
   return useQuery({
     queryKey: iamQueryKeys.applicationPermissionRegistrations(applicationId),
-    queryFn: () => listApplicationPermissionRegistrations(applicationId),
+    queryFn: () => iamService.listApplicationPermissionRegistrations(applicationId),
   });
 }
 
@@ -200,7 +199,7 @@ export function useCreateRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UpsertRoleInput) => createRole(input),
+    mutationFn: (input: UpsertRoleInput) => iamService.createRole(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
@@ -212,7 +211,7 @@ export function useUpdateRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ roleId, input }: { roleId: string; input: UpsertRoleInput }) => updateRole(roleId, input),
+    mutationFn: ({ roleId, input }: { roleId: string; input: UpsertRoleInput }) => iamService.updateRole(roleId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
@@ -224,7 +223,7 @@ export function useUpdateRoleAuthorization() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UpdateRoleAuthorizationInput) => updateRoleAuthorization(input),
+    mutationFn: (input: UpdateRoleAuthorizationInput) => iamService.updateRoleAuthorization(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
@@ -236,7 +235,7 @@ export function useDisableRoles() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (roleIds: string[]) => disableRoles(roleIds),
+    mutationFn: (roleIds: string[]) => iamService.disableRoles(roleIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'roles'] });
       queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
@@ -247,21 +246,21 @@ export function useDisableRoles() {
 export function useAuditLogs(params: ListAuditLogsParams) {
   return useQuery({
     queryKey: iamQueryKeys.auditLogs(params),
-    queryFn: () => listAuditLogs(params),
+    queryFn: () => iamService.listAuditLogs(params),
   });
 }
 
 export function useSyncRuns(params: { page: number; pageSize: number }) {
   return useQuery({
     queryKey: iamQueryKeys.syncRuns(params),
-    queryFn: () => listSyncRuns(params),
+    queryFn: () => iamService.listSyncRuns(params),
   });
 }
 
 export function useLatestSyncRun() {
   return useQuery({
     queryKey: iamQueryKeys.latestSyncRun,
-    queryFn: getLatestSyncRun,
+    queryFn: iamService.getLatestSyncRun,
   });
 }
 
@@ -269,7 +268,7 @@ export function useStartManualSync() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: startManualSync,
+    mutationFn: iamService.startManualSync,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
@@ -281,7 +280,7 @@ export function useRetrySyncRun() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (syncRunId: string) => retrySyncRun(syncRunId),
+    mutationFn: (syncRunId: string) => iamService.retrySyncRun(syncRunId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });

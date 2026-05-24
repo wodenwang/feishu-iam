@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rejectNextAuditLogsList, resetMockIamStore } from '../../features/iam/mockApi';
+import type { IamHttpError } from '../../features/iam/types';
 import { AuditLogsPage } from '.';
 
 beforeAll(() => {
@@ -87,11 +88,17 @@ describe('AuditLogsPage', () => {
 
   it('shows retryable error block when loading audit logs fails and recovers after retry', async () => {
     const user = userEvent.setup();
-    rejectNextAuditLogsList(new Error('audit logs unavailable'));
+    const error = new Error('审计服务暂时不可用') as IamHttpError;
+    error.name = 'IamHttpError';
+    error.status = 500;
+    error.code = 'INTERNAL_SERVER_ERROR';
+    error.requestId = 'req_audit_error_001';
+    rejectNextAuditLogsList(error);
     renderAuditLogsPage();
 
     expect(await screen.findByText('加载审计日志失败')).toBeInTheDocument();
-    expect(screen.getByText(/Request ID：req_audit_error_001/)).toBeInTheDocument();
+    expect(screen.getByText('审计服务暂时不可用')).toBeInTheDocument();
+    expect(screen.getByText('req_audit_error_001')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /重\s*试/ }));
 

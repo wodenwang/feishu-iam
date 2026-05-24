@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getIamApiMode } from './apiMode';
+import { logout as httpLogout } from './httpApi';
 import { iamService } from './iamService';
 import type {
   ApplicationStatus,
@@ -91,6 +93,23 @@ export function useBindPlatformAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.initializationStatus });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.session });
+    },
+  });
+}
+
+export function useLogout(options: { onSuccess?: () => void | Promise<void> } = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (getIamApiMode() !== 'http') {
+        return;
+      }
+      await httpLogout();
+    },
+    onSuccess: async () => {
+      queryClient.clear();
+      await options.onSuccess?.();
     },
   });
 }

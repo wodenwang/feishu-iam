@@ -116,6 +116,17 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
     }
   });
 
+  app.post('/api/auth/logout', async (request, reply) => {
+    const token = readCookie(request.headers.cookie, options.sessionCookieName);
+
+    if (token) {
+      await options.pool.query("delete from iam_sessions where token_hash = encode(digest($1, 'sha256'), 'hex')", [token]);
+    }
+
+    reply.header('set-cookie', buildCookie(options.sessionCookieName, '', { maxAge: 0, httpOnly: true, secure: options.secureCookies }));
+    return { ok: true };
+  });
+
   app.get('/api/session/current', async (request) => {
     if (!request.actor) {
       return { authenticated: false };

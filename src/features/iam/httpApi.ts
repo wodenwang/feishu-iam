@@ -129,6 +129,10 @@ export async function mockFeishuLogin(input: { feishuUserId: string; name: strin
   return httpRequest('/api/dev/feishu/mock-login', { method: 'POST', body: input });
 }
 
+export async function logout(): Promise<void> {
+  await httpRequest('/api/auth/logout', { method: 'POST' });
+}
+
 export async function listApplications(
   request: PageRequest & {
     keyword?: string;

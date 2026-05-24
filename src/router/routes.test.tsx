@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { Result } from 'antd';
 import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { PermissionGuard } from '../components/PermissionGuard';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { canAccess, getMenuSelectedKey, getVisibleMenuItems, matchRouteItem, routeItems } from './routes';
@@ -43,6 +43,10 @@ const appAdminSession: CurrentSession = {
 };
 
 describe('routes', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('hides sync center from application admins', () => {
     const menu = getVisibleMenuItems(routeItems, appAdminSession);
 
@@ -111,5 +115,41 @@ describe('routes', () => {
     expect((await screen.findAllByText('应用详情')).length).toBeGreaterThan(0);
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
     expect(screen.queryByText('页面不存在')).not.toBeInTheDocument();
+  });
+
+  it('renders approved admin shell dimensions and http-mode menu entries', async () => {
+    vi.stubEnv('VITE_IAM_API_MODE', 'http');
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['iam', 'session'], appAdminSession);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/applications']}>
+          <Routes>
+            <Route element={<AdminLayout />}>
+              <Route path="/applications" element={<div>应用页内容</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('应用页内容')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-sider')).toHaveStyle({ flex: '0 0 224px', maxWidth: '224px', minWidth: '224px', width: '224px' });
+    expect(screen.getByTestId('admin-header')).toHaveStyle({ height: '56px' });
+    expect(screen.getByTestId('admin-content')).toHaveStyle({ padding: '24px' });
+    expect(screen.getByLabelText('feishu-iam')).toBeInTheDocument();
+    expect(screen.getByText('生产环境')).toBeInTheDocument();
+    expect(screen.getByText('HTTP runtime')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /打开用户菜单/ })).toBeInTheDocument();
+
+    expect(screen.queryByText('工作台')).not.toBeInTheDocument();
+    expect(screen.queryByText('飞书同步')).not.toBeInTheDocument();
+    expect(screen.getAllByText('应用管理').length).toBeGreaterThan(0);
+    expect(screen.getByText('角色授权')).toBeInTheDocument();
+    expect(screen.getByText('组织与用户')).toBeInTheDocument();
+    expect(screen.getByText('审计日志')).toBeInTheDocument();
   });
 });

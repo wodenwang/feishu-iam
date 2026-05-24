@@ -84,7 +84,7 @@ describe('ApplicationsListPage', () => {
     expect(screen.getByText('应用管理')).toBeInTheDocument();
     expect(screen.getByLabelText('keyword')).toBeInTheDocument();
     expect(screen.getByLabelText('status')).toBeInTheDocument();
-    expect(screen.getByText('创建应用')).toBeInTheDocument();
+    expect(screen.getByText('新增应用')).toBeInTheDocument();
     expect(screen.getByText('批量停用')).toBeInTheDocument();
     expect(screen.getByText('刷新')).toBeInTheDocument();
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
@@ -95,6 +95,20 @@ describe('ApplicationsListPage', () => {
     expect(within(row).getByText('查看')).toBeInTheDocument();
     expect(within(row).getByText('接入配置')).toBeInTheDocument();
     expect(within(row).getAllByText('停用').length).toBeGreaterThan(0);
+  });
+
+  it('keeps create application in the page header before search and table regions', async () => {
+    renderApplicationsList();
+
+    await screen.findByText('Demo CRM');
+    const pageHeader = screen.getByRole('region', { name: '应用管理页头' });
+    const searchRegion = screen.getByRole('region', { name: '应用筛选' });
+    const tableShell = screen.getByTestId('app-table-shell');
+
+    expect(Boolean(pageHeader.compareDocumentPosition(searchRegion) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(searchRegion.compareDocumentPosition(tableShell) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(within(pageHeader).getByRole('button', { name: /新增应用/ })).toBeInTheDocument();
+    expect(within(searchRegion).getByRole('button', { name: /查询/ })).toBeInTheDocument();
   });
 
   it('filters applications by status select', async () => {
@@ -189,11 +203,25 @@ describe('ApplicationsListPage', () => {
     await waitFor(() => expect(screen.getByText('没有匹配的应用')).toBeInTheDocument());
   });
 
+  it('resets filters from search empty state and restores application data', async () => {
+    const user = userEvent.setup();
+    renderApplicationsList();
+
+    await user.type(screen.getByLabelText('keyword'), 'no-such-app');
+    await user.click(screen.getByRole('button', { name: /查询/ }));
+    await screen.findByText('没有匹配的应用');
+
+    await user.click(screen.getByRole('button', { name: /重置筛选/ }));
+
+    expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
+    expect(screen.getByLabelText('keyword')).toHaveValue('');
+  });
+
   it('opens create drawer with required application fields', async () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await user.click(screen.getByRole('button', { name: /创建应用/ }));
+    await user.click(screen.getByRole('button', { name: /新增应用/ }));
 
     await screen.findByRole('dialog', { name: '创建应用' });
     expect(screen.getAllByText('应用名称').length).toBeGreaterThan(0);
@@ -211,7 +239,7 @@ describe('ApplicationsListPage', () => {
     const row = screen.getByText('Demo CRM').closest('tr');
     expect(row).not.toBeNull();
 
-    expect(screen.queryByText('创建应用')).not.toBeInTheDocument();
+    expect(screen.queryByText('新增应用')).not.toBeInTheDocument();
     expect(screen.queryByText('批量停用')).not.toBeInTheDocument();
     expect(within(row!).queryByText('停用')).not.toBeInTheDocument();
     expect(within(row!).getByText('查看')).toBeInTheDocument();
@@ -230,11 +258,33 @@ describe('ApplicationsListPage', () => {
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
   });
 
+  it('shows request id in retryable application errors', async () => {
+    const httpError = Object.assign(new Error('服务暂时不可用'), {
+      name: 'IamHttpError',
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      requestId: 'req_applications_500',
+    });
+    rejectNextApplicationsList(httpError);
+    renderApplicationsList();
+
+    expect(await screen.findByText('加载应用列表失败')).toBeInTheDocument();
+    expect(screen.getByText('req_applications_500')).toBeInTheDocument();
+  });
+
+  it('keeps table structure stable while the application list is loading', () => {
+    renderApplicationsList();
+
+    expect(screen.getByTestId('app-table-shell')).toBeInTheDocument();
+    expect(screen.getAllByText('应用名称').length).toBeGreaterThan(0);
+    expect(screen.getByText('加载应用数据')).toBeInTheDocument();
+  });
+
   it('submits create application mutation, closes drawer, and shows the new application', async () => {
     const user = userEvent.setup();
     renderApplicationsList();
 
-    await user.click(screen.getByRole('button', { name: /创建应用/ }));
+    await user.click(screen.getByRole('button', { name: /新增应用/ }));
     expect(await screen.findByRole('dialog', { name: '创建应用' })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('应用名称'), '采购系统');

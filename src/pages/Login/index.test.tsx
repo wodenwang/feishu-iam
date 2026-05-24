@@ -31,4 +31,30 @@ describe('LoginPage', () => {
     expect(screen.getByText(/FEISHU_APP_ID/)).toBeInTheDocument();
     expect(screen.getByText(/FEISHU_APP_SECRET/)).toBeInTheDocument();
   });
+
+  it('hides local mock login unless the caller marks it visible', () => {
+    const { rerender } = render(<LoginPage />);
+
+    expect(screen.queryByRole('button', { name: /Mock 开发登录/ })).not.toBeInTheDocument();
+
+    rerender(<LoginPage devMockLoginVisible />);
+
+    expect(screen.getByRole('button', { name: /Mock 开发登录/ })).toBeInTheDocument();
+    expect(screen.getByText('DEV ONLY')).toBeInTheDocument();
+  });
+
+  it('shows a stable callback processing state', () => {
+    render(<LoginPage status="callbackProcessing" deploymentUrl="https://iam.example.com" environmentName="生产环境" />);
+
+    expect(screen.getByText('正在验证飞书身份')).toBeInTheDocument();
+    expect(screen.getByText(/https:\/\/iam\.example\.com/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '使用飞书登录' })).not.toBeInTheDocument();
+  });
+
+  it('shows no-console-access recovery copy', () => {
+    render(<LoginPage status="noConsoleAccess" />);
+
+    expect(screen.getByText('无后台访问权限')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新使用飞书登录' })).toBeInTheDocument();
+  });
 });

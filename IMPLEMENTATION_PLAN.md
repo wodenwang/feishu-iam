@@ -1,142 +1,235 @@
-# feishu-iam v0.1.8 Real Feishu Auth Implementation Plan
+# feishu-iam v0.1.10 Admin Console Frontend Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use Superpowers `executing-plans` to implement this plan task-by-task. Track each checkbox as it is completed.
+> **For agentic workers:** REQUIRED SUB-SKILL: Prefer Superpowers `subagent-driven-development` for implementation because tasks below have explicit, mostly non-overlapping ownership. Main agent owns integration, verification, release, and deployment. If a worker needs to touch another worker's files, stop and report before editing.
 
-**Goal:** 交付真实飞书 Admin Console 登录闭环：`FEISHU_AUTH_MODE=real` 下可从 `/login` 跳转飞书授权、callback 创建 IAM session、首次绑定 platform admin，并完成测试、ship、land、deploy。
+## Goal
 
-**Architecture:** 扩展现有 Fastify auth module。真实飞书调用封装在 `RealFeishuAuthAdapter`，route 层负责 OAuth state cookie、callback、session 创建和审计。前端 HTTP mode 登录按钮跳转后端 start endpoint。
+交付 v0.1.10 Admin Console 前端重构：按已批准 Pencil 原型实现 Ant Design Pro 风格 Admin Shell、品牌 logo、飞书唯一登录页、UserMenu、退出登录流程、稳定表格状态、主题 token 和响应式修复。
 
-**Source Inputs:**
+## Source Inputs
 
-- Office-hours design doc: `/Users/wenzhewang/.gstack/projects/wodenwang-feishu-iam/wenzhewang-main-design-20260524-163400.md`
-- Engineering review: `docs/superpowers/plans/2026-05-24-v0.1.8-real-feishu-auth-eng-review.md`
-- Product spec: `docs/v0.1-product-spec.md`
-- Existing runtime: `server/src/modules/auth/authRoutes.ts`
+- Design source: `design/feishu-iam-v0.1.10-frontend-redesign.pen`
+- Design notes: `design/feishu-iam-v0.1.10-frontend-redesign-notes.md`
+- Prototype review R2: `design/feishu-iam-v0.1.10-frontend-redesign-prototype-review-r2.md`
+- Engineering review: `docs/superpowers/plans/2026-05-24-v0.1.10-frontend-redesign-eng-review.md`
+- Project rules: `AGENTS.md`, `CLAUDE.md`, `DESIGN.md`
 
 ## Scope
 
 ### In Scope
 
-1. `GET /api/auth/feishu/start` real-mode OAuth start.
-2. `GET /api/auth/feishu/callback` state validation, token exchange, user info, session creation.
-3. `RealFeishuAuthAdapter` for Feishu OAuth v2 token endpoint and user info endpoint.
-4. Short-lived HttpOnly state cookie.
-5. Real login audit success/failure.
-6. Frontend `/login` button wiring in HTTP mode.
-7. Tests, docs, version metadata, release and deploy closure.
+1. Ant Design token theme using the v0.1.10 brand palette.
+2. Shared UI components:
+   - `BrandLogo`
+   - `PageHeader`
+   - `StatusTag`
+   - `UserMenu`
+   - updated `SearchForm`
+   - updated `AppTable`
+3. Stable `AdminLayout`:
+   - fixed header height
+   - stable sider width/collapsed width
+   - right-aligned UserMenu
+   - responsive 1440 / 1280 / 768 behavior
+4. Production and local-dev login page split:
+   - no username/password
+   - no Mock entry in production
+   - DEV ONLY mock entry in local dev
+5. Logout flow:
+   - backend `POST /api/auth/logout`
+   - frontend mutation
+   - query cache clearing
+   - confirm, loading, failure retry, success redirect
+6. Application list layout alignment:
+   - `Breadcrumb -> PageHeader + PrimaryAction -> SearchForm -> Table`
+   - table loading/empty/error/search-empty state stability
+   - query button uses search icon or no icon
+   - status tags use semantic Ant Design colors
+7. Tests, browser verification, design-review, QA, review, ship, land, deploy.
 
 ### Out of Scope
 
-- Third-party application OAuth server.
-- `feishu-iam-thirdpart-demo`.
-- Full Feishu directory sync.
-- refresh token persistence and rotation.
-- `offline_access`.
-- OIDC discovery.
 - Username/password login.
-- Committing real Feishu credentials or tokens.
+- Third-party OAuth Demo closure.
+- OIDC discovery, consent, refresh-token productization.
+- Full Feishu directory sync redesign.
+- Large marketing landing page.
+- Replacing Ant Design with another UI framework.
 
-## File Structure
+## Task Boundaries For Subagents
 
-### Create
+### Worker A: Theme And Shared Components
 
-- `server/src/modules/auth/realFeishuAuthAdapter.ts`
-- `server/tests/auth.real-feishu.test.ts`
-- `.gstack/deploy-reports/2026-05-24-v0.1.8-real-feishu-auth-deploy.md`
+Ownership:
 
-### Modify
+- `src/theme/theme.ts`
+- `src/components/BrandLogo/`
+- `src/components/PageHeader/`
+- `src/components/StatusTag/`
+- `src/components/SearchForm/`
+- `src/components/AppTable/`
+- focused tests for these components if needed
 
-- `server/src/modules/auth/feishuAuthAdapter.ts`
+Tasks:
+
+- [ ] Apply theme token palette:
+  - `colorPrimary: #0f4c81`
+  - `colorInfo: #1f67b2`
+  - `colorWarning: #f28c28`
+  - `colorBgLayout: #eef4f8`
+  - `colorTextBase: #122230`
+  - table header `#f6f9fb`
+- [ ] Implement `BrandLogo` SVG-based component with expanded/collapsed/login variants.
+- [ ] Implement `PageHeader` wrapper with title, description, breadcrumb-compatible spacing, and `extra`.
+- [ ] Implement `StatusTag` mapping for active/disabled/draft/system statuses.
+- [ ] Update `SearchForm` to support compact grid/inline layout without decorative card nesting.
+- [ ] Update `AppTable` to support stable loading/empty/error/search-empty states with fixed min-height and preserved table header/pagination area.
+- [ ] Ensure query/search buttons use `SearchOutlined` or no icon, never `PlusOutlined`.
+
+Verification:
+
+- `npm test -- src/components`
+- Existing page tests still compile.
+
+### Worker B: Auth, Login, Logout, UserMenu
+
+Ownership:
+
 - `server/src/modules/auth/authRoutes.ts`
-- `server/src/app.ts`
-- `server/src/main.ts`
-- `server/src/config/env.ts`
-- `server/tests/helpers/testApp.ts`
-- `server/tests/env.test.ts`
-- `src/app/App.tsx`
-- `src/pages/Login/index.tsx`
-- `src/pages/Login/index.test.tsx`
-- `.env.example`
-- `README.md`
+- `server/tests/auth.mock-login.test.ts`
+- `server/tests/auth.logout.test.ts` if created
+- `src/features/iam/httpApi.ts`
+- `src/features/iam/queries.ts`
+- `src/pages/Login/`
+- `src/components/UserMenu/`
+- focused auth/login tests
+
+Tasks:
+
+- [ ] Add `POST /api/auth/logout`, clearing the session cookie.
+- [ ] Add HTTP API helper `logout()` and mutation hook `useLogout()`.
+- [ ] Build `UserMenu` from the prototype:
+  - user name and role first
+  - environment tag
+  - truncated `open_id`
+  - copy affordance
+  - keyboard-accessible dropdown
+  - logout danger action
+- [ ] Rebuild `LoginPage` from the approved production/local-dev prototype:
+  - production state
+  - local dev state with `DEV ONLY`
+  - callback processing
+  - config/auth/access errors
+  - no username/password inputs
+- [ ] Wire logout success to cache clear and `/login` navigation.
+- [ ] Wire logout failure to visible retryable error without clearing current UI state.
+
+Verification:
+
+- `npm run server:test -- server/tests/auth.mock-login.test.ts server/tests/auth.logout.test.ts`
+- `npm test -- src/pages/Login/index.test.tsx`
+- `npm test -- src/components/UserMenu`
+
+### Worker C: Admin Shell And Applications Page
+
+Ownership:
+
+- `src/layouts/AdminLayout.tsx`
+- `src/layouts/AdminLayout.test.tsx` if created
+- `src/pages/Applications/List.tsx`
+- `src/pages/Applications/List.test.tsx`
+- route/layout test updates
+
+Tasks:
+
+- [ ] Refactor `AdminLayout` to approved shell:
+  - `Sider` 224px, collapsed 64px
+  - Header 56px
+  - `BrandLogo`
+  - environment/sync tags
+  - `UserMenu`
+  - content padding 24 desktop, 16 tablet
+- [ ] Keep HTTP mode visible menu to `/applications`, `/roles`, `/directory`, `/audit-logs`.
+- [ ] Align Applications list to approved order:
+  - `PageHeader + 新增应用`
+  - `SearchForm`
+  - `AppTable`
+- [ ] Add stable table states:
+  - data
+  - loading
+  - empty
+  - error with requestId and retry
+  - search empty with reset filters
+- [ ] Use horizontal scroll at compact viewport and keep application/status/actions accessible.
+- [ ] Replace `+ 查询` with search icon or no icon.
+- [ ] Avoid black high-contrast `停用` status tag.
+
+Verification:
+
+- `npm test -- src/pages/Applications/List.test.tsx`
+- `npm test -- src/router/routes.test.tsx`
+
+### Main Agent: Integration, Version, Verification, Ship, Deploy
+
+Ownership:
+
+- `IMPLEMENTATION_PLAN.md`
+- `docs/superpowers/plans/2026-05-24-v0.1.10-frontend-redesign-eng-review.md`
 - `CHANGELOG.md`
 - `VERSION`
 - `package.json`
 - `package-lock.json`
+- verification reports and screenshots
+- final integration across worker output
 
-## Tasks
+Tasks:
 
-### Task 1: Auth Adapter Contract And Env
+- [ ] Integrate worker outputs and resolve conflicts.
+- [ ] Update version metadata to `0.1.10`.
+- [ ] Update `CHANGELOG.md`.
+- [ ] Run full verification:
+  - `npm run server:test`
+  - `npm test`
+  - `npm run build`
+  - `npm run server:build`
+  - `npm run e2e`
+- [ ] Run browser verification for:
+  - `/login`
+  - `/applications`
+  - UserMenu logout flow
+  - 1440 / 1280 / 768
+- [ ] Run design-review loop and fix in-scope findings.
+- [ ] Run QA loop and fix in-scope findings.
+- [ ] Run review loop and fix in-scope findings.
+- [ ] Git closeout, ship, land, deploy under user authorization.
 
-- [x] Extend `FeishuAuthAdapter` with real OAuth methods.
-- [x] Add `RealFeishuAuthAdapter`.
-- [x] Pass Feishu config from `main.ts` into `buildApp`.
-- [x] Keep mock adapter available for local dev and tests.
-- [x] Ensure real mode startup still requires App ID, App Secret, redirect URI.
-- [x] Verify `npm run server:test -- server/tests/env.test.ts`.
+## Completion Criteria
 
-### Task 2: Real OAuth Routes
+- Production `/login` has no Mock entry and no username/password fields.
+- Local dev `/login` shows `DEV ONLY` mock entry only when allowed.
+- Admin Shell matches approved hierarchy and does not show long Feishu ID in Header.
+- UserMenu supports logout confirm/loading/error/success.
+- Table states remain dimensionally stable.
+- `SearchForm` does not use `+` icon for query.
+- `停用` status tag is not black high-contrast.
+- Fresh tests and browser evidence exist.
+- `v0.1.10` version metadata and CHANGELOG are updated.
+- Release/deploy artifacts are recorded without secrets.
 
-- [x] Add tests for `/api/auth/feishu/start`.
-- [x] Add tests for callback missing `code`, missing `state`, missing cookie, mismatch, and adapter failure.
-- [x] Add tests for callback success: upsert user, directory projection, session cookie, state cookie clear, audit row.
-- [x] Implement start route with `iam_oauth_state` cookie.
-- [x] Implement callback route with one-time state validation.
-- [x] Refactor common session creation/upsert logic so mock and real login share behavior.
-- [x] Verify `npm run server:test -- server/tests/auth.real-feishu.test.ts server/tests/auth.mock-login.test.ts`.
+## Expected Commands
 
-### Task 3: Frontend Login Wiring
-
-- [x] Add `startFeishuLogin()` helper in HTTP API or app layer.
-- [x] Wire `/login` primary button to `/api/auth/feishu/start` in HTTP mode.
-- [x] Keep dev mock login visible only in local development.
-- [x] Add Login page/app tests for real login button.
-- [x] Verify `npm test -- src/pages/Login/index.test.tsx`.
-
-### Task 4: Docs And Version
-
-- [x] Update `.env.example` with real-mode notes and `FEISHU_REDIRECT_URI`.
-- [x] Update README v0.1.8 section with real Feishu login setup and secret boundary.
-- [x] Update CHANGELOG.
-- [x] Update VERSION, package.json, package-lock.json to `0.1.8`.
-- [x] Run secret grep and confirm no real secret is present.
-
-### Task 5: Verification
-
-- [x] Run `npm run server:build`.
-- [x] Run `npm run server:test`.
-- [x] Run `npm test`.
-- [x] Run `npm run build`.
-- [x] Run `npm run e2e`.
-- [x] Run browser/gstack browse or Playwright visual checks for `/login`, `/initialize`, and authenticated Admin Console path.
-- [x] Run Docker build or compose config smoke if deploy files changed or deploy requires it.
-
-### Task 6: Review, Ship, Land, Deploy
-
-- [x] Run design-review or mark UI review not required if only login button behavior changed and existing UI is unchanged.
-- [x] Run functional QA.
-- [x] Run code review.
-- [ ] Commit and push branch.
-- [ ] Create PR.
-- [ ] Merge PR.
-- [ ] Tag and create GitHub Release `v0.1.8`.
-- [ ] Deploy to `bpmt-120:/home/bpmt/feishu-iam`.
-- [ ] Verify remote `/api/health`.
-- [ ] Record deploy report without secrets.
-
-## Expected Outputs
-
-- `v0.1.8` release exists.
-- Real Feishu Admin Console login routes exist and pass tests.
-- Frontend login button reaches real start endpoint in HTTP mode.
-- Remote deployment is updated and health check passes.
-- No real Feishu App Secret, token, user export, or sync snapshot is committed.
+```bash
+npm run server:test
+npm test
+npm run build
+npm run server:build
+npm run e2e
+```
 
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |---|---|---:|---:|---|---|
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | skipped | 当前切片已由 office-hours 收敛为小版本，不再扩大产品方向。 |
-| Codex Review | `/codex review` | Independent 2nd opinion | 0 | pending | 落地前在 `/review` 阶段处理。 |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | clear | 真实飞书登录 adapter、state、session、测试策略已锁定。 |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 | skipped | 本切片不新增页面结构，只接线既有登录按钮。 |
-| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | skipped | 当前重点是运行时登录闭环。 |
+| CEO Review | `/office-hours` | Scope & strategy | 1 | clear | v0.1.10 scoped to frontend polish/refactor; v0.2.* keeps third-party OAuth Demo. |
+| Eng Review | `/plan-eng-review` | Architecture & tests | 1 | clear | subagent task boundaries, logout API, theme/layout/data-flow/test strategy locked. |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | clear | R2 score 9/10, 0 unresolved; 2 implementation nits folded into tasks. |

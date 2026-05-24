@@ -12,7 +12,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Tag,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -22,7 +21,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppTable } from '../../components/AppTable';
 import { FormDrawer } from '../../components/FormDrawer';
-import { SearchForm } from '../../components/SearchForm';
+import { PageHeader } from '../../components/PageHeader';
+import { SearchForm, SearchFormActions } from '../../components/SearchForm';
+import { StatusTag } from '../../components/StatusTag';
 import { getIamApiMode } from '../../features/iam/apiMode';
 import { isIamHttpError } from '../../features/iam/httpClient';
 import { canCreateApplication, canDisableApplications, getScopedApplicationIds } from '../../features/iam/permissions';
@@ -51,12 +52,6 @@ interface CreateApplicationFormValues {
   callbackUrl?: string;
   ownerFeishuUserId?: string;
 }
-
-const statusLabels: Record<ApplicationStatus, { text: string; color: string }> = {
-  active: { text: '启用', color: 'success' },
-  disabled: { text: '停用', color: 'default' },
-  draft: { text: '草稿', color: 'processing' },
-};
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
 
@@ -89,6 +84,12 @@ export function ApplicationsListPage() {
   const batchDisableApplicationsMutation = useBatchDisableApplications();
   const canCreate = canCreateApplication(currentSessionQuery.data);
   const canDisable = apiMode === 'mock' && canDisableApplications(currentSessionQuery.data);
+
+  const resetFilters = useCallback(() => {
+    form.resetFields();
+    setPagination((current) => ({ ...current, page: 1 }));
+    setFilters({});
+  }, [form]);
 
   const confirmRowDisable = useCallback(
     async (application: Application) => {
@@ -124,8 +125,7 @@ export function ApplicationsListPage() {
       width: 90,
       render: (status: ApplicationStatus, record) => {
         const effectiveStatus = locallyDisabledApplicationIds.includes(record.id) ? 'disabled' : status;
-        const config = statusLabels[effectiveStatus];
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return <StatusTag status={effectiveStatus} />;
       },
     };
     const actionColumn: ColumnsType<Application>[number] = {
@@ -288,131 +288,152 @@ export function ApplicationsListPage() {
   };
 
   const dataSource = applicationsQuery.data?.items ?? [];
-  const isSearchEmpty = !applicationsQuery.isLoading && dataSource.length === 0 && Boolean(filters.keyword || filters.status);
+  const hasActiveFilters = Boolean(filters.keyword || filters.status || filters.createdAtFrom || filters.createdAtTo);
+  const isSearchEmpty = !applicationsQuery.isLoading && !applicationsQuery.isError && dataSource.length === 0 && hasActiveFilters;
+  const isEmpty = !applicationsQuery.isLoading && !applicationsQuery.isError && dataSource.length === 0 && !hasActiveFilters;
   const applicationsError = applicationsQuery.error;
   const applicationsErrorRequestId = isIamHttpError(applicationsError) ? applicationsError.requestId : undefined;
   const applicationsErrorMessage = isIamHttpError(applicationsError)
     ? applicationsError.message
     : '请稍后重试，或联系平台管理员检查飞书 IAM 服务状态。';
+  const tableEmptyText = applicationsQuery.isError ? (
+    <Alert
+      type="error"
+      showIcon
+      title="加载应用列表失败"
+      description={
+        <Space orientation="vertical" size={4}>
+          <Typography.Text>{applicationsErrorMessage}</Typography.Text>
+          {applicationsErrorRequestId ? (
+            <Typography.Text code copyable>
+              {applicationsErrorRequestId}
+            </Typography.Text>
+          ) : null}
+        </Space>
+      }
+      action={
+        <Button size="small" danger onClick={() => applicationsQuery.refetch()}>
+          重试
+        </Button>
+      }
+      style={{ textAlign: 'left' }}
+    />
+  ) : isSearchEmpty ? (
+    <Empty
+      description="没有匹配的应用"
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      style={{ minHeight: 240, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+    >
+      <Button onClick={resetFilters}>重置筛选</Button>
+    </Empty>
+  ) : isEmpty ? (
+    <Empty
+      description="暂无应用"
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      style={{ minHeight: 240, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+    >
+      {canCreate ? (
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
+          新增应用
+        </Button>
+      ) : null}
+    </Empty>
+  ) : undefined;
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-      <Typography.Title level={3} style={{ margin: 0 }}>
-        应用管理
-      </Typography.Title>
-
-      <SearchForm
-        form={form}
-        onFinish={(values) => {
-          setPagination((current) => ({ ...current, page: 1 }));
-          setFilters({
-            keyword: values.keyword?.trim() || undefined,
-            status: values.status,
-            createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
-            createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
-          });
-        }}
-      >
-        <Form.Item name="keyword" label="关键词">
-          <Input allowClear placeholder="搜索应用名称 / 编码" aria-label="keyword" style={{ width: 240 }} />
-        </Form.Item>
-        <Form.Item name="status" label="状态">
-          <Select
-            allowClear
-            aria-label="status"
-            placeholder="全部状态"
-            style={{ width: 160 }}
-            options={[
-              { value: 'active', label: '启用' },
-              { value: 'disabled', label: '停用' },
-              { value: 'draft', label: '草稿' },
-            ]}
-          />
-        </Form.Item>
-        <Form.Item name="createdAtRange" label="创建时间">
-          <RangePicker />
-        </Form.Item>
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit">
-              查询
-            </Button>
-            <Button
-              onClick={() => {
-                form.resetFields();
-                setPagination((current) => ({ ...current, page: 1 }));
-                setFilters({});
-              }}
-            >
-              重置
-            </Button>
-          </Space>
-        </Form.Item>
-      </SearchForm>
-
-      <AppTable<Application>
-        title="应用列表"
-        extra={
-          <Space>
-            {canCreate ? (
+      <div role="region" aria-label="应用管理页头">
+        <PageHeader
+          title="应用管理"
+          description="统一管理第三方应用接入、启用状态、回调地址和最近同步情况。"
+          extra={
+            canCreate ? (
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
-                创建应用
+                新增应用
               </Button>
-            ) : null}
-            {canDisable ? (
-              <Button icon={<StopOutlined />} disabled={selectedRowKeys.length === 0} onClick={() => setBatchDisableOpen(true)}>
-                批量停用
+            ) : null
+          }
+        />
+      </div>
+
+      <div role="region" aria-label="应用筛选">
+        <SearchForm
+          form={form}
+          onFinish={(values) => {
+            setPagination((current) => ({ ...current, page: 1 }));
+            setFilters({
+              keyword: values.keyword?.trim() || undefined,
+              status: values.status,
+              createdAtFrom: values.createdAtRange?.[0]?.startOf('day').toISOString(),
+              createdAtTo: values.createdAtRange?.[1]?.endOf('day').toISOString(),
+            });
+          }}
+        >
+          <Form.Item name="keyword" label="关键词">
+            <Input allowClear placeholder="搜索应用名称 / 编码" aria-label="keyword" style={{ width: 240 }} />
+          </Form.Item>
+          <Form.Item name="status" label="状态">
+            <Select
+              allowClear
+              aria-label="status"
+              placeholder="全部状态"
+              style={{ width: 160 }}
+              options={[
+                { value: 'active', label: '启用' },
+                { value: 'disabled', label: '停用' },
+                { value: 'draft', label: '草稿' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="createdAtRange" label="创建时间">
+            <RangePicker />
+          </Form.Item>
+          <SearchFormActions onReset={resetFilters} />
+        </SearchForm>
+      </div>
+
+      <div>
+        <AppTable<Application>
+          title="应用列表"
+          extra={
+            <Space wrap>
+              {canDisable ? (
+                <Button icon={<StopOutlined />} disabled={selectedRowKeys.length === 0} onClick={() => setBatchDisableOpen(true)}>
+                  批量停用
+                </Button>
+              ) : null}
+              <Button icon={<ReloadOutlined />} loading={applicationsQuery.isFetching} onClick={refreshApplications}>
+                刷新
               </Button>
-            ) : null}
-            <Button icon={<ReloadOutlined />} loading={applicationsQuery.isFetching} onClick={refreshApplications}>
-              刷新
-            </Button>
-            {refreshFeedback ? <Typography.Text type="success">{refreshFeedback}</Typography.Text> : null}
-          </Space>
-        }
-        isError={applicationsQuery.isError}
-        error={
-          <Alert
-            type="error"
-            showIcon
-            title="加载应用列表失败"
-            description={
-              <Space orientation="vertical" size={4}>
-                <Typography.Text>{applicationsErrorMessage}</Typography.Text>
-                {applicationsErrorRequestId ? <Typography.Text code copyable>{applicationsErrorRequestId}</Typography.Text> : null}
-              </Space>
-            }
-            action={
-              <Button size="small" danger onClick={() => applicationsQuery.refetch()}>
-                重试
-              </Button>
-            }
-          />
-        }
-        isEmpty={isSearchEmpty}
-      empty={<Empty description="没有匹配的应用" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-        tableProps={{
-          rowKey: 'id',
-          size: 'middle',
-          columns,
-          dataSource,
-          loading: applicationsQuery.isLoading,
-          rowSelection: canDisable
-            ? {
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-              }
-            : undefined,
-          pagination: {
-            total: applicationsQuery.data?.total ?? 0,
-            pageSize: pagination.pageSize,
-            current: pagination.page,
-            showSizeChanger: false,
-            onChange: (page, pageSize) => setPagination({ page, pageSize }),
-          },
-          scroll: { x: isCompact ? 620 : 1280 },
-        }}
-      />
+              {refreshFeedback ? <Typography.Text type="success">{refreshFeedback}</Typography.Text> : null}
+            </Space>
+          }
+          tableProps={{
+            rowKey: 'id',
+            size: 'middle',
+            columns,
+            dataSource,
+            loading: applicationsQuery.isLoading ? { spinning: true, description: '加载应用数据' } : false,
+            locale: {
+              emptyText: tableEmptyText,
+            },
+            rowSelection: canDisable
+              ? {
+                  selectedRowKeys,
+                  onChange: setSelectedRowKeys,
+                }
+              : undefined,
+            pagination: {
+              total: applicationsQuery.data?.total ?? 0,
+              pageSize: pagination.pageSize,
+              current: pagination.page,
+              showSizeChanger: false,
+              onChange: (page, pageSize) => setPagination({ page, pageSize }),
+            },
+            scroll: { x: isCompact ? 720 : 1280 },
+          }}
+        />
+      </div>
 
       <FormDrawer
         title="创建应用"

@@ -7,9 +7,9 @@ test.describe('v0.1.4 Directory HTTP mode', () => {
     await mkdir(screenshotDir, { recursive: true });
 
     await page.goto('/login');
-    await expect(page.getByText('HTTP runtime')).toBeVisible();
+    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
 
-    await page.getByRole('button', { name: '使用本地 mock 飞书登录' }).click();
+    await page.getByRole('button', { name: 'Mock 开发登录（仅本地）' }).click();
     await expect(page).toHaveURL(/\/initialize/);
 
     const bindButton = page.getByRole('button', { name: /绑定当前飞书用户为平台管理员/ });
@@ -25,13 +25,14 @@ test.describe('v0.1.4 Directory HTTP mode', () => {
     }
 
     await page.goto('/directory');
-    await expect(page.getByText('HTTP runtime')).toBeVisible();
+    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
     await expect(page.getByText('部门树')).toBeVisible();
     await expect(page.getByText('用户列表')).toBeVisible();
-    await expect(page.getByRole('table')).toContainText('本地平台管理员');
+    await expect(page.getByRole('table')).toContainText('ou_v012_verify_admin');
     await page.screenshot({ path: `${screenshotDir}/directory-${testInfo.project.name}.png`, fullPage: true });
 
-    await page.getByRole('button', { name: /查看详情/ }).first().click();
+    const adminRow = page.getByRole('row', { name: /ou_v012_verify_admin/ });
+    await adminRow.getByRole('button', { name: /查看详情/ }).click();
     const detailDrawer = page.getByRole('dialog', { name: '用户详情' });
     await expect(detailDrawer).toBeVisible();
     await expect(detailDrawer.getByText(/飞书 user_id：ou_v012_verify_admin/)).toBeVisible();

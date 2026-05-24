@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.10 - Admin Console 前端重构
+
+- 按 Ant Design Pro 风格重构 Admin Shell、Header 右上角 UserMenu、品牌 logo、登录页和退出登录流程。
+- 新增 `feishu-iam` 原创盾牌 logo 与 JoyBell 参考色系的 Ant Design token 主题，保持企业后台高密度、表格优先和视觉克制。
+- 拆分生产飞书登录页与本地 DEV Mock 登录页，继续禁止 username/password 登录体系。
+- 新增退出登录确认、处理中、失败重试和成功回到登录页的前后端闭环。
+- 补齐应用列表 loading、empty、error、search-empty 状态，稳定表格容器和分页占位，降低页面抖动。
+- 覆盖 1440 / 1280 / 768 响应式布局、UserMenu 长 open_id 截断、键盘可访问性和横向表格滚动规则。
+
 ## v0.1.9 - 部署 migration 元数据过滤
 
 - 修复 macOS AppleDouble 元数据文件 `._*.sql` 被打包到 `dist-server/migrations` 后误当 migration 执行的问题。

@@ -11,6 +11,15 @@ describe('httpApi', () => {
     httpRequestMock.mockReset();
   });
 
+  it('posts logout to the runtime auth API', async () => {
+    httpRequestMock.mockResolvedValue({ ok: true });
+    const { logout } = await import('./httpApi');
+
+    await logout();
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+  });
+
   it('passes application list filters to the runtime API', async () => {
     httpRequestMock.mockResolvedValue({ items: [], page: 2, pageSize: 10, total: 0 });
     const { listApplications } = await import('./httpApi');

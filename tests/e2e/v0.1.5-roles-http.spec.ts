@@ -11,9 +11,9 @@ test.describe('v0.1.5 Roles HTTP mode', () => {
     const roleCode = `role-http-${suffix}`.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
 
     await page.goto('/login');
-    await expect(page.getByText('HTTP runtime')).toBeVisible();
+    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
 
-    await page.getByRole('button', { name: '使用本地 mock 飞书登录' }).click();
+    await page.getByRole('button', { name: 'Mock 开发登录（仅本地）' }).click();
     await expect(page).toHaveURL(/\/initialize/);
 
     const bindButton = page.getByRole('button', { name: /绑定当前飞书用户为平台管理员/ });
@@ -28,14 +28,14 @@ test.describe('v0.1.5 Roles HTTP mode', () => {
       await enterApplicationsButton.click();
     }
 
-    await page.getByRole('button', { name: '创建应用' }).click();
+    await page.getByRole('button', { name: '新增应用' }).click();
     await page.getByLabel('应用名称').fill(appName);
     await page.getByRole('button', { name: /提\s*交/ }).click();
     await expect(page.getByRole('dialog', { name: '应用已创建' })).toBeVisible();
     await page.getByRole('button', { name: /我已保存/ }).click();
 
     await page.goto('/roles');
-    await expect(page.getByText('HTTP runtime')).toBeVisible();
+    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: '角色授权' })).toBeVisible();
 
     await page.getByRole('button', { name: /新建角色/ }).click();

@@ -159,7 +159,7 @@ export function DirectoryPage() {
               showIcon
               title={directoryErrorView.title}
               description={
-                <Space direction="vertical" size={4}>
+                <Space orientation="vertical" size={4}>
                   <Typography.Text>{directoryErrorView.description}</Typography.Text>
                   {directoryErrorView.requestId ? (
                     <Typography.Text type="secondary">

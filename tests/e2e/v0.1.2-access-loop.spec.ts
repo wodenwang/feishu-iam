@@ -22,7 +22,8 @@ test.describe('v0.1.2 access loop API smoke', () => {
         data: { name: `v0.1.2 E2E Demo ${suffix}` },
       }),
     );
-    const application = await appResponse.json();
+    const appBody = await appResponse.json();
+    const application = { ...appBody.application, apiSecret: appBody.apiSecret };
 
     const groupBody = JSON.stringify({ groups: [{ code: 'demo.customer', name: '客户管理' }] });
     await expectOk(

@@ -271,16 +271,24 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
         order by pg.code asc, pp.code asc
       `,
     );
-    const groups = new Map<string, { key: string; title: string; children: Array<{ key: string; title: string }> }>();
+    const groups = new Map<string, { key: string; title: string; children: Array<{ key: string; title: string }>; childKeys: Set<string> }>();
     for (const row of result.rows as Array<{ group_code: string; group_name: string; point_code?: string; point_name?: string }>) {
       if (!groups.has(row.group_code)) {
-        groups.set(row.group_code, { key: row.group_code, title: row.group_name, children: [] });
+        groups.set(row.group_code, { key: row.group_code, title: row.group_name, children: [], childKeys: new Set() });
       }
-      if (row.point_code && row.point_name) {
-        groups.get(row.group_code)!.children.push({ key: row.point_code, title: row.point_name });
+      const group = groups.get(row.group_code)!;
+      if (row.point_code && row.point_name && !group.childKeys.has(row.point_code)) {
+        group.childKeys.add(row.point_code);
+        group.children.push({ key: row.point_code, title: row.point_name });
       }
     }
-    return { items: Array.from(groups.values()) };
+    return {
+      items: Array.from(groups.values()).map((group) => ({
+        key: group.key,
+        title: group.title,
+        children: group.children,
+      })),
+    };
   });
 
   app.patch('/api/roles/:id', { schema: updateRoleSchema }, async (request) => {

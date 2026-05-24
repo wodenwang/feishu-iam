@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { runMigrations } from '../src/db/migrate';
+import { isMigrationFile, runMigrations } from '../src/db/migrate';
 import { createPool, type DbPool } from '../src/db/pool';
 import { resetDatabase } from './helpers/testDb';
 
@@ -8,6 +8,14 @@ describe('database migrations', () => {
 
   afterEach(async () => {
     await pool?.end();
+  });
+
+  it('ignores macOS metadata and non-numbered files', () => {
+    expect(isMigrationFile('001_runtime.sql')).toBe(true);
+    expect(isMigrationFile('002_access_loop.sql')).toBe(true);
+    expect(isMigrationFile('._001_runtime.sql')).toBe(false);
+    expect(isMigrationFile('.DS_Store')).toBe(false);
+    expect(isMigrationFile('README.sql')).toBe(false);
   });
 
   it('can be run concurrently during multi-process startup', async () => {

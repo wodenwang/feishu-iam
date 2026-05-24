@@ -5,9 +5,14 @@ import type { DbPool } from './pool';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(dirname, 'migrations');
+const migrationFilePattern = /^\d{3}_[a-z0-9_]+\.sql$/;
+
+export function isMigrationFile(file: string): boolean {
+  return migrationFilePattern.test(file);
+}
 
 export async function runMigrations(pool: DbPool): Promise<void> {
-  const files = (await fs.readdir(migrationsDir)).filter((file) => file.endsWith('.sql')).sort();
+  const files = (await fs.readdir(migrationsDir)).filter(isMigrationFile).sort();
   const client = await pool.connect();
   try {
     await client.query('begin');

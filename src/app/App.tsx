@@ -39,7 +39,16 @@ function RuntimeLoginPage() {
 }
 
 export function App() {
-  const defaultAdminPath = getIamApiMode() === 'http' ? '/applications' : '/dashboard';
+  const apiMode = getIamApiMode();
+  const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
+  const runtimeRouteItems =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path === '/applications' || item.path === '/audit-logs')
+      : routeItems;
+  const disabledHttpRouteItems =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path !== '/applications' && item.path !== '/audit-logs')
+      : [];
 
   return (
     <Router>
@@ -48,7 +57,7 @@ export function App() {
         <Route path="/initialize" element={<InitializePage />} />
         <Route element={<AdminLayout />}>
           <Route index element={<Navigate to={defaultAdminPath} replace />} />
-          {routeItems.map((item) => (
+          {runtimeRouteItems.map((item) => (
             <Route
               key={item.path}
               path={item.path}
@@ -61,6 +70,9 @@ export function App() {
                 </PermissionGuard>
               }
             />
+          ))}
+          {disabledHttpRouteItems.map((item) => (
+            <Route key={`http-disabled-${item.path}`} path={item.path} element={<Navigate to={defaultAdminPath} replace />} />
           ))}
         </Route>
         <Route path="*" element={<GlobalErrorPage />} />

@@ -22,6 +22,7 @@ export function AdminLayout() {
   const session = sessionQuery.data;
   const apiMode = getIamApiMode();
   const environmentTag = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
+  const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
   const compactHeader = !screens.lg;
@@ -118,7 +119,7 @@ export function AdminLayout() {
         <Content style={{ padding: 24 }}>
           <Breadcrumb
             items={[
-              { title: <Link to="/dashboard">首页</Link> },
+              { title: <Link to={defaultAdminPath}>首页</Link> },
               { title: currentRoute?.label ?? '页面' },
             ]}
             style={{ marginBottom: 16 }}

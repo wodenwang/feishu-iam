@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.1.6 - 最小部署基础设施
+
+- 新增 Dockerfile 和 Docker Compose 部署入口，常驻容器为 `feishu-iam` 与 `postgres`。
+- `feishu-iam` 生产 runtime 现在可以同源服务 Vite 静态资源和 Fastify API，保留 `/api/*` API 语义。
+- Compose 持久化 PostgreSQL 数据到 `./data/postgres`，应用日志默认通过 `docker compose logs` 查看。
+- 新增 GitHub Actions CI，覆盖 server build、server tests、frontend tests、frontend build 和 Docker image build。
+- 明确 `bpmt-120:/home/bpmt/feishu-iam` 部署约定、端口递增策略和 `/api/health` 健康检查闭环。
+
 ## v0.1.5 - Roles HTTP runtime
 
 - Admin Console 新增 `/roles` HTTP runtime mode，可通过真实 Fastify API 查看角色列表、创建/编辑角色、停用角色和保存授权。

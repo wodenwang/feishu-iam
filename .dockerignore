@@ -1,0 +1,14 @@
+.git
+.github
+.gstack
+data
+design/implementation-screenshots
+dist
+dist-server
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+playwright-report
+test-results

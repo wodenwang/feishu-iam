@@ -1,273 +1,124 @@
-# feishu-iam v0.1.5 Roles HTTP Implementation Plan
+# feishu-iam v0.1.6 Deploy Infrastructure Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 `/roles` 在 `VITE_IAM_API_MODE=http` 下通过 Fastify runtime 完成角色列表、创建/编辑、停用、授权保存和错误追踪。
+**Goal:** 让 `feishu-iam` 具备最小 Docker Compose 部署闭环，可部署到 `bpmt-120:/home/bpmt/feishu-iam`，并让后续 `/land-and-deploy` 执行真实 runtime health check。
 
-**Architecture:** 保持既有 Ant Design `RolesPage` 信息架构不变，补齐后端 role projection、permission tree 只读接口、前端 DTO mapping 和 HTTP service。严格复用 v0.1.4 的 `/directory` 只读接口作为授权对象选择来源，不修改目录浏览边界。
+**Architecture:** 单 `feishu-iam` Node/Fastify 容器服务 API 和 Vite 静态资源，配套 `postgres` 容器。远端复用现有 `/home/bpmt/nginx` 作为公网反向代理，不在本 compose 中新增 nginx 容器。
 
-**Tech Stack:** React 19、TypeScript、Vite、Ant Design、TanStack Query、Fastify、PostgreSQL、Vitest、Playwright、gstack `/browse`。
+**Tech Stack:** React 19、Vite、Fastify、PostgreSQL、Docker Compose、GitHub Actions、Vitest、Playwright/gstack browse。
 
 ---
 
 ## Source Inputs
 
-- Office-hours conclusion: `v0.1.5 Roles HTTP` 是下一个最小版本。
-- Design review: `docs/superpowers/plans/2026-05-24-v0.1.5-roles-http-plan-design-review.md`
-- Engineering review: `docs/superpowers/plans/2026-05-24-v0.1.5-roles-http-eng-review.md`
-- Existing page: `src/pages/Roles/index.tsx`
-- Existing backend: `server/src/modules/roles/roleRoutes.ts`
+- Office-hours design doc: `/Users/wenzhewang/.gstack/projects/wodenwang-feishu-iam/wenzhewang-main-design-20260524-150137.md`
+- Engineering review: `docs/superpowers/plans/2026-05-24-v0.1.6-deploy-infra-eng-review.md`
+- Remote target: `bpmt-120:/home/bpmt/feishu-iam`
+- Existing health endpoint: `GET /api/health`
 
 ## Scope
 
 ### In Scope
 
-1. `GET /api/roles` 返回前端角色表格需要的 projection。
-2. `GET /api/roles/permission-tree` 返回当前 runtime 已注册 permission groups / points。
-3. HTTP service 实现 `listRoles`、`createRole`、`updateRole`、`disableRoles`、`updateRoleAuthorization`、`listIamPermissionTree`。
-4. `/roles` 在 HTTP mode 支持角色列表、创建、编辑、停用、授权保存。
-5. 401、403、409、普通 API error 显示明确反馈和 requestId。
-6. 补充 server、frontend service、page、E2E 或浏览器验证证据。
+1. Docker image can build frontend and server.
+2. Runtime image can serve `dist/` static files and Fastify API from one origin.
+3. `docker-compose.yml` starts `feishu-iam` and `postgres`.
+4. `.env.example` documents production deployment variables.
+5. GitHub Actions verifies tests, build, and Docker image build.
+6. README/CHANGELOG/VERSION/package metadata describe `v0.1.6`.
+7. Deploy to `bpmt-120:/home/bpmt/feishu-iam`.
+8. Remote health check and deploy report.
 
 ### Out of Scope
 
-- 扩大 `/directory` 只读浏览边界。
-- Sync runtime。
-- Dashboard runtime summary。
-- Application Detail / Onboarding HTTP runtime。
-- 真实飞书 OAuth。
-- 新增批量角色后端 API。
-- 部署、tag、release。
+- New IAM business features.
+- Kubernetes.
+- Dedicated frontend nginx container.
+- GHCR push unless needed by deploy.
+- Database backup automation.
+- Monitoring/alerting.
+- High availability.
+- Username/password login.
+- Committing real Feishu credentials or exported Feishu data.
 
 ## File Structure
 
+### Create
+
+- `Dockerfile`
+- `.dockerignore`
+- `docker-compose.yml`
+- `.github/workflows/ci.yml`
+- `server/src/plugins/staticAssets.ts`
+- `server/tests/staticAssets.test.ts`
+- `.gstack/deploy-reports/2026-05-24-v0.1.6-deploy.md`
+
 ### Modify
 
-- `server/src/modules/roles/roleRoutes.ts`
-  增强 list projection，新增 permission tree route。
-
-- `server/tests/roles.test.ts`
-  新增 role runtime contract 测试。
-
-- `src/features/iam/types.ts`
-  必要时扩展 `AuditAction` 包含 runtime role actions。
-
-- `src/features/iam/dtoMappers.ts`
-  新增 role 和 permission tree mapper。
-
-- `src/features/iam/dtoMappers.test.ts`
-  覆盖 role projection 和 permission tree mapping。
-
-- `src/features/iam/httpApi.ts`
-  实现 role HTTP methods。
-
-- `src/features/iam/httpApi.test.ts`
-  覆盖 role HTTP path、payload、applicationId 到 appKey 映射。
-
-- `src/pages/Roles/index.tsx`
-  增强 HTTP error feedback 和 requestId 展示。
-
-- `src/pages/Roles/index.test.tsx`
-  覆盖 HTTP error/requestId 和角色页面交互。
-
-- `tests/e2e/v0.1.5-roles-http.spec.ts`
-  覆盖 HTTP mode 角色管理主路径。
-
-- `README.md`、`CHANGELOG.md`、`VERSION`、`package.json`、`package-lock.json`
-  更新 v0.1.5 状态和验收说明。
+- `server/src/app.ts`
+- `server/src/config/env.ts`
+- `server/src/main.ts`
+- `server/tests/helpers/testApp.ts`
+- `.env.example`
+- `README.md`
+- `CHANGELOG.md`
+- `VERSION`
+- `package.json`
+- `package-lock.json`
 
 ## Tasks
 
-### Task 1: Backend Roles Runtime Contract
+### Task 1: Fastify Static Frontend Serving
 
-**Files:**
-- Create/modify: `server/tests/roles.test.ts`
-- Modify: `server/src/modules/roles/roleRoutes.ts`
+- [x] Add failing server tests for static asset serving:
+  - `/api/health` still returns JSON.
+  - `/login` falls back to `index.html`.
+  - `/assets/app.js` serves asset content.
+  - missing `/api/unknown` does not return frontend HTML.
+- [x] Implement `server/src/plugins/staticAssets.ts`.
+- [x] Add `staticAssetsDir` option to `buildApp`.
+- [x] Add `STATIC_ASSETS_DIR` env support, defaulting to `dist` in production.
+- [x] Verify `npm run server:test -- server/tests/staticAssets.test.ts`.
 
-- [ ] **Step 1: Write failing server tests**
+### Task 2: Docker And Compose
 
-Add tests that:
+- [x] Add multi-stage `Dockerfile`.
+- [x] Add `.dockerignore`.
+- [x] Add root `docker-compose.yml` with `feishu-iam` and `postgres`.
+- [x] Ensure compose uses `./data/postgres` and no default app log mount.
+- [x] Verify `docker compose config`.
+- [x] Verify `docker build`.
 
-- require platform admin for `/api/roles` and `/api/roles/permission-tree`;
-- create an application;
-- register permission groups and points through Application API;
-- create a role;
-- save authorization;
-- list roles with `application_name`, counts, `permission_keys`, `department_ids`, `user_ids`;
-- list permission tree with group nodes and child permission point nodes;
-- update and disable a role;
-- return requestId for duplicate role code.
+### Task 3: CI And Documentation
 
-- [ ] **Step 2: Run the failing server test**
+- [x] Add GitHub Actions workflow for server tests, frontend tests, build, and Docker image build.
+- [x] Update `.env.example`.
+- [x] Update README with v0.1.6 deployment instructions and remote deployment notes.
+- [x] Update CHANGELOG, VERSION, package metadata to `0.1.6`.
+- [x] Verify package-lock metadata changes are version-only.
 
-Run:
+### Task 4: Verification And Deployment
 
-```bash
-npm run server:test -- server/tests/roles.test.ts
-```
+- [x] Run local verification:
+  - `npm run server:build`
+  - `TEST_DATABASE_URL=postgres://... npm run server:test`
+  - `npm test`
+  - `npm run build`
+  - `docker compose config`
+  - `docker build -t feishu-iam:v0.1.6-local .`
+- [x] Run local compose smoke if Docker is available:
+  - start compose on an unused local port;
+  - `curl /api/health`;
+  - browser check frontend page.
+- [ ] Commit, push, create PR, merge, tag and release.
+- [ ] Deploy to `bpmt-120:/home/bpmt/feishu-iam`.
+- [ ] Pick next free remote port from nginx/listeners.
+- [ ] Health-check remote runtime and write deploy report.
 
-Expected: fails until projection and permission tree route are implemented.
+## Expected Outputs
 
-- [ ] **Step 3: Implement backend projection and permission tree**
-
-In `roleRoutes.ts`:
-
-- return `application_id`, `application_name`, `app_key`;
-- aggregate permission point codes into `permission_keys`;
-- aggregate role department bindings into `department_ids`;
-- aggregate role user bindings into `user_ids`;
-- return `permission_group_count`, `permission_point_count`, `department_binding_count`, `user_binding_count`;
-- add `GET /api/roles/permission-tree`;
-- keep platform-admin authorization.
-
-- [ ] **Step 4: Verify backend tests pass**
-
-Run:
-
-```bash
-npm run server:test -- server/tests/roles.test.ts
-```
-
-Expected: all role contract tests pass.
-
-### Task 2: Frontend HTTP Roles Service
-
-**Files:**
-- Modify: `src/features/iam/dtoMappers.ts`
-- Modify: `src/features/iam/dtoMappers.test.ts`
-- Modify: `src/features/iam/httpApi.ts`
-- Modify: `src/features/iam/httpApi.test.ts`
-
-- [ ] **Step 1: Write mapper and HTTP API tests**
-
-Add tests for:
-
-- `mapRuntimeRole`;
-- `mapRuntimePermissionTree`;
-- `listRoles({ applicationId })` sends `appKey`;
-- `createRole` converts application id to `appKey`;
-- `updateRole` omits immutable role code when patching;
-- `disableRoles` patches status to `disabled`;
-- `updateRoleAuthorization` sends `permissionPointCodes`, `departmentIds`, `feishuUserIds`.
-
-- [ ] **Step 2: Run failing frontend service tests**
-
-Run:
-
-```bash
-npm run test -- src/features/iam/dtoMappers.test.ts src/features/iam/httpApi.test.ts
-```
-
-Expected: fails until mappers and methods exist.
-
-- [ ] **Step 3: Implement role HTTP methods**
-
-In `httpApi.ts`:
-
-- implement `listRoles`;
-- implement `listIamPermissionTree`;
-- implement `createRole`;
-- implement `updateRole`;
-- implement `disableRoles`;
-- implement `updateRoleAuthorization`;
-- map `applicationId` to `appKey` using `listApplications({ page: 1, pageSize: 100 })`.
-
-- [ ] **Step 4: Verify frontend service tests pass**
-
-Run:
-
-```bash
-npm run test -- src/features/iam/dtoMappers.test.ts src/features/iam/httpApi.test.ts
-```
-
-Expected: all targeted service tests pass.
-
-### Task 3: Roles Page HTTP Error Feedback
-
-**Files:**
-- Modify: `src/pages/Roles/index.tsx`
-- Modify: `src/pages/Roles/index.test.tsx`
-
-- [ ] **Step 1: Add page tests for HTTP error states**
-
-Cover:
-
-- list role error shows requestId;
-- create role duplicate error keeps Drawer open and shows message;
-- save authorization error shows requestId.
-
-- [ ] **Step 2: Run failing page tests**
-
-Run:
-
-```bash
-npm run test -- src/pages/Roles/index.test.tsx
-```
-
-Expected: fails until requestId feedback is implemented.
-
-- [ ] **Step 3: Implement page error feedback**
-
-Add local helper to extract `IamHttpError` fields and show:
-
-- `Alert` with requestId for list errors;
-- `message.error` with requestId for mutations;
-- preserve existing Drawer/Modal state on mutation failure.
-
-- [ ] **Step 4: Verify page tests pass**
-
-Run:
-
-```bash
-npm run test -- src/pages/Roles/index.test.tsx
-```
-
-Expected: targeted page tests pass.
-
-### Task 4: HTTP Mode E2E And Docs
-
-**Files:**
-- Create: `tests/e2e/v0.1.5-roles-http.spec.ts`
-- Modify: `README.md`
-- Modify: `CHANGELOG.md`
-- Modify: `VERSION`
-- Modify: `package.json`
-- Modify: `package-lock.json`
-
-- [ ] **Step 1: Add E2E main path**
-
-Cover:
-
-- local mock Feishu login;
-- platform admin initialization;
-- create application;
-- navigate `/roles`;
-- create role;
-- save authorization;
-- disable role;
-- capture 1440/1280/768 screenshots under `design/implementation-screenshots/v0.1.5-roles-http/`.
-
-- [ ] **Step 2: Update docs and version metadata**
-
-Update README current status, v0.1.5 acceptance instructions, CHANGELOG, VERSION, package version and package-lock version.
-
-- [ ] **Step 3: Run final verification**
-
-Run:
-
-```bash
-npm run server:test -- server/tests/roles.test.ts
-npm run test -- src/features/iam/dtoMappers.test.ts src/features/iam/httpApi.test.ts src/pages/Roles/index.test.tsx
-npm run build
-```
-
-If local PostgreSQL is available, also run:
-
-```bash
-E2E_RESET_DATABASE=true \
-DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
-VITE_IAM_API_MODE=http \
-npm run e2e -- tests/e2e/v0.1.5-roles-http.spec.ts
-```
-
-Expected: targeted tests and build pass; E2E either passes or reports a concrete local environment blocker.
+- `v0.1.6` release exists.
+- Remote `/home/bpmt/feishu-iam` contains deployed compose project.
+- Remote selected port responds to `/api/health`.
+- Deploy report records commit, port, compose services and health result.

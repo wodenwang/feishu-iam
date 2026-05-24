@@ -12,6 +12,10 @@ const listRolesSchema = {
       page: { type: 'integer', minimum: 1, default: 1 },
       pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
       appKey: { type: 'string', minLength: 1, maxLength: 100 },
+      keyword: { type: 'string', maxLength: 100 },
+      status: { type: 'string', enum: ['active', 'disabled'] },
+      createdAtFrom: { type: 'string', maxLength: 40 },
+      createdAtTo: { type: 'string', maxLength: 40 },
     },
   },
 } as const;
@@ -102,37 +106,103 @@ interface AuthorizationBody {
 export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Promise<void> {
   app.get('/api/roles', { schema: listRolesSchema }, async (request) => {
     requirePlatformAdmin(request);
-    const query = request.query as { page?: number; pageSize?: number; appKey?: string };
+    const query = request.query as {
+      page?: number;
+      pageSize?: number;
+      appKey?: string;
+      keyword?: string;
+      status?: 'active' | 'disabled';
+      createdAtFrom?: string;
+      createdAtTo?: string;
+    };
     const { page, pageSize } = normalizePagination(query);
-    const { appKey } = query;
     const offset = (page - 1) * pageSize;
-    const params: Array<string | number> = [pageSize, offset];
-    const appFilter = appKey ? 'where a.app_key = $3' : '';
-    const totalAppFilter = appKey ? 'where a.app_key = $1' : '';
-    if (appKey) {
-      params.push(appKey);
+    const filters: string[] = [];
+    const filterParams: string[] = [];
+    const addFilter = (buildClause: (paramIndex: number) => string, value: string) => {
+      filterParams.push(value);
+      filters.push(buildClause(filterParams.length));
+    };
+
+    if (query.appKey) {
+      addFilter((paramIndex) => `a.app_key = $${paramIndex}`, query.appKey);
     }
+    if (query.keyword?.trim()) {
+      addFilter(
+        (paramIndex) => `(r.name ilike '%' || $${paramIndex} || '%' or r.code ilike '%' || $${paramIndex} || '%' or a.name ilike '%' || $${paramIndex} || '%')`,
+        query.keyword.trim(),
+      );
+    }
+    if (query.status) {
+      addFilter((paramIndex) => `r.status = $${paramIndex}`, query.status);
+    }
+    if (query.createdAtFrom) {
+      addFilter((paramIndex) => `r.created_at >= $${paramIndex}`, query.createdAtFrom);
+    }
+    if (query.createdAtTo) {
+      addFilter((paramIndex) => `r.created_at <= $${paramIndex}`, query.createdAtTo);
+    }
+    const whereClause = filters.length ? `where ${filters.join(' and ')}` : '';
+    const listParams: Array<string | number> = [...filterParams, pageSize, offset];
+    const limitParam = filterParams.length + 1;
+    const offsetParam = filterParams.length + 2;
 
     const [items, total] = await Promise.all([
       pool.query(
         `
-          select r.id, a.app_key, r.code, r.name, r.description, r.status, r.created_at, r.updated_at
+          select r.id,
+                 r.application_id,
+                 a.name as application_name,
+                 a.app_key,
+                 r.code,
+                 r.name,
+                 r.description,
+                 r.status,
+                 r.created_at,
+                 r.updated_at,
+                 coalesce(permission_summary.permission_keys, '{}'::text[]) as permission_keys,
+                 coalesce(permission_summary.permission_group_count, 0)::int as permission_group_count,
+                 coalesce(permission_summary.permission_point_count, 0)::int as permission_point_count,
+                 coalesce(department_summary.department_ids, '{}'::text[]) as department_ids,
+                 coalesce(department_summary.department_binding_count, 0)::int as department_binding_count,
+                 coalesce(user_summary.user_ids, '{}'::text[]) as user_ids,
+                 coalesce(user_summary.user_binding_count, 0)::int as user_binding_count
           from roles r
           join applications a on a.id = r.application_id
-          ${appFilter}
+          left join lateral (
+            select array_agg(pp.code order by pp.code) as permission_keys,
+                   count(distinct pp.group_id)::int as permission_group_count,
+                   count(pp.id)::int as permission_point_count
+            from role_permission_points rpp
+            join permission_points pp on pp.id = rpp.permission_point_id
+            where rpp.role_id = r.id
+          ) permission_summary on true
+          left join lateral (
+            select array_agg(rdb.department_id order by rdb.department_id) as department_ids,
+                   count(rdb.department_id)::int as department_binding_count
+            from role_department_bindings rdb
+            where rdb.role_id = r.id
+          ) department_summary on true
+          left join lateral (
+            select array_agg(rub.feishu_user_id order by rub.feishu_user_id) as user_ids,
+                   count(rub.feishu_user_id)::int as user_binding_count
+            from role_user_bindings rub
+            where rub.role_id = r.id
+          ) user_summary on true
+          ${whereClause}
           order by r.created_at desc
-          limit $1 offset $2
+          limit $${limitParam} offset $${offsetParam}
         `,
-        params,
+        listParams,
       ),
       pool.query(
         `
           select count(*)::int as total
           from roles r
           join applications a on a.id = r.application_id
-          ${totalAppFilter}
+          ${whereClause}
         `,
-        appKey ? [appKey] : [],
+        filterParams,
       ),
     ]);
 
@@ -185,6 +255,32 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
     } finally {
       client.release();
     }
+  });
+
+  app.get('/api/roles/permission-tree', async (request) => {
+    requirePlatformAdmin(request);
+    const result = await pool.query(
+      `
+        select pg.code as group_code,
+               pg.name as group_name,
+               pp.code as point_code,
+               pp.name as point_name
+        from permission_groups pg
+        left join permission_points pp on pp.group_id = pg.id and pp.status = 'active'
+        where pg.status = 'active'
+        order by pg.code asc, pp.code asc
+      `,
+    );
+    const groups = new Map<string, { key: string; title: string; children: Array<{ key: string; title: string }> }>();
+    for (const row of result.rows as Array<{ group_code: string; group_name: string; point_code?: string; point_name?: string }>) {
+      if (!groups.has(row.group_code)) {
+        groups.set(row.group_code, { key: row.group_code, title: row.group_name, children: [] });
+      }
+      if (row.point_code && row.point_name) {
+        groups.get(row.group_code)!.children.push({ key: row.point_code, title: row.point_name });
+      }
+    }
+    return { items: Array.from(groups.values()) };
   });
 
   app.patch('/api/roles/:id', { schema: updateRoleSchema }, async (request) => {

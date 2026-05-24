@@ -7,6 +7,8 @@ import {
   mapRuntimeDepartment,
   mapRuntimeApplication,
   mapRuntimeDirectoryUser,
+  mapRuntimePermissionTree,
+  mapRuntimeRole,
 } from './dtoMappers';
 
 describe('dtoMappers', () => {
@@ -155,5 +157,64 @@ describe('dtoMappers', () => {
       lastLoginAt: undefined,
       lastPermissionQueriedAt: undefined,
     });
+  });
+
+  it('maps runtime role projection fields', () => {
+    expect(
+      mapRuntimeRole({
+        id: 'role-id',
+        application_id: 'app-id',
+        application_name: 'Demo CRM',
+        app_key: 'app_key_1',
+        code: 'crm_viewer',
+        name: '客户查看员',
+        description: null,
+        status: 'active',
+        permission_group_count: 1,
+        permission_point_count: 2,
+        department_binding_count: 1,
+        user_binding_count: 1,
+        permission_keys: ['crm.customer:view'],
+        department_ids: ['dept_sales'],
+        user_ids: ['ou_sales_001'],
+        created_at: '2026-05-24T00:00:00.000Z',
+        updated_at: '2026-05-24T00:01:00.000Z',
+      }),
+    ).toEqual({
+      id: 'role-id',
+      applicationId: 'app-id',
+      applicationName: 'Demo CRM',
+      name: '客户查看员',
+      code: 'crm_viewer',
+      description: undefined,
+      status: 'active',
+      permissionGroupCount: 1,
+      permissionPointCount: 2,
+      departmentBindingCount: 1,
+      userBindingCount: 1,
+      permissionKeys: ['crm.customer:view'],
+      departmentIds: ['dept_sales'],
+      userIds: ['ou_sales_001'],
+      createdAt: '2026-05-24T00:00:00.000Z',
+      updatedAt: '2026-05-24T00:01:00.000Z',
+    });
+  });
+
+  it('maps runtime permission tree recursively', () => {
+    expect(
+      mapRuntimePermissionTree([
+        {
+          key: 'crm.customer',
+          title: '客户管理',
+          children: [{ key: 'crm.customer:view', title: '查看客户' }],
+        },
+      ]),
+    ).toEqual([
+      {
+        key: 'crm.customer',
+        title: '客户管理',
+        children: [{ key: 'crm.customer:view', title: '查看客户' }],
+      },
+    ]);
   });
 });

@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.1.5 - Roles HTTP runtime
+
+- Admin Console 新增 `/roles` HTTP runtime mode，可通过真实 Fastify API 查看角色列表、创建/编辑角色、停用角色和保存授权。
+- 后端角色列表返回前端所需 projection：应用名、权限数量、授权对象数量、permission keys、department ids 和 user ids。
+- 新增只读 `GET /api/roles/permission-tree`，用于角色授权 Drawer 展示 runtime 已注册权限点。
+- HTTP mode 角色错误反馈保留 requestId，覆盖 401、403、409 和普通 API error。
+- 本切片不扩大 `/directory` 只读浏览边界，只复用既有部门和用户读取接口作为授权对象选择来源。
+
 ## v0.1.3 - Admin Console HTTP service 切换
 
 - Admin Console 新增 HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。

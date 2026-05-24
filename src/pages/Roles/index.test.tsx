@@ -8,6 +8,7 @@ import { listRoles, resetMockIamStore, setMockCurrentSession } from '../../featu
 import { platformAdminSession } from '../../features/iam/mockData';
 import type { CurrentSession } from '../../features/iam/types';
 import { RolesPage } from '.';
+import { formatRoleError } from './errors';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -202,5 +203,15 @@ describe('RolesPage', () => {
       expect(roles.items[0].departmentIds).toContain('dept_it');
       expect(roles.items[0].userIds).toContain('ou_sales_disabled_002');
     });
+  }, 10_000);
+
+  it('formats HTTP role errors with request id', () => {
+    const error = new Error('角色接口失败') as Error & { name: 'IamHttpError'; status: number; code: string; requestId: string };
+    error.name = 'IamHttpError';
+    error.status = 500;
+    error.code = 'INTERNAL_SERVER_ERROR';
+    error.requestId = 'req_roles_failed_001';
+
+    expect(formatRoleError(error, '加载角色列表失败')).toBe('角色接口失败（Request ID: req_roles_failed_001）');
   });
 });

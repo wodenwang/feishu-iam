@@ -47,6 +47,7 @@ import {
   useUpdateRoleAuthorization,
 } from '../../features/iam/queries';
 import type { IamPermissionNode, IamRole, RoleStatus, UpsertRoleInput } from '../../features/iam/types';
+import { formatRoleError, getRoleRequestId } from './errors';
 
 const { RangePicker } = DatePicker;
 
@@ -176,29 +177,40 @@ export function RolesPage() {
   };
 
   const saveRole = async () => {
-    const values = await roleForm.validateFields();
-    const input: UpsertRoleInput = {
-      applicationId: values.applicationId,
-      name: values.name,
-      code: values.code,
-      description: values.description,
-      status: values.status ? 'active' : 'disabled',
-    };
-    if (activeRole) {
-      await updateRoleMutation.mutateAsync({ roleId: activeRole.id, input });
-    } else {
-      await createRoleMutation.mutateAsync(input);
+    try {
+      const values = await roleForm.validateFields();
+      const input: UpsertRoleInput = {
+        applicationId: values.applicationId,
+        name: values.name,
+        code: values.code,
+        description: values.description,
+        status: values.status ? 'active' : 'disabled',
+      };
+      if (activeRole) {
+        await updateRoleMutation.mutateAsync({ roleId: activeRole.id, input });
+      } else {
+        await createRoleMutation.mutateAsync(input);
+      }
+      setRoleDrawerOpen(false);
+      message.success(activeRole ? '角色配置已保存' : '角色已创建');
+      await rolesQuery.refetch();
+    } catch (error) {
+      if (isFormValidationError(error)) {
+        return;
+      }
+      message.error(formatRoleError(error, activeRole ? '保存角色失败' : '创建角色失败'));
     }
-    setRoleDrawerOpen(false);
-    message.success(activeRole ? '角色配置已保存' : '角色已创建');
-    await rolesQuery.refetch();
   };
 
   const disableRoles = async (roleIds: string[]) => {
-    await disableRolesMutation.mutateAsync(roleIds);
-    setSelectedRowKeys((current) => current.filter((key) => !roleIds.includes(String(key))));
-    message.success(roleIds.length > 1 ? `已停用 ${roleIds.length} 个角色` : '角色已停用');
-    await rolesQuery.refetch();
+    try {
+      await disableRolesMutation.mutateAsync(roleIds);
+      setSelectedRowKeys((current) => current.filter((key) => !roleIds.includes(String(key))));
+      message.success(roleIds.length > 1 ? `已停用 ${roleIds.length} 个角色` : '角色已停用');
+      await rolesQuery.refetch();
+    } catch (error) {
+      message.error(formatRoleError(error, '停用角色失败'));
+    }
   };
 
   const columns = useMemo<ColumnsType<IamRole>>(() => {
@@ -373,8 +385,17 @@ export function RolesPage() {
           <Alert
             type="error"
             showIcon
-            title="加载角色列表失败"
-            description="请稍后重试，或检查当前飞书管理员的应用授权范围。"
+            message="加载角色列表失败"
+            description={
+              <Space orientation="vertical" size={4}>
+                <Typography.Text>{formatRoleError(rolesQuery.error, '请稍后重试，或检查当前飞书管理员的应用授权范围。')}</Typography.Text>
+                {getRoleRequestId(rolesQuery.error) ? (
+                  <Typography.Text>
+                    Request ID: <Typography.Text code copyable>{getRoleRequestId(rolesQuery.error)}</Typography.Text>
+                  </Typography.Text>
+                ) : null}
+              </Space>
+            }
             action={<Button onClick={() => rolesQuery.refetch()}>重试</Button>}
           />
         }
@@ -408,13 +429,13 @@ export function RolesPage() {
       >
         <Form form={roleForm} layout="vertical">
           <Form.Item name="applicationId" label="所属应用" rules={[{ required: true, message: '请选择所属应用' }]}>
-            <Select disabled={isApplicationAdminOnly} options={applicationOptions} />
+            <Select disabled={Boolean(activeRole) || isApplicationAdminOnly} options={applicationOptions} />
           </Form.Item>
           <Form.Item name="name" label="角色名称" rules={[{ required: true, message: '请输入角色名称' }]}>
             <Input placeholder="例如：销售主管" />
           </Form.Item>
           <Form.Item name="code" label="角色编码" rules={[{ required: true, message: '请输入角色编码' }]}>
-            <Input placeholder="例如：sales-manager" />
+            <Input disabled={Boolean(activeRole)} placeholder="例如：sales-manager" />
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="说明角色用途和授权边界" />
@@ -508,16 +529,20 @@ export function RolesPage() {
           if (!activeRole) {
             return;
           }
-          await updateRoleAuthorizationMutation.mutateAsync({
-            roleId: activeRole.id,
-            permissionKeys: selectedPermissionKeyStrings,
-            departmentIds: selectedDepartmentIdStrings,
-            userIds: selectedUserIdStrings,
-          });
-          setSummaryOpen(false);
-          setAuthorizationOpen(false);
-          message.success('授权配置已保存');
-          await rolesQuery.refetch();
+          try {
+            await updateRoleAuthorizationMutation.mutateAsync({
+              roleId: activeRole.id,
+              permissionKeys: selectedPermissionKeyStrings,
+              departmentIds: selectedDepartmentIdStrings,
+              userIds: selectedUserIdStrings,
+            });
+            setSummaryOpen(false);
+            setAuthorizationOpen(false);
+            message.success('授权配置已保存');
+            await rolesQuery.refetch();
+          } catch (error) {
+            message.error(formatRoleError(error, '保存授权失败'));
+          }
         }}
         onCancel={() => setSummaryOpen(false)}
       >
@@ -532,4 +557,8 @@ export function RolesPage() {
       </Modal>
     </Space>
   );
+}
+
+function isFormValidationError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'errorFields' in error;
 }

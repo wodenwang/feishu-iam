@@ -23,9 +23,11 @@ export type AuditAction =
   | 'login'
   | 'application.create'
   | 'application.api_call'
+  | 'role.create'
   | 'secret.copy'
   | 'secret.rotate'
   | 'role.update'
+  | 'role.authorization.update'
   | 'permission.query'
   | 'sync.run';
 export type AuditResult = 'success' | 'failed';

@@ -18,7 +18,9 @@ const auditActionLabels: Record<AuditLog['action'], string> = {
   'application.api_call': '应用 API 调用',
   'secret.copy': '复制密钥',
   'secret.rotate': '轮换密钥',
+  'role.create': '创建角色',
   'role.update': '更新角色',
+  'role.authorization.update': '更新角色授权',
   'permission.query': '查询权限',
   'sync.run': '执行同步',
 };

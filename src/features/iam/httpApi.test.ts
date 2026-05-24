@@ -79,4 +79,141 @@ describe('httpApi', () => {
       query: { departmentId: 'dept_sales', page: 2, pageSize: 20 },
     });
   });
+
+  it('passes role list filters and maps application id to appKey', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'app-id',
+            app_key: 'app_key_1',
+            name: 'Demo CRM',
+            status: 'active',
+            created_at: '2026-05-24T00:00:00.000Z',
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      })
+      .mockResolvedValueOnce({ items: [], page: 1, pageSize: 20, total: 0 });
+    const { listRoles } = await import('./httpApi');
+
+    await listRoles({ applicationId: 'app-id', keyword: 'viewer', status: 'active', page: 1, pageSize: 20 });
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/roles', {
+      query: {
+        page: 1,
+        pageSize: 20,
+        appKey: 'app_key_1',
+        keyword: 'viewer',
+        status: 'active',
+        createdAtFrom: undefined,
+        createdAtTo: undefined,
+      },
+    });
+  });
+
+  it('creates roles with runtime appKey payload', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'app-id',
+            app_key: 'app_key_1',
+            name: 'Demo CRM',
+            status: 'active',
+            created_at: '2026-05-24T00:00:00.000Z',
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        id: 'role-id',
+        code: 'crm_viewer',
+        name: '客户查看员',
+        status: 'active',
+        created_at: '2026-05-24T00:00:00.000Z',
+      });
+    const { createRole } = await import('./httpApi');
+
+    const role = await createRole({ applicationId: 'app-id', code: 'crm_viewer', name: '客户查看员', status: 'active' });
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/roles', {
+      method: 'POST',
+      body: {
+        appKey: 'app_key_1',
+        code: 'crm_viewer',
+        name: '客户查看员',
+        description: undefined,
+        status: 'active',
+      },
+    });
+    expect(role).toMatchObject({ id: 'role-id', applicationId: 'app-id', applicationName: 'Demo CRM' });
+  });
+
+  it('updates roles without sending immutable code', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'app-id',
+            app_key: 'app_key_1',
+            name: 'Demo CRM',
+            status: 'active',
+            created_at: '2026-05-24T00:00:00.000Z',
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      })
+      .mockResolvedValueOnce({ id: 'role-id', code: 'crm_viewer', name: '客户查看员更新', status: 'disabled' });
+    const { updateRole } = await import('./httpApi');
+
+    await updateRole('role-id', { applicationId: 'app-id', code: 'ignored_code', name: '客户查看员更新', status: 'disabled' });
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/roles/role-id', {
+      method: 'PATCH',
+      body: { name: '客户查看员更新', description: undefined, status: 'disabled' },
+    });
+  });
+
+  it('saves role authorization with runtime payload names', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        roleId: 'role-id',
+        permissionPointCodes: ['crm.customer:view'],
+        departmentIds: ['dept_sales'],
+        feishuUserIds: ['ou_sales_001'],
+      })
+      .mockResolvedValueOnce({ items: [{ id: 'role-id', code: 'crm_viewer', name: '客户查看员' }], page: 1, pageSize: 100, total: 1 });
+    const { updateRoleAuthorization } = await import('./httpApi');
+
+    await updateRoleAuthorization({
+      roleId: 'role-id',
+      permissionKeys: ['crm.customer:view'],
+      departmentIds: ['dept_sales'],
+      userIds: ['ou_sales_001'],
+    });
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(1, '/api/roles/role-id/authorization', {
+      method: 'PUT',
+      body: {
+        permissionPointCodes: ['crm.customer:view'],
+        departmentIds: ['dept_sales'],
+        feishuUserIds: ['ou_sales_001'],
+      },
+    });
+  });
+
+  it('loads runtime permission tree', async () => {
+    httpRequestMock.mockResolvedValue({ items: [{ key: 'crm.customer', title: '客户管理', children: [] }] });
+    const { listIamPermissionTree } = await import('./httpApi');
+
+    await expect(listIamPermissionTree()).resolves.toEqual([{ key: 'crm.customer', title: '客户管理', children: [] }]);
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/roles/permission-tree');
+  });
 });

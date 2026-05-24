@@ -13,7 +13,7 @@
 
 ## 当前状态
 
-当前仓库已经进入 `v0.1.4` Directory runtime-backed 只读浏览阶段：
+当前仓库已经进入 `v0.1.5` Roles HTTP runtime 阶段：
 
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
@@ -22,7 +22,8 @@
 - `v0.1.2` 已新增 Application API HMAC 鉴权、权限组/权限点注册、角色授权、权限查询、mock directory projection、第三方 Demo 壳和本地验收脚本。
 - `v0.1.3` 已新增 Admin Console HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
 - `v0.1.4` 已新增 `/directory` HTTP runtime-backed 只读浏览，可查看部门树、用户分页列表、部门筛选、详情 Drawer 和 requestId 错误态。
-- 真实飞书 OAuth、Roles 后续 HTTP 切片、Sync、Dashboard、Application Detail、Onboarding 和交付部署仍在后续独立切片中。
+- `v0.1.5` 已新增 `/roles` HTTP runtime-backed 角色管理，可查看角色列表、创建/编辑角色、停用角色、保存授权和查看 requestId 错误态。
+- 真实飞书 OAuth、Sync、Dashboard、Application Detail、Onboarding 和交付部署仍在后续独立切片中。
 
 ## v0.1.3 HTTP mode 本地验收
 
@@ -89,6 +90,43 @@
    DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
    VITE_IAM_API_MODE=http \
    npm run e2e -- tests/e2e/v0.1.4-directory-http.spec.ts
+   ```
+
+## v0.1.5 Roles HTTP mode 本地验收
+
+`v0.1.5` 的主验收路径只覆盖 `/roles`，不扩大 `/directory` 只读浏览边界，不包含 Sync、Dashboard、Application Detail 或 Onboarding。
+
+1. 启动本地 PostgreSQL，并设置 `DATABASE_URL`。
+2. 启动 Fastify runtime：
+
+   ```bash
+   SESSION_SECRET=local-session-secret-at-least-32-bytes \
+   FEISHU_AUTH_MODE=mock \
+   npm run server:dev
+   ```
+
+3. 启动 Vite HTTP mode：
+
+   ```bash
+   VITE_IAM_API_MODE=http npm run dev -- --host 127.0.0.1
+   ```
+
+4. 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、进入 `/roles`，检查：
+
+   - Header 显示 `HTTP runtime`。
+   - 角色列表来自 Fastify runtime。
+   - 可以新建和编辑角色。
+   - 可以保存角色授权。
+   - 可以停用角色。
+   - 401、403、409、API error 显示可追踪 `requestId`。
+
+5. 可选运行 v0.1.5 HTTP mode E2E：
+
+   ```bash
+   E2E_RESET_DATABASE=true \
+   DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
+   VITE_IAM_API_MODE=http \
+   npm run e2e -- tests/e2e/v0.1.5-roles-http.spec.ts
    ```
 
 ## 本地运行

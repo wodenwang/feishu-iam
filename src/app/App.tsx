@@ -41,13 +41,14 @@ function RuntimeLoginPage() {
 export function App() {
   const apiMode = getIamApiMode();
   const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
+  const httpRuntimePaths = ['/applications', '/directory', '/audit-logs'];
   const runtimeRouteItems =
     apiMode === 'http'
-      ? routeItems.filter((item) => item.path === '/applications' || item.path === '/audit-logs')
+      ? routeItems.filter((item) => httpRuntimePaths.includes(item.path))
       : routeItems;
   const disabledHttpRouteItems =
     apiMode === 'http'
-      ? routeItems.filter((item) => item.path !== '/applications' && item.path !== '/audit-logs')
+      ? routeItems.filter((item) => !httpRuntimePaths.includes(item.path))
       : [];
 
   return (

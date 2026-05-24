@@ -4,7 +4,9 @@ import {
   mapCreateApplicationResult,
   mapCurrentSessionResponse,
   mapPageResult,
+  mapRuntimeDepartment,
   mapRuntimeApplication,
+  mapRuntimeDirectoryUser,
 } from './dtoMappers';
 
 describe('dtoMappers', () => {
@@ -103,5 +105,55 @@ describe('dtoMappers', () => {
         mapRuntimeApplication,
       ),
     ).toMatchObject({ page: 1, pageSize: 20, total: 1, items: [{ id: 'app-id' }] });
+  });
+
+  it('maps runtime department fields', () => {
+    expect(
+      mapRuntimeDepartment({
+        id: 'dept_sales',
+        name: '销售部',
+        parent_id: 'dept_root',
+        path: '飞书 IAM 演示组织 / 销售部',
+        user_count: 3,
+        updated_at: '2026-05-24T00:00:00.000Z',
+      }),
+    ).toEqual({
+      id: 'dept_sales',
+      name: '销售部',
+      parentId: 'dept_root',
+      path: '飞书 IAM 演示组织 / 销售部',
+      userCount: 3,
+      updatedAt: '2026-05-24T00:00:00.000Z',
+    });
+  });
+
+  it('maps runtime directory user fields with stable fallbacks', () => {
+    expect(
+      mapRuntimeDirectoryUser({
+        feishu_user_id: 'ou_sales_001',
+        name: '销售一号',
+        email: null,
+        department_id: 'dept_sales',
+        department_name: '销售部',
+        department_path: '飞书 IAM 演示组织 / 销售部',
+        status: 'active',
+        synced_at: '2026-05-24T00:00:00.000Z',
+        local_role_summary: null,
+        last_login_at: null,
+        last_permission_queried_at: null,
+      }),
+    ).toMatchObject({
+      feishuUserId: 'ou_sales_001',
+      displayName: '销售一号',
+      departmentId: 'dept_sales',
+      departmentName: '销售部',
+      departmentPath: '飞书 IAM 演示组织 / 销售部',
+      status: 'active',
+      email: undefined,
+      syncedAt: '2026-05-24T00:00:00.000Z',
+      localRoleSummary: '-',
+      lastLoginAt: undefined,
+      lastPermissionQueriedAt: undefined,
+    });
   });
 });

@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { iamService } from '../../features/iam/iamService';
 import { resetMockIamStore } from '../../features/iam/mockApi';
+import type { IamHttpError } from '../../features/iam/types';
 import { DirectoryPage } from '.';
 
 beforeAll(() => {
@@ -45,6 +47,7 @@ function renderDirectoryPage() {
 describe('DirectoryPage', () => {
   beforeEach(() => {
     resetMockIamStore();
+    vi.restoreAllMocks();
   });
 
   it('shows read-only Feishu directory browser with department tree and user table columns', async () => {
@@ -79,4 +82,43 @@ describe('DirectoryPage', () => {
     expect(within(drawer).getByText('最近登录时间')).toBeInTheDocument();
     expect(within(drawer).getByText('最近权限查询时间')).toBeInTheDocument();
   });
+
+  it('shows requestId for runtime directory API errors', async () => {
+    vi.spyOn(iamService, 'listFeishuDepartments').mockRejectedValue(createIamHttpError(500, 'DIRECTORY_LOAD_FAILED', '目录服务不可用', 'req_dir_500'));
+
+    renderDirectoryPage();
+
+    expect(await screen.findByText('加载飞书目录失败')).toBeInTheDocument();
+    expect(screen.getByText('目录服务不可用')).toBeInTheDocument();
+    expect(screen.getByText('req_dir_500')).toBeInTheDocument();
+  });
+
+  it('shows session-expired copy for runtime 401', async () => {
+    vi.spyOn(iamService, 'listDirectoryUsers').mockRejectedValue(createIamHttpError(401, 'UNAUTHORIZED', '会话不存在', 'req_dir_401'));
+
+    renderDirectoryPage();
+
+    expect(await screen.findByText('会话已过期')).toBeInTheDocument();
+    expect(screen.getByText('请重新使用飞书登录后再查看组织目录。')).toBeInTheDocument();
+    expect(screen.getByText('req_dir_401')).toBeInTheDocument();
+  });
+
+  it('shows no-permission copy for runtime 403', async () => {
+    vi.spyOn(iamService, 'listDirectoryUsers').mockRejectedValue(createIamHttpError(403, 'FORBIDDEN', '只有平台管理员可以查看组织目录投影', 'req_dir_403'));
+
+    renderDirectoryPage();
+
+    expect(await screen.findByText('无权查看组织目录')).toBeInTheDocument();
+    expect(screen.getByText('当前飞书用户不是平台管理员，无法查看飞书组织与用户投影。')).toBeInTheDocument();
+    expect(screen.getByText('req_dir_403')).toBeInTheDocument();
+  });
 });
+
+function createIamHttpError(status: number, code: string, message: string, requestId: string): IamHttpError {
+  const error = new Error(message) as IamHttpError;
+  error.name = 'IamHttpError';
+  error.status = status;
+  error.code = code;
+  error.requestId = requestId;
+  return error;
+}

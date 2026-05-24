@@ -35,4 +35,48 @@ describe('httpApi', () => {
       },
     });
   });
+
+  it('loads runtime departments', async () => {
+    httpRequestMock.mockResolvedValue({
+      items: [
+        {
+          id: 'dept_sales',
+          name: '销售部',
+          parent_id: null,
+          path: '销售部',
+          user_count: 1,
+          updated_at: '2026-05-24T00:00:00.000Z',
+        },
+      ],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    });
+    const { listFeishuDepartments } = await import('./httpApi');
+
+    const departments = await listFeishuDepartments();
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/directory/departments', { query: { page: 1, pageSize: 100 } });
+    expect(departments).toEqual([
+      {
+        id: 'dept_sales',
+        name: '销售部',
+        parentId: undefined,
+        path: '销售部',
+        userCount: 1,
+        updatedAt: '2026-05-24T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('passes directory user filters to the runtime API', async () => {
+    httpRequestMock.mockResolvedValue({ items: [], page: 2, pageSize: 20, total: 0 });
+    const { listDirectoryUsers } = await import('./httpApi');
+
+    await listDirectoryUsers({ departmentId: 'dept_sales', page: 2, pageSize: 20 });
+
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/directory/users', {
+      query: { departmentId: 'dept_sales', page: 2, pageSize: 20 },
+    });
+  });
 });

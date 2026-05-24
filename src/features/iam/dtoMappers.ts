@@ -5,6 +5,8 @@ import type {
   AuditResult,
   CreateApplicationResult,
   CurrentSession,
+  DirectoryUser,
+  FeishuDepartment,
   PageResult,
 } from './types';
 
@@ -36,6 +38,31 @@ interface RuntimeAuditLog {
   result: 'success' | 'failure' | 'failed';
   metadata?: unknown;
   created_at: string;
+}
+
+interface RuntimeDepartment {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  path?: string | null;
+  user_count?: number | null;
+  updated_at?: string | null;
+}
+
+interface RuntimeDirectoryUser {
+  feishu_user_id: string;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  department_id?: string | null;
+  department_name?: string | null;
+  department_path?: string | null;
+  status?: DirectoryUser['status'];
+  synced_at?: string | null;
+  updated_at?: string | null;
+  local_role_summary?: string | null;
+  last_login_at?: string | null;
+  last_permission_queried_at?: string | null;
 }
 
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
@@ -103,6 +130,34 @@ export function mapAuditLog(item: RuntimeAuditLog): AuditLog {
     message: item.action,
     requestId: item.request_id,
     createdAt: item.created_at,
+  };
+}
+
+export function mapRuntimeDepartment(item: RuntimeDepartment): FeishuDepartment {
+  return {
+    id: item.id,
+    name: item.name,
+    parentId: item.parent_id ?? undefined,
+    path: item.path ?? item.name,
+    userCount: item.user_count ?? 0,
+    updatedAt: item.updated_at ?? '',
+  };
+}
+
+export function mapRuntimeDirectoryUser(item: RuntimeDirectoryUser): DirectoryUser {
+  return {
+    feishuUserId: item.feishu_user_id,
+    displayName: item.name,
+    departmentPath: item.department_path ?? '-',
+    status: item.status ?? 'active',
+    departmentId: item.department_id ?? '-',
+    departmentName: item.department_name ?? '-',
+    email: item.email ?? undefined,
+    mobile: item.mobile ?? undefined,
+    syncedAt: item.synced_at ?? item.updated_at ?? '',
+    localRoleSummary: item.local_role_summary ?? '-',
+    lastLoginAt: item.last_login_at ?? undefined,
+    lastPermissionQueriedAt: item.last_permission_queried_at ?? undefined,
   };
 }
 

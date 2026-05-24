@@ -1,4 +1,4 @@
-import { Alert, Breadcrumb, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Breadcrumb, Grid, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getIamApiMode } from '../features/iam/apiMode';
@@ -17,12 +17,14 @@ const roleLabels: Record<AdminRole, string> = {
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
   const sessionQuery = useCurrentSession();
   const session = sessionQuery.data;
   const apiMode = getIamApiMode();
   const environmentTag = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
+  const compactHeader = !screens.lg;
 
   if (sessionQuery.isLoading) {
     return (
@@ -93,16 +95,21 @@ export function AdminLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 24px',
+            gap: 16,
+            padding: compactHeader ? '0 16px' : '0 24px',
           }}
         >
-          <Space size={12}>
-            <Typography.Text strong>feishu-iam</Typography.Text>
+          <Space size={12} style={{ flexShrink: 0, minWidth: 0 }}>
+            {!compactHeader ? <Typography.Text strong>feishu-iam</Typography.Text> : null}
             <Tag color={apiMode === 'http' ? 'green' : 'blue'}>{environmentTag}</Tag>
           </Space>
-          <Space size={8}>
-            <Typography.Text>{session.user.displayName}</Typography.Text>
-            <Typography.Text type="secondary">{session.user.feishuUserId}</Typography.Text>
+          <Space size={8} style={{ minWidth: 0, justifyContent: 'flex-end', overflow: 'hidden' }}>
+            <Typography.Text style={{ whiteSpace: 'nowrap' }}>{session.user.displayName}</Typography.Text>
+            {!compactHeader ? (
+              <Typography.Text type="secondary" ellipsis={{ tooltip: session.user.feishuUserId }} style={{ maxWidth: 220 }}>
+                {session.user.feishuUserId}
+              </Typography.Text>
+            ) : null}
             {session.roles.map((role) => (
               <Tag key={role}>{roleLabels[role]}</Tag>
             ))}

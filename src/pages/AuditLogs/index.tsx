@@ -52,7 +52,9 @@ const actionLabels: Record<AuditAction, string> = {
   'application.api_call': '应用 API 调用',
   'secret.copy': '复制密钥',
   'secret.rotate': '轮换密钥',
+  'role.create': '创建角色',
   'role.update': '管理员操作',
+  'role.authorization.update': '更新角色授权',
   'permission.query': '权限查询',
   'sync.run': '同步任务',
 };

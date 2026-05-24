@@ -7,6 +7,8 @@ import {
   mapRuntimeDepartment,
   mapRuntimeApplication,
   mapRuntimeDirectoryUser,
+  mapRuntimePermissionTree,
+  mapRuntimeRole,
 } from './dtoMappers';
 import type {
   Application,
@@ -83,6 +85,32 @@ interface RuntimeDirectoryUser {
   local_role_summary?: string | null;
   last_login_at?: string | null;
   last_permission_queried_at?: string | null;
+}
+
+interface RuntimeRole {
+  id: string;
+  application_id?: string | null;
+  application_name?: string | null;
+  app_key?: string | null;
+  code: string;
+  name: string;
+  description?: string | null;
+  status?: IamRole['status'];
+  created_at?: string | null;
+  updated_at?: string | null;
+  permission_group_count?: number | null;
+  permission_point_count?: number | null;
+  department_binding_count?: number | null;
+  user_binding_count?: number | null;
+  permission_keys?: string[] | null;
+  department_ids?: string[] | null;
+  user_ids?: string[] | null;
+}
+
+interface RuntimePermissionNode {
+  key: string;
+  title: string;
+  children?: RuntimePermissionNode[];
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -163,28 +191,85 @@ export function listApplicationPermissionRegistrations(
   return unsupportedHttpMethod('listApplicationPermissionRegistrations');
 }
 
-export function createRole(_input: UpsertRoleInput): Promise<IamRole> {
-  return unsupportedHttpMethod('createRole');
+export async function createRole(input: UpsertRoleInput): Promise<IamRole> {
+  const application = await findApplicationForHttpRole(input.applicationId);
+  const role = await httpRequest<RuntimeRole>('/api/roles', {
+    method: 'POST',
+    body: {
+      appKey: application.appKey,
+      code: input.code,
+      name: input.name,
+      description: input.description,
+      status: input.status,
+    },
+  });
+  return mapRuntimeRole({
+    ...role,
+    application_id: application.id,
+    application_name: application.name,
+    app_key: application.appKey,
+  });
 }
 
-export function updateRole(_roleId: string, _input: UpsertRoleInput): Promise<IamRole> {
-  return unsupportedHttpMethod('updateRole');
+export async function updateRole(roleId: string, input: UpsertRoleInput): Promise<IamRole> {
+  const application = await findApplicationForHttpRole(input.applicationId);
+  const role = await httpRequest<RuntimeRole>(`/api/roles/${roleId}`, {
+    method: 'PATCH',
+    body: {
+      name: input.name,
+      description: input.description,
+      status: input.status,
+    },
+  });
+  return mapRuntimeRole({
+    ...role,
+    application_id: application.id,
+    application_name: application.name,
+    app_key: application.appKey,
+  });
 }
 
-export function updateRoleAuthorization(_input: UpdateRoleAuthorizationInput): Promise<IamRole> {
-  return unsupportedHttpMethod('updateRoleAuthorization');
+export async function updateRoleAuthorization(input: UpdateRoleAuthorizationInput): Promise<IamRole> {
+  await httpRequest(`/api/roles/${input.roleId}/authorization`, {
+    method: 'PUT',
+    body: {
+      permissionPointCodes: input.permissionKeys,
+      departmentIds: input.departmentIds,
+      feishuUserIds: input.userIds,
+    },
+  });
+  return findRuntimeRoleById(input.roleId);
 }
 
-export function disableRoles(_roleIds: string[]): Promise<IamRole[]> {
-  return unsupportedHttpMethod('disableRoles');
+export async function disableRoles(roleIds: string[]): Promise<IamRole[]> {
+  return Promise.all(
+    roleIds.map(async (roleId) =>
+      mapRuntimeRole(await httpRequest<RuntimeRole>(`/api/roles/${roleId}`, { method: 'PATCH', body: { status: 'disabled' } })),
+    ),
+  );
 }
 
-export function listRoles(_request: ListRolesRequest): Promise<PageResult<IamRole>> {
-  return unsupportedHttpMethod('listRoles');
+export async function listRoles(request: ListRolesRequest): Promise<PageResult<IamRole>> {
+  const appKey = request.applicationId ? (await findApplicationForHttpRole(request.applicationId)).appKey : undefined;
+  return mapPageResult(
+    await httpRequest<RuntimePageResult<RuntimeRole>>('/api/roles', {
+      query: {
+        page: request.page,
+        pageSize: request.pageSize,
+        appKey,
+        keyword: request.keyword,
+        status: request.status,
+        createdAtFrom: request.createdAtFrom,
+        createdAtTo: request.createdAtTo,
+      },
+    }),
+    mapRuntimeRole,
+  );
 }
 
-export function listIamPermissionTree(): Promise<IamPermissionNode[]> {
-  return unsupportedHttpMethod('listIamPermissionTree');
+export async function listIamPermissionTree(): Promise<IamPermissionNode[]> {
+  const result = await httpRequest<{ items: RuntimePermissionNode[] }>('/api/roles/permission-tree');
+  return mapRuntimePermissionTree(result.items);
 }
 
 export async function listFeishuDepartments(): Promise<FeishuDepartment[]> {
@@ -233,4 +318,22 @@ export function startManualSync(): Promise<SyncRun> {
 
 function unsupportedHttpMethod(name: string): never {
   throw new Error(`${name} is not available in HTTP mode for the current vertical slice`);
+}
+
+async function findApplicationForHttpRole(applicationId: string): Promise<Application> {
+  const applications = await listApplications({ page: 1, pageSize: 100 });
+  const application = applications.items.find((item) => item.id === applicationId);
+  if (!application) {
+    throw new Error(`APPLICATION_NOT_FOUND:${applicationId}`);
+  }
+  return application;
+}
+
+async function findRuntimeRoleById(roleId: string): Promise<IamRole> {
+  const roles = await listRoles({ page: 1, pageSize: 100 });
+  const role = roles.items.find((item) => item.id === roleId);
+  if (!role) {
+    throw new Error(`ROLE_NOT_FOUND:${roleId}`);
+  }
+  return role;
 }

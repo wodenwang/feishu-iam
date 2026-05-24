@@ -88,6 +88,7 @@ let mockIamStore = createMockIamStore();
 let mockCurrentSession = platformAdminSession;
 let nextApplicationsListError: Error | undefined;
 let nextAuditLogsListError: Error | undefined;
+let nextRolesListError: Error | undefined;
 
 const wait = (ms = 80) =>
   new Promise<void>((resolve) => {
@@ -166,6 +167,7 @@ export function resetMockIamStore() {
   mockCurrentSession = platformAdminSession;
   nextApplicationsListError = undefined;
   nextAuditLogsListError = undefined;
+  nextRolesListError = undefined;
 }
 
 export function setMockCurrentSession(session: CurrentSession) {
@@ -178,6 +180,10 @@ export function rejectNextApplicationsList(error: Error) {
 
 export function rejectNextAuditLogsList(error: Error) {
   nextAuditLogsListError = error;
+}
+
+export function rejectNextRolesList(error: Error) {
+  nextRolesListError = error;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -254,6 +260,12 @@ export async function listApplications(
 
 export async function listRoles(request: ListRolesRequest): Promise<PageResult<IamRole>> {
   await wait();
+
+  if (nextRolesListError) {
+    const error = nextRolesListError;
+    nextRolesListError = undefined;
+    throw error;
+  }
 
   const keyword = request.keyword?.trim().toLowerCase();
   const sessionApplicationScope =

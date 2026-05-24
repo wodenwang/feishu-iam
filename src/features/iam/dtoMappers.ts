@@ -7,6 +7,8 @@ import type {
   CurrentSession,
   DirectoryUser,
   FeishuDepartment,
+  IamPermissionNode,
+  IamRole,
   PageResult,
 } from './types';
 
@@ -63,6 +65,32 @@ interface RuntimeDirectoryUser {
   local_role_summary?: string | null;
   last_login_at?: string | null;
   last_permission_queried_at?: string | null;
+}
+
+interface RuntimeRole {
+  id: string;
+  application_id?: string | null;
+  application_name?: string | null;
+  app_key?: string | null;
+  code: string;
+  name: string;
+  description?: string | null;
+  status?: IamRole['status'];
+  created_at?: string | null;
+  updated_at?: string | null;
+  permission_group_count?: number | null;
+  permission_point_count?: number | null;
+  department_binding_count?: number | null;
+  user_binding_count?: number | null;
+  permission_keys?: string[] | null;
+  department_ids?: string[] | null;
+  user_ids?: string[] | null;
+}
+
+interface RuntimePermissionNode {
+  key: string;
+  title: string;
+  children?: RuntimePermissionNode[] | null;
 }
 
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
@@ -161,6 +189,36 @@ export function mapRuntimeDirectoryUser(item: RuntimeDirectoryUser): DirectoryUs
   };
 }
 
+export function mapRuntimeRole(item: RuntimeRole): IamRole {
+  const createdAt = item.created_at ?? '';
+  return {
+    id: item.id,
+    applicationId: item.application_id ?? item.app_key ?? '-',
+    applicationName: item.application_name ?? '-',
+    name: item.name,
+    code: item.code,
+    description: item.description ?? undefined,
+    status: item.status ?? 'active',
+    permissionGroupCount: item.permission_group_count ?? 0,
+    permissionPointCount: item.permission_point_count ?? 0,
+    departmentBindingCount: item.department_binding_count ?? 0,
+    userBindingCount: item.user_binding_count ?? 0,
+    permissionKeys: item.permission_keys ?? [],
+    departmentIds: item.department_ids ?? [],
+    userIds: item.user_ids ?? [],
+    createdAt,
+    updatedAt: item.updated_at ?? createdAt,
+  };
+}
+
+export function mapRuntimePermissionTree(items: RuntimePermissionNode[]): IamPermissionNode[] {
+  return items.map((item) => ({
+    key: item.key,
+    title: item.title,
+    children: item.children ? mapRuntimePermissionTree(item.children) : undefined,
+  }));
+}
+
 export function mapPageResult<Input, Output>(
   page: RuntimePageResult<Input>,
   mapper: (item: Input) => Output,
@@ -178,9 +236,11 @@ function normalizeAuditAction(action: string): AuditAction {
     'login',
     'application.create',
     'application.api_call',
+    'role.create',
     'secret.copy',
     'secret.rotate',
     'role.update',
+    'role.authorization.update',
     'permission.query',
     'sync.run',
   ]);

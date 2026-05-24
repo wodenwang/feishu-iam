@@ -1,5 +1,11 @@
 # 更新日志
 
+## v0.1.9 - 部署 migration 元数据过滤
+
+- 修复 macOS AppleDouble 元数据文件 `._*.sql` 被打包到 `dist-server/migrations` 后误当 migration 执行的问题。
+- migration loader 现在只执行 `001_name.sql` 这类编号 SQL 文件，避免部署包中的点文件或说明文件触发 PostgreSQL 协议错误。
+- 新增 migration 文件过滤回归测试，覆盖 `._001_runtime.sql`、`.DS_Store` 和非编号 `.sql` 文件。
+
 ## v0.1.8 - 真实飞书 Admin Console 登录
 
 - 新增 `GET /api/auth/feishu/start` 和 `GET /api/auth/feishu/callback`，支持真实飞书 OAuth 登录 Admin Console。

@@ -13,7 +13,7 @@
 
 ## 当前状态
 
-当前仓库已经进入 `v0.1.5` Roles HTTP runtime 阶段：
+当前仓库已经进入 `v0.1.6` 最小部署基础设施阶段：
 
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
@@ -23,7 +23,66 @@
 - `v0.1.3` 已新增 Admin Console HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
 - `v0.1.4` 已新增 `/directory` HTTP runtime-backed 只读浏览，可查看部门树、用户分页列表、部门筛选、详情 Drawer 和 requestId 错误态。
 - `v0.1.5` 已新增 `/roles` HTTP runtime-backed 角色管理，可查看角色列表、创建/编辑角色、停用角色、保存授权和查看 requestId 错误态。
-- 真实飞书 OAuth、Sync、Dashboard、Application Detail、Onboarding 和交付部署仍在后续独立切片中。
+- `v0.1.6` 已新增 Docker Compose 最小部署入口，可用 `feishu-iam` + `postgres` 两个容器完成 runtime 启动和 `/api/health` 健康检查。
+- 真实飞书 OAuth、Sync、Dashboard、Application Detail、Onboarding、备份监控和更完整的自动化部署仍在后续独立切片中。
+
+## v0.1.6 Docker Compose 部署
+
+`v0.1.6` 的主目标是补齐最小部署基础设施，不新增 IAM 业务页面。
+
+Compose 常驻容器：
+
+- `feishu-iam`：服务 Vite build 后的前端静态资源和 Fastify API。
+- `postgres`：PostgreSQL 数据库。
+
+持久化路径：
+
+- `./data/postgres:/var/lib/postgresql/data`
+
+应用日志默认通过 Docker 查看：
+
+```bash
+docker compose logs -f feishu-iam
+docker compose logs -f postgres
+```
+
+本地或服务器部署步骤：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env`，至少设置：
+
+```text
+FEISHU_IAM_HOST_PORT=8002
+POSTGRES_PASSWORD=<replace-me-postgres-password>
+SESSION_SECRET=<replace-me-at-least-32-characters>
+FEISHU_AUTH_MODE=real
+FEISHU_APP_ID=<replace-me>
+FEISHU_APP_SECRET=<replace-me>
+FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
+```
+
+启动：
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl http://127.0.0.1:${FEISHU_IAM_HOST_PORT:-8002}/api/health
+```
+
+生产环境必须使用 `FEISHU_AUTH_MODE=real`。`NODE_ENV=production` 下如果配置 `FEISHU_AUTH_MODE=mock`，服务会拒绝启动。
+
+### bpmt-120 部署约定
+
+当前目标服务器为 `bpmt-120`，部署目录为：
+
+```text
+/home/bpmt/feishu-iam
+```
+
+远端已有 `/home/bpmt/nginx` 作为统一反向代理。部署时读取远端 nginx 配置和监听端口，选择下一个空闲应用端口。当前已知 `8000`、`8001` 被占用，因此优先使用 `8002`；如果部署时 `8002` 已被占用，则递增使用 `8003`。
 
 ## v0.1.3 HTTP mode 本地验收
 

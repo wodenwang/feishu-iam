@@ -11,6 +11,7 @@ const app = await buildApp({
   pool,
   sessionCookieName: config.sessionCookieName,
   allowMockLogin: config.feishuAuthMode === 'mock',
+  staticAssetsDir: config.staticAssetsDir,
 });
 
 await app.listen({ port: config.port, host: '0.0.0.0' });

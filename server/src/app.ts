@@ -12,11 +12,13 @@ import { registerInitializationRoutes } from './modules/initialization/initializ
 import { registerRoleRoutes } from './modules/roles/roleRoutes';
 import { registerRawBodyParser } from './plugins/rawBody';
 import { registerRequestContext } from './plugins/requestContext';
+import { registerStaticAssets } from './plugins/staticAssets';
 
 export interface AppOptions {
   pool: DbPool;
   sessionCookieName: string;
   allowMockLogin: boolean;
+  staticAssetsDir?: string;
 }
 
 export async function buildApp(options: AppOptions) {
@@ -42,6 +44,9 @@ export async function buildApp(options: AppOptions) {
   await registerDirectoryRoutes(app, options.pool);
   await registerRoleRoutes(app, options.pool);
   await registerAuditRoutes(app, options.pool);
+  if (options.staticAssetsDir) {
+    await registerStaticAssets(app, options.staticAssetsDir);
+  }
 
   return app;
 }

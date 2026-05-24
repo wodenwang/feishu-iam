@@ -10,6 +10,7 @@ export interface ServerConfig {
   feishuAppId?: string;
   feishuAppSecret?: string;
   feishuRedirectUri?: string;
+  staticAssetsDir?: string;
 }
 
 export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
@@ -52,6 +53,7 @@ export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
     feishuAppId,
     feishuAppSecret,
     feishuRedirectUri,
+    staticAssetsDir: env.STATIC_ASSETS_DIR ?? (nodeEnv === 'production' ? 'dist' : undefined),
   };
 }
 

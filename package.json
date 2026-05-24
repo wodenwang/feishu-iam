@@ -1,14 +1,14 @@
 {
   "name": "feishu-iam",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "server:dev": "tsx server/src/main.ts",
-    "server:build": "tsc -p server/tsconfig.json",
+    "server:build": "tsc -p server/tsconfig.json --noEmit && vite build --ssr server/src/main.ts --outDir dist-server --emptyOutDir && cp -R server/src/db/migrations dist-server/migrations",
     "server:test": "vitest run --config vitest.server.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",

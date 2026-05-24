@@ -25,6 +25,7 @@ test-results/
 # Dependency and build outputs
 node_modules/
 dist/
+dist-server/
 build/
 target/
 .gradle/
@@ -37,5 +38,6 @@ venv/
 # Feishu-derived local data
 exports/
 sync-snapshots/
+data/
 *.sqlite
 *.db

@@ -4,7 +4,9 @@ import {
   mapCreateApplicationResult,
   mapCurrentSessionResponse,
   mapPageResult,
+  mapRuntimeDepartment,
   mapRuntimeApplication,
+  mapRuntimeDirectoryUser,
 } from './dtoMappers';
 import type {
   Application,
@@ -56,6 +58,31 @@ interface RuntimeAuditLog {
   result: 'success' | 'failure' | 'failed';
   metadata?: unknown;
   created_at: string;
+}
+
+interface RuntimeDepartment {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  path?: string | null;
+  user_count?: number | null;
+  updated_at?: string | null;
+}
+
+interface RuntimeDirectoryUser {
+  feishu_user_id: string;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  department_id?: string | null;
+  department_name?: string | null;
+  department_path?: string | null;
+  status?: DirectoryUser['status'];
+  synced_at?: string | null;
+  updated_at?: string | null;
+  local_role_summary?: string | null;
+  last_login_at?: string | null;
+  last_permission_queried_at?: string | null;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -160,12 +187,32 @@ export function listIamPermissionTree(): Promise<IamPermissionNode[]> {
   return unsupportedHttpMethod('listIamPermissionTree');
 }
 
-export function listFeishuDepartments(): Promise<FeishuDepartment[]> {
-  return unsupportedHttpMethod('listFeishuDepartments');
+export async function listFeishuDepartments(): Promise<FeishuDepartment[]> {
+  const pageSize = 100;
+  const departments: FeishuDepartment[] = [];
+  let pageNumber = 1;
+  let total = 0;
+
+  do {
+    const page = await httpRequest<RuntimePageResult<RuntimeDepartment>>('/api/directory/departments', {
+      query: { page: pageNumber, pageSize },
+    });
+    departments.push(...page.items.map(mapRuntimeDepartment));
+    total = page.total ?? departments.length;
+    pageNumber += 1;
+  } while (departments.length < total);
+
+  return departments;
 }
 
-export function listDirectoryUsers(_request: PageRequest & { departmentId?: string }): Promise<PageResult<DirectoryUser>> {
-  return unsupportedHttpMethod('listDirectoryUsers');
+export async function listDirectoryUsers(request: PageRequest & { departmentId?: string }): Promise<PageResult<DirectoryUser>> {
+  const { page, pageSize, departmentId } = request;
+  return mapPageResult(
+    await httpRequest<RuntimePageResult<RuntimeDirectoryUser>>('/api/directory/users', {
+      query: { departmentId, page, pageSize },
+    }),
+    mapRuntimeDirectoryUser,
+  );
 }
 
 export function listSyncRuns(_request: PageRequest): Promise<PageResult<SyncRun>> {
@@ -185,5 +232,5 @@ export function startManualSync(): Promise<SyncRun> {
 }
 
 function unsupportedHttpMethod(name: string): never {
-  throw new Error(`${name} is not available in HTTP mode for v0.1.3 first vertical slice`);
+  throw new Error(`${name} is not available in HTTP mode for the current vertical slice`);
 }

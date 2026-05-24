@@ -3,6 +3,7 @@ import { Alert, Button, Card, Descriptions, Drawer, Empty, Grid, Space, Table, T
 import type { ColumnsType } from 'antd/es/table';
 import type { DataNode } from 'antd/es/tree';
 import { useMemo, useState } from 'react';
+import { isIamHttpError } from '../../features/iam/httpClient';
 import { useDirectoryUsers, useFeishuDepartments } from '../../features/iam/queries';
 import type { DirectoryUser, FeishuDepartment } from '../../features/iam/types';
 
@@ -49,6 +50,8 @@ export function DirectoryPage() {
     pageSize: pagination.pageSize,
   });
   const departmentTree = useMemo(() => buildDepartmentTree(departmentsQuery.data ?? []), [departmentsQuery.data]);
+  const directoryError = departmentsQuery.error ?? usersQuery.error;
+  const directoryErrorView = getDirectoryErrorView(directoryError);
 
   const columns = useMemo<ColumnsType<DirectoryUser>>(() => {
     const nameColumn: ColumnsType<DirectoryUser>[number] = {
@@ -150,12 +153,21 @@ export function DirectoryPage() {
             </Space>
           }
         >
-          {departmentsQuery.isError || usersQuery.isError ? (
+          {directoryErrorView ? (
             <Alert
               type="error"
               showIcon
-              title="加载飞书目录失败"
-              description="请稍后重试，或检查飞书应用的通讯录同步权限。"
+              title={directoryErrorView.title}
+              description={
+                <Space direction="vertical" size={4}>
+                  <Typography.Text>{directoryErrorView.description}</Typography.Text>
+                  {directoryErrorView.requestId ? (
+                    <Typography.Text type="secondary">
+                      Request ID: <Typography.Text code copyable>{directoryErrorView.requestId}</Typography.Text>
+                    </Typography.Text>
+                  ) : null}
+                </Space>
+              }
               action={<Button onClick={refreshDirectory}>重试</Button>}
             />
           ) : !usersQuery.isLoading && (usersQuery.data?.items ?? []).length === 0 ? (
@@ -209,4 +221,35 @@ export function DirectoryPage() {
       </Drawer>
     </Space>
   );
+}
+
+function getDirectoryErrorView(error: unknown): { title: string; description: string; requestId?: string } | undefined {
+  if (!error) {
+    return undefined;
+  }
+  if (isIamHttpError(error)) {
+    if (error.status === 401) {
+      return {
+        title: '会话已过期',
+        description: '请重新使用飞书登录后再查看组织目录。',
+        requestId: error.requestId,
+      };
+    }
+    if (error.status === 403) {
+      return {
+        title: '无权查看组织目录',
+        description: '当前飞书用户不是平台管理员，无法查看飞书组织与用户投影。',
+        requestId: error.requestId,
+      };
+    }
+    return {
+      title: '加载飞书目录失败',
+      description: error.message || '请稍后重试，或检查飞书应用的通讯录同步权限。',
+      requestId: error.requestId,
+    };
+  }
+  return {
+    title: '加载飞书目录失败',
+    description: error instanceof Error ? error.message : '请稍后重试，或检查飞书应用的通讯录同步权限。',
+  };
 }

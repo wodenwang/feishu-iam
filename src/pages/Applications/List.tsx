@@ -218,6 +218,7 @@ export function ApplicationsListPage() {
     };
 
     const createdApplication = await createApplicationMutation.mutateAsync(input);
+    const createdApplicationId = 'application' in createdApplication ? createdApplication.application.id : createdApplication.id;
     setDrawerOpen(false);
     createForm.resetFields();
     await applicationsQuery.refetch();
@@ -225,7 +226,7 @@ export function ApplicationsListPage() {
       title: '应用已创建',
       content: '请继续查看应用详情并完成接入配置，避免只停留在列表记录。',
       okText: '查看详情',
-      onOk: () => navigate(`/applications/${createdApplication.id}`),
+      onOk: () => navigate(`/applications/${createdApplicationId}`),
     });
   };
 

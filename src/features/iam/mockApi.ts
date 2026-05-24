@@ -185,6 +185,16 @@ export async function getCurrentSession(): Promise<CurrentSession> {
   return cloneCurrentSession(mockCurrentSession);
 }
 
+export async function getInitializationStatus(): Promise<{ initialized: boolean }> {
+  await wait();
+  return { initialized: true };
+}
+
+export async function bindPlatformAdmin(): Promise<{ initialized: boolean; platformAdminFeishuUserId: string }> {
+  await wait();
+  return { initialized: true, platformAdminFeishuUserId: mockCurrentSession.user.feishuUserId };
+}
+
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   await wait();
   const applicationCount = mockIamStore.applications.length;

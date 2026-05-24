@@ -1,7 +1,7 @@
 import { LoginOutlined } from '@ant-design/icons';
 import { Alert, Button, Result, Space, Spin, Typography } from 'antd';
 
-type LoginStatus = 'idle' | 'callbackProcessing' | 'configMissing' | 'userNotSynced' | 'noConsoleAccess';
+type LoginStatus = 'idle' | 'callbackProcessing' | 'configMissing' | 'authFailed' | 'userNotSynced' | 'noConsoleAccess';
 
 type LoginPageProps = {
   status?: LoginStatus;
@@ -18,6 +18,10 @@ const statusContent: Record<Exclude<LoginStatus, 'idle' | 'callbackProcessing'>,
   configMissing: {
     title: '飞书应用配置缺失',
     subTitle: '当前部署未配置飞书应用，请检查上方环境变量提示',
+  },
+  authFailed: {
+    title: '飞书登录失败',
+    subTitle: '飞书授权未完成或已失效，请重新发起登录',
   },
   userNotSynced: {
     title: '用户尚未同步',

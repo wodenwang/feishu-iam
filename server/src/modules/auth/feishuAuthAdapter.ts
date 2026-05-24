@@ -7,4 +7,6 @@ export interface FeishuUserIdentity {
 
 export interface FeishuAuthAdapter {
   resolveMockUser(input: unknown): Promise<FeishuUserIdentity>;
+  buildAuthorizationUrl?(input: { state: string; redirectUri: string }): string;
+  exchangeCodeForUser?(input: { code: string; redirectUri: string }): Promise<FeishuUserIdentity>;
 }

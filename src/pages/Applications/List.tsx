@@ -23,9 +23,11 @@ import { useNavigate } from 'react-router-dom';
 import { AppTable } from '../../components/AppTable';
 import { FormDrawer } from '../../components/FormDrawer';
 import { SearchForm } from '../../components/SearchForm';
+import { getIamApiMode } from '../../features/iam/apiMode';
+import { isIamHttpError } from '../../features/iam/httpClient';
 import { canCreateApplication, canDisableApplications, getScopedApplicationIds } from '../../features/iam/permissions';
 import { useApplications, useBatchDisableApplications, useCreateApplication, useCurrentSession } from '../../features/iam/queries';
-import type { Application, ApplicationStatus, CreateApplicationInput } from '../../features/iam/types';
+import type { Application, ApplicationStatus, CreateApplicationInput, CreateApplicationResult } from '../../features/iam/types';
 
 const { RangePicker } = DatePicker;
 
@@ -44,9 +46,9 @@ interface ApplicationFilters {
 
 interface CreateApplicationFormValues {
   name: string;
-  code: string;
+  code?: string;
   description?: string;
-  callbackUrl: string;
+  callbackUrl?: string;
   ownerFeishuUserId?: string;
 }
 
@@ -61,6 +63,7 @@ const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleStri
 export function ApplicationsListPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
+  const apiMode = getIamApiMode();
   const [form] = Form.useForm<SearchValues>();
   const [createForm] = Form.useForm<CreateApplicationFormValues>();
   const screens = Grid.useBreakpoint();
@@ -84,7 +87,7 @@ export function ApplicationsListPage() {
   const createApplicationMutation = useCreateApplication();
   const batchDisableApplicationsMutation = useBatchDisableApplications();
   const canCreate = canCreateApplication(currentSessionQuery.data);
-  const canDisable = canDisableApplications(currentSessionQuery.data);
+  const canDisable = apiMode === 'mock' && canDisableApplications(currentSessionQuery.data);
 
   const confirmRowDisable = useCallback(
     async (application: Application) => {
@@ -131,12 +134,18 @@ export function ApplicationsListPage() {
       width: isCompact ? 150 : 180,
       render: (_, record) => (
         <Space size={8} wrap={isCompact}>
-          <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
-            查看
-          </Button>
-          <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
-            接入配置
-          </Button>
+          {apiMode === 'mock' ? (
+            <>
+              <Button type="link" size="small" onClick={() => navigate(`/applications/${record.id}`)}>
+                查看
+              </Button>
+              <Button type="link" size="small" onClick={() => navigate(`/applications/onboarding?applicationId=${record.id}`)}>
+                接入配置
+              </Button>
+            </>
+          ) : (
+            <Typography.Text type="secondary">HTTP mode</Typography.Text>
+          )}
           {canDisable && !isCompact ? (
             <Popconfirm title={`停用 ${record.name}？`} okText="停用" cancelText="取消" onConfirm={() => confirmRowDisable(record)}>
               <Button type="link" size="small" danger>
@@ -201,10 +210,52 @@ export function ApplicationsListPage() {
       },
       actionColumn,
     ];
-  }, [canDisable, confirmRowDisable, isCompact, locallyDisabledApplicationIds, navigate]);
+  }, [apiMode, canDisable, confirmRowDisable, isCompact, locallyDisabledApplicationIds, navigate]);
 
   const submitCreateApplication = async (values: CreateApplicationFormValues) => {
     if (!canCreate) {
+      return;
+    }
+
+    if (apiMode === 'http') {
+      try {
+        const result = (await createApplicationMutation.mutateAsync({
+          name: values.name,
+          code: values.name,
+          callbackUrls: [],
+          allowedOrigins: [],
+        })) as CreateApplicationResult;
+        setDrawerOpen(false);
+        createForm.resetFields();
+        await applicationsQuery.refetch();
+        Modal.success({
+          title: '应用已创建',
+          content: (
+            <Space orientation="vertical" size={8}>
+              <Typography.Text>以下密钥只显示一次，关闭后无法再次查看。</Typography.Text>
+              <Typography.Text code copyable>
+                {result.appSecret}
+              </Typography.Text>
+              <Typography.Text code copyable>
+                {result.apiSecret}
+              </Typography.Text>
+            </Space>
+          ),
+          okText: '我已保存，查看审计日志',
+          onOk: () => navigate('/audit-logs'),
+        });
+      } catch (error) {
+        if (isIamHttpError(error) && error.status === 409 && error.code === 'APPLICATION_NAME_EXISTS') {
+          createForm.setFields([{ name: 'name', errors: [error.message] }]);
+          return;
+        }
+        const requestId = isIamHttpError(error) && error.requestId ? ` Request ID: ${error.requestId}` : '';
+        message.error(`创建应用失败。${requestId}`);
+      }
+      return;
+    }
+
+    if (!values.code || !values.callbackUrl) {
       return;
     }
 
@@ -252,6 +303,11 @@ export function ApplicationsListPage() {
 
   const dataSource = applicationsQuery.data?.items ?? [];
   const isSearchEmpty = !applicationsQuery.isLoading && dataSource.length === 0 && Boolean(filters.keyword || filters.status);
+  const applicationsError = applicationsQuery.error;
+  const applicationsErrorRequestId = isIamHttpError(applicationsError) ? applicationsError.requestId : undefined;
+  const applicationsErrorMessage = isIamHttpError(applicationsError)
+    ? applicationsError.message
+    : '请稍后重试，或联系平台管理员检查飞书 IAM 服务状态。';
 
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
@@ -334,7 +390,12 @@ export function ApplicationsListPage() {
             type="error"
             showIcon
             title="加载应用列表失败"
-            description="请稍后重试，或联系平台管理员检查飞书 IAM 服务状态。"
+            description={
+              <Space orientation="vertical" size={4}>
+                <Typography.Text>{applicationsErrorMessage}</Typography.Text>
+                {applicationsErrorRequestId ? <Typography.Text code copyable>{applicationsErrorRequestId}</Typography.Text> : null}
+              </Space>
+            }
             action={
               <Button size="small" danger onClick={() => applicationsQuery.refetch()}>
                 重试
@@ -343,7 +404,7 @@ export function ApplicationsListPage() {
           />
         }
         isEmpty={isSearchEmpty}
-        empty={<Empty description="没有匹配的应用" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+      empty={<Empty description="没有匹配的应用" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
         tableProps={{
           rowKey: 'id',
           size: 'middle',
@@ -391,41 +452,45 @@ export function ApplicationsListPage() {
           >
             <Input placeholder="例如：Demo CRM" />
           </Form.Item>
-          <Form.Item
-            name="code"
-            label="应用编码"
-            rules={[
-              { required: true, message: '请输入应用编码' },
-              { pattern: /^[a-z0-9-]+$/, message: '仅支持小写字母、数字和短横线' },
-            ]}
-          >
-            <Input placeholder="例如：demo-crm" />
-          </Form.Item>
-          <Form.Item name="description" label="描述" rules={[{ max: 200, message: '描述不能超过 200 个字符' }]}>
-            <Input.TextArea rows={3} placeholder="填写应用用途和接入范围" />
-          </Form.Item>
-          <Form.Item
-            name="callbackUrl"
-            label="回调地址"
-            rules={[
-              { required: true, message: '请输入回调地址' },
-              { type: 'url', message: '请输入有效 URL' },
-            ]}
-          >
-            <Input placeholder="https://example.com/auth/callback" />
-          </Form.Item>
-          <Form.Item name="ownerFeishuUserId" label="应用管理员">
-            <Select
-              allowClear
-              placeholder="默认使用当前飞书管理员"
-              options={[
-                {
-                  value: 'ou_feishu_admin_001',
-                  label: '王文哲 / ou_feishu_admin_001',
-                },
-              ]}
-            />
-          </Form.Item>
+          {apiMode === 'mock' ? (
+            <>
+              <Form.Item
+                name="code"
+                label="应用编码"
+                rules={[
+                  { required: true, message: '请输入应用编码' },
+                  { pattern: /^[a-z0-9-]+$/, message: '仅支持小写字母、数字和短横线' },
+                ]}
+              >
+                <Input placeholder="例如：demo-crm" />
+              </Form.Item>
+              <Form.Item name="description" label="描述" rules={[{ max: 200, message: '描述不能超过 200 个字符' }]}>
+                <Input.TextArea rows={3} placeholder="填写应用用途和接入范围" />
+              </Form.Item>
+              <Form.Item
+                name="callbackUrl"
+                label="回调地址"
+                rules={[
+                  { required: true, message: '请输入回调地址' },
+                  { type: 'url', message: '请输入有效 URL' },
+                ]}
+              >
+                <Input placeholder="https://example.com/auth/callback" />
+              </Form.Item>
+              <Form.Item name="ownerFeishuUserId" label="应用管理员">
+                <Select
+                  allowClear
+                  placeholder="默认使用当前飞书管理员"
+                  options={[
+                    {
+                      value: 'ou_feishu_admin_001',
+                      label: '王文哲 / ou_feishu_admin_001',
+                    },
+                  ]}
+                />
+              </Form.Item>
+            </>
+          ) : null}
         </Form>
       </FormDrawer>
 

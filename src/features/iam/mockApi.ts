@@ -187,7 +187,7 @@ export async function getCurrentSession(): Promise<CurrentSession> {
 
 export async function getInitializationStatus(): Promise<{ initialized: boolean }> {
   await wait();
-  return { initialized: true };
+  return { initialized: false };
 }
 
 export async function bindPlatformAdmin(): Promise<{ initialized: boolean; platformAdminFeishuUserId: string }> {

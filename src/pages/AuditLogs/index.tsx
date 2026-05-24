@@ -19,6 +19,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { AppTable } from '../../components/AppTable';
 import { SearchForm } from '../../components/SearchForm';
+import { isIamHttpError } from '../../features/iam/httpClient';
 import { useApplications, useAuditLogs } from '../../features/iam/queries';
 import type { AuditAction, AuditLog, AuditResult } from '../../features/iam/types';
 
@@ -62,7 +63,6 @@ const resultLabels: Record<AuditResult, { text: string; color: string }> = {
 };
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
-const auditLogsErrorRequestId = 'req_audit_error_001';
 
 export function AuditLogsPage() {
   const [form] = Form.useForm<AuditSearchValues>();
@@ -74,6 +74,11 @@ export function AuditLogsPage() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | undefined>();
   const auditLogsQuery = useAuditLogs({ ...filters, page: pagination.page, pageSize: pagination.pageSize });
   const applicationsQuery = useApplications({ page: 1, pageSize: 50 });
+  const auditError = auditLogsQuery.error;
+  const auditRequestId = isIamHttpError(auditError) ? auditError.requestId : undefined;
+  const auditErrorMessage = isIamHttpError(auditError)
+    ? auditError.message
+    : '请稍后重试，若仍失败可交由管理员排查审计服务。';
   const applicationNameById = useMemo(
     () => new Map((applicationsQuery.data?.items ?? []).map((application) => [application.id, application.name])),
     [applicationsQuery.data?.items],
@@ -242,8 +247,8 @@ export function AuditLogsPage() {
             title="加载审计日志失败"
             description={
               <Space orientation="vertical" size={4}>
-                <Typography.Text>Request ID：{auditLogsErrorRequestId}</Typography.Text>
-                <Typography.Text type="secondary">请保留 Request ID 后重试，若仍失败可交由管理员排查审计服务。</Typography.Text>
+                <Typography.Text>{auditErrorMessage}</Typography.Text>
+                {auditRequestId ? <Typography.Text code copyable>{auditRequestId}</Typography.Text> : null}
               </Space>
             }
             action={<Button onClick={() => auditLogsQuery.refetch()}>重试</Button>}

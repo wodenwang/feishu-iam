@@ -1,5 +1,8 @@
 import { FileTextOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Alert, Button, Descriptions, Result, Space, Steps, Typography } from 'antd';
+import { Alert, Button, Descriptions, Result, Space, Spin, Steps, Typography } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { isIamHttpError } from '../../features/iam/httpClient';
+import { useBindPlatformAdmin, useInitializationStatus } from '../../features/iam/queries';
 
 type InitializePageProps = {
   feishuConfigStatus?: string;
@@ -33,6 +36,14 @@ export function InitializePage({
   databaseStatus = '待检测',
   lastBootstrapAttempt = '暂无记录',
 }: InitializePageProps) {
+  const navigate = useNavigate();
+  const initializationQuery = useInitializationStatus();
+  const bindPlatformAdminMutation = useBindPlatformAdmin();
+  const error = initializationQuery.error ?? bindPlatformAdminMutation.error;
+  const errorMessage = isIamHttpError(error) ? error.message : '请确认已通过飞书登录，并检查本地 HTTP runtime 状态。';
+  const errorRequestId = isIamHttpError(error) ? error.requestId : undefined;
+  const initialized = initializationQuery.data?.initialized ?? false;
+
   return (
     <main style={{ minHeight: '100vh', background: '#f5f7fb', padding: 24 }}>
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
@@ -43,30 +54,69 @@ export function InitializePage({
           <Typography.Text type="secondary">首次部署后绑定首个飞书平台管理员</Typography.Text>
         </section>
 
-        <Alert showIcon type="warning" title="当前系统尚未完成平台管理员绑定" />
+        {initializationQuery.isLoading ? <Alert showIcon type="info" title="正在检测初始化状态" /> : null}
+        {initialized ? (
+          <Alert showIcon type="success" title="系统已完成平台管理员绑定" />
+        ) : (
+          <Alert showIcon type="warning" title="当前系统尚未完成平台管理员绑定" />
+        )}
+        {initializationQuery.isError || bindPlatformAdminMutation.isError ? (
+          <Alert
+            showIcon
+            type="error"
+            title="初始化操作失败"
+            description={
+              <Space orientation="vertical" size={4}>
+                <Typography.Text>{errorMessage}</Typography.Text>
+                {errorRequestId ? <Typography.Text code copyable>{errorRequestId}</Typography.Text> : null}
+              </Space>
+            }
+          />
+        ) : null}
 
         <Descriptions bordered size="middle" column={2}>
           <Descriptions.Item label="飞书应用配置状态">{feishuConfigStatus}</Descriptions.Item>
           <Descriptions.Item label="初始管理员 User ID">{initialAdminUserId}</Descriptions.Item>
-          <Descriptions.Item label="数据库连接状态">{databaseStatus}</Descriptions.Item>
+          <Descriptions.Item label="数据库连接状态">{initializationQuery.isSuccess ? '已连接' : databaseStatus}</Descriptions.Item>
           <Descriptions.Item label="最近一次 bootstrap 尝试">{lastBootstrapAttempt}</Descriptions.Item>
         </Descriptions>
 
-        <Result
-          status="warning"
-          title="等待完成初始化"
-          subTitle="完成以下步骤后，系统将只允许通过飞书身份进入 Admin Console。"
-          extra={
-            <Space wrap>
-              <Button type="primary" icon={<ReloadOutlined aria-hidden="true" />}>
-                重新检测配置
+        {initializationQuery.isLoading ? (
+          <Result icon={<Spin size="large" />} title="正在检测初始化状态" />
+        ) : initialized ? (
+          <Result
+            status="success"
+            title="初始化已完成"
+            subTitle="当前系统已经绑定平台管理员，可以进入 Admin Console。"
+            extra={
+              <Button type="primary" onClick={() => navigate('/applications')}>
+                进入应用管理
               </Button>
-              <Button href="/docs/deployment" icon={<FileTextOutlined aria-hidden="true" />}>
-                查看部署文档
-              </Button>
-            </Space>
-          }
-        />
+            }
+          />
+        ) : (
+          <Result
+            status="warning"
+            title="等待完成初始化"
+            subTitle="完成以下步骤后，系统将只允许通过飞书身份进入 Admin Console。"
+            extra={
+              <Space wrap>
+                <Button
+                  type="primary"
+                  icon={<ReloadOutlined aria-hidden="true" />}
+                  loading={bindPlatformAdminMutation.isPending}
+                  onClick={() => bindPlatformAdminMutation.mutate()}
+                >
+                  绑定当前飞书用户为平台管理员
+                </Button>
+                <Button onClick={() => initializationQuery.refetch()}>重新检测配置</Button>
+                <Button href="/docs/deployment" icon={<FileTextOutlined aria-hidden="true" />}>
+                  查看部署文档
+                </Button>
+              </Space>
+            }
+          />
+        )}
 
         <Steps orientation="vertical" responsive={false} current={0} items={bootstrapSteps} />
       </Space>

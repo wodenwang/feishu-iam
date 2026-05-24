@@ -1,6 +1,8 @@
 import { Alert, Breadcrumb, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getIamApiMode } from '../features/iam/apiMode';
+import { isIamHttpError } from '../features/iam/httpClient';
 import { useCurrentSession } from '../features/iam/queries';
 import type { AdminRole } from '../features/iam/types';
 import { getMenuSelectedKey, getVisibleMenuItems, matchRouteItem, routeItems } from '../router/routes';
@@ -17,6 +19,8 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const sessionQuery = useCurrentSession();
   const session = sessionQuery.data;
+  const apiMode = getIamApiMode();
+  const environmentTag = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
 
@@ -31,16 +35,36 @@ export function AdminLayout() {
   }
 
   if (sessionQuery.isError || !session) {
+    const error = sessionQuery.error;
+    const isHttpError = isIamHttpError(error);
+    const isUnauthenticatedSession = error instanceof Error && error.message === 'UNAUTHENTICATED_SESSION';
+    const title = (isHttpError && error.status === 401) || isUnauthenticatedSession ? '会话已过期' : '无法加载当前飞书会话';
+    const description = isHttpError
+      ? `${error.message}${error.requestId ? `（Request ID: ${error.requestId}）` : ''}`
+      : isUnauthenticatedSession
+        ? '请先通过飞书登录后再访问 Admin Console。'
+        : '请检查飞书登录态或稍后重试。';
+
     return (
       <Layout style={{ minHeight: '100vh' }}>
         <Content style={{ padding: 24 }}>
-          <Alert type="error" showIcon title="无法加载当前飞书会话" description="请检查飞书登录态或稍后重试。" />
+          <Alert
+            type={(isHttpError && error.status === 401) || isUnauthenticatedSession ? 'warning' : 'error'}
+            showIcon
+            title={title}
+            description={description}
+            action={(isHttpError && error.status === 401) || isUnauthenticatedSession ? <Link to="/login">重新登录</Link> : undefined}
+          />
         </Content>
       </Layout>
     );
   }
 
-  const menuItems: MenuProps['items'] = getVisibleMenuItems(routeItems, session).map((item) => ({
+  const visibleRoutes =
+    apiMode === 'http'
+      ? routeItems.filter((item) => item.path === '/applications' || item.path === '/audit-logs')
+      : getVisibleMenuItems(routeItems, session);
+  const menuItems: MenuProps['items'] = visibleRoutes.map((item) => ({
     key: item.path,
     icon: item.icon,
     label: item.label,
@@ -74,7 +98,7 @@ export function AdminLayout() {
         >
           <Space size={12}>
             <Typography.Text strong>feishu-iam</Typography.Text>
-            <Tag color="blue">本地环境</Tag>
+            <Tag color={apiMode === 'http' ? 'green' : 'blue'}>{environmentTag}</Tag>
           </Space>
           <Space size={8}>
             <Typography.Text>{session.user.displayName}</Typography.Text>

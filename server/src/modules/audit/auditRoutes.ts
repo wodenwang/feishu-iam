@@ -17,6 +17,8 @@ export async function registerAuditRoutes(app: FastifyInstance, pool: DbPool): P
       action?: string;
       result?: string;
       keyword?: string;
+      targetId?: string;
+      targetType?: string;
     };
     const page = normalizePositiveInteger(query.page, 1);
     const pageSize = Math.min(normalizePositiveInteger(query.pageSize, 20), 100);
@@ -37,6 +39,14 @@ export async function registerAuditRoutes(app: FastifyInstance, pool: DbPool): P
       filters.push(
         `(request_id ilike $${values.length} or actor_feishu_user_id ilike $${values.length} or action ilike $${values.length} or metadata::text ilike $${values.length})`,
       );
+    }
+    if (query.targetId) {
+      values.push(query.targetId);
+      filters.push(`target_id = $${values.length}`);
+    }
+    if (query.targetType) {
+      values.push(query.targetType);
+      filters.push(`target_type = $${values.length}`);
     }
 
     const whereClause = filters.length ? `where ${filters.join(' and ')}` : '';

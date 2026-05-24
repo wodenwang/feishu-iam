@@ -7,6 +7,7 @@ import {
   mapRuntimeDepartment,
   mapRuntimeApplication,
   mapRuntimeDirectoryUser,
+  mapRuntimePermissionRegistration,
   mapRuntimePermissionTree,
   mapRuntimeRole,
 } from './dtoMappers';
@@ -46,8 +47,12 @@ interface RuntimeApplication {
   status: Application['status'];
   created_at: string;
   updated_at?: string;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
   permission_group_count?: number;
   permission_point_count?: number;
+  last_api_called_at?: string | null;
+  last_permission_query_at?: string | null;
 }
 
 interface RuntimeAuditLog {
@@ -113,6 +118,18 @@ interface RuntimePermissionNode {
   children?: RuntimePermissionNode[];
 }
 
+interface RuntimePermissionRegistration {
+  id?: string | null;
+  application_id?: string | null;
+  group_code: string;
+  group_name: string;
+  group_status?: 'active' | 'disabled' | null;
+  permission_code?: string | null;
+  permission_name?: string | null;
+  permission_status?: 'active' | 'disabled' | null;
+  updated_at?: string | null;
+}
+
 export async function getCurrentSession(): Promise<CurrentSession> {
   return mapCurrentSessionResponse(await httpRequest('/api/session/current'));
 }
@@ -160,11 +177,14 @@ export async function listAuditLogs(
     action?: AuditAction;
     result?: AuditResult;
     keyword?: string;
+    applicationId?: string;
   },
 ): Promise<PageResult<AuditLog>> {
-  const { page, pageSize, action, result, keyword } = request;
+  const { page, pageSize, action, result, keyword, applicationId } = request;
   return mapPageResult(
-    await httpRequest<RuntimePageResult<RuntimeAuditLog>>('/api/audit-logs', { query: { page, pageSize, action, result, keyword } }),
+    await httpRequest<RuntimePageResult<RuntimeAuditLog>>('/api/audit-logs', {
+      query: { page, pageSize, action, result, keyword, targetId: applicationId, targetType: applicationId ? 'application' : undefined },
+    }),
     mapAuditLog,
   );
 }
@@ -173,8 +193,8 @@ export function getDashboardSummary(): Promise<DashboardSummary> {
   return unsupportedHttpMethod('getDashboardSummary');
 }
 
-export function getApplication(_applicationId: string): Promise<Application> {
-  return unsupportedHttpMethod('getApplication');
+export async function getApplication(applicationId: string): Promise<Application> {
+  return mapRuntimeApplication(await httpRequest<RuntimeApplication>(`/api/applications/${applicationId}`));
 }
 
 export function batchDisableApplications(_applicationIds: string[]): Promise<Application[]> {
@@ -185,14 +205,33 @@ export function rotateApplicationSecret(_applicationId: string, _secretType: 'ap
   return unsupportedHttpMethod('rotateApplicationSecret');
 }
 
-export function recordRuntimeSecretCopy(_applicationId: string): Promise<AuditLog> {
-  return unsupportedHttpMethod('recordRuntimeSecretCopy');
+export async function recordRuntimeSecretCopy(
+  applicationId: string,
+  kind: 'runtime_env' | 'agent_prompt' = 'runtime_env',
+): Promise<AuditLog> {
+  await httpRequest(`/api/applications/${applicationId}/secret-copy-events`, {
+    method: 'POST',
+    body: { kind },
+  });
+  return {
+    id: `${applicationId}:${kind}`,
+    action: 'secret.copy',
+    result: 'success',
+    actorFeishuUserId: '-',
+    applicationId,
+    message: kind === 'agent_prompt' ? '复制 Agent Prompt' : '复制运行时环境变量',
+    requestId: '-',
+    createdAt: new Date().toISOString(),
+  };
 }
 
-export function listApplicationPermissionRegistrations(
-  _applicationId: string,
+export async function listApplicationPermissionRegistrations(
+  applicationId: string,
 ): Promise<ApplicationPermissionRegistration[]> {
-  return unsupportedHttpMethod('listApplicationPermissionRegistrations');
+  const result = await httpRequest<{ items: RuntimePermissionRegistration[] }>(
+    `/api/applications/${applicationId}/permission-registrations`,
+  );
+  return result.items.map(mapRuntimePermissionRegistration);
 }
 
 export async function createRole(input: UpsertRoleInput): Promise<IamRole> {

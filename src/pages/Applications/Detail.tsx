@@ -11,6 +11,7 @@ import {
   useCurrentSession,
   useRotateApplicationSecret,
 } from '../../features/iam/queries';
+import { getIamApiMode } from '../../features/iam/apiMode';
 import {
   canDisableApplication as canDisableApplicationForSession,
   canRotateApplicationSecret as canRotateApplicationSecretForSession,
@@ -91,7 +92,8 @@ export function ApplicationDetailPage() {
   const statusConfig = statusLabels[effectiveStatus];
   const canDisableApplication = canDisableApplicationForSession(currentSessionQuery.data);
   const canRotateApplicationSecret = canRotateApplicationSecretForSession(currentSessionQuery.data);
-  const canUseDangerousActions = canDisableApplication || canRotateApplicationSecret;
+  const supportsDangerousActions = getIamApiMode() !== 'http';
+  const canUseDangerousActions = supportsDangerousActions && (canDisableApplication || canRotateApplicationSecret);
 
   const confirmDisable = async () => {
     if (!canDisableApplication) {

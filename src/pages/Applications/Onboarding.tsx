@@ -10,7 +10,7 @@ import { Alert, App, Button, Card, Col, Descriptions, Modal, Row, Space, Steps, 
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useApplications, useRecordRuntimeSecretCopy } from '../../features/iam/queries';
+import { useApplicationPermissionRegistrations, useApplications, useRecordRuntimeSecretCopy } from '../../features/iam/queries';
 import type { Application } from '../../features/iam/types';
 
 const secretWarning =
@@ -59,9 +59,9 @@ function buildAgentPrompt(application: Application) {
 function buildRuntimeEnv(application: Application) {
   return [
     `IAM_APP_KEY=${application.appKey}`,
-    `IAM_APP_SECRET=${application.appSecretPreview}`,
+    'IAM_APP_SECRET=IAM_APP_SECRET',
     `IAM_API_KEY=${application.apiKey}`,
-    `IAM_API_SECRET=${application.apiSecretPreview}`,
+    'IAM_API_SECRET=IAM_API_SECRET',
     `IAM_CALLBACK_URL=${application.callbackUrls[0] ?? ''}`,
   ].join('\n');
 }
@@ -87,6 +87,7 @@ export function ApplicationOnboardingPage() {
   const [checkFeedback, setCheckFeedback] = useState('');
   const application =
     applicationsQuery.data?.items.find((item) => item.id === requestedApplicationId) ?? applicationsQuery.data?.items[0];
+  const permissionRegistrationsQuery = useApplicationPermissionRegistrations(application?.id ?? '', { enabled: Boolean(application) });
 
   const agentPrompt = useMemo(() => (application ? buildAgentPrompt(application) : ''), [application]);
   const runtimeEnv = useMemo(() => (application ? buildRuntimeEnv(application) : ''), [application]);
@@ -96,6 +97,9 @@ export function ApplicationOnboardingPage() {
       Boolean(agentPrompt) &&
       !agentPrompt.includes(application?.appSecretPreview ?? '') &&
       !agentPrompt.includes(application?.apiSecretPreview ?? '');
+
+    const hasPermissionRegistrations = Boolean(permissionRegistrationsQuery.data?.length);
+    const hasRecentApiCall = Boolean(application?.lastApiCalledAt);
 
     return [
       {
@@ -120,18 +124,24 @@ export function ApplicationOnboardingPage() {
         key: 'permissions',
         title: '权限组和权限点注册',
         description: checksHaveRun
-          ? '当前页面未发现已注册权限点，请第三方系统按 API 文档注册后复查。'
+          ? hasPermissionRegistrations
+            ? `已发现 ${permissionRegistrationsQuery.data?.length ?? 0} 个权限注册项。`
+            : '当前页面未发现已注册权限点，请第三方系统按 API 文档注册后复查。'
           : '等待第三方系统调用 Application API 注册权限模型。',
-        status: checksHaveRun ? 'fail' : 'pending',
+        status: checksHaveRun ? (hasPermissionRegistrations ? 'pass' : 'fail') : 'pending',
       },
       {
         key: 'login',
         title: '登录和权限查询',
-        description: checksHaveRun ? '需要 demo 应用完成飞书登录回调后再次验证。' : '等待实际发起飞书登录和权限查询。',
-        status: checksHaveRun ? 'fail' : 'pending',
+        description: checksHaveRun
+          ? hasRecentApiCall
+            ? '已发现该应用的最近 Application API 调用记录。'
+            : '需要 demo 应用完成飞书登录回调或权限查询后再次验证。'
+          : '等待实际发起飞书登录和权限查询。',
+        status: checksHaveRun ? (hasRecentApiCall ? 'pass' : 'fail') : 'pending',
       },
     ] satisfies Array<{ key: string; title: string; description: string; status: CheckStatus }>;
-  }, [agentPrompt, application, auditFeedback, checksHaveRun]);
+  }, [agentPrompt, application, auditFeedback, checksHaveRun, permissionRegistrationsQuery.data]);
 
   const confirmRuntimeEnvCopy = async () => {
     if (!application) {
@@ -141,7 +151,7 @@ export function ApplicationOnboardingPage() {
     try {
       await copyText(runtimeEnv);
       setSecretModalOpen(false);
-      await recordRuntimeSecretCopyMutation.mutateAsync(application.id);
+      await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: application.id, kind: 'runtime_env' });
       setAuditFeedback('已复制，并记录审计事件。');
       message.success('已复制，并记录审计事件。');
     } catch {
@@ -152,6 +162,9 @@ export function ApplicationOnboardingPage() {
   const copyAgentPrompt = async () => {
     try {
       await copyText(agentPrompt);
+      if (application) {
+        await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: application.id, kind: 'agent_prompt' });
+      }
       message.success('Agent Prompt 已复制');
     } catch {
       message.error('浏览器剪贴板不可用，请手动复制 Agent Prompt。');

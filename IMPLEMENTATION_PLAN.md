@@ -1,235 +1,145 @@
-# feishu-iam v0.1.10 Admin Console Frontend Redesign Implementation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Prefer Superpowers `subagent-driven-development` for implementation because tasks below have explicit, mostly non-overlapping ownership. Main agent owns integration, verification, release, and deployment. If a worker needs to touch another worker's files, stop and report before editing.
+# feishu-iam v0.1.11 Application Integration Runtime Implementation Plan
 
 ## Goal
 
-交付 v0.1.10 Admin Console 前端重构：按已批准 Pencil 原型实现 Ant Design Pro 风格 Admin Shell、品牌 logo、飞书唯一登录页、UserMenu、退出登录流程、稳定表格状态、主题 token 和响应式修复。
+交付 `v0.1.11` 应用接入配置闭环：把应用详情、接入配置、权限注册结果、Agent Prompt、secret copy audit 和接入检查从 mock 推进到 HTTP runtime，并重构 README 为公开项目入口文档。
 
 ## Source Inputs
 
-- Design source: `design/feishu-iam-v0.1.10-frontend-redesign.pen`
-- Design notes: `design/feishu-iam-v0.1.10-frontend-redesign-notes.md`
-- Prototype review R2: `design/feishu-iam-v0.1.10-frontend-redesign-prototype-review-r2.md`
-- Engineering review: `docs/superpowers/plans/2026-05-24-v0.1.10-frontend-redesign-eng-review.md`
+- Office-hours design: `/Users/wenzhewang/.gstack/projects/wodenwang-feishu-iam/wenzhewang-main-design-20260524-235745.md`
 - Project rules: `AGENTS.md`, `CLAUDE.md`, `DESIGN.md`
+- Product spec: `docs/v0.1-product-spec.md`
+- Existing implementation: `server/src/modules/applications/applicationRoutes.ts`, `src/pages/Applications/Detail.tsx`, `src/pages/Applications/Onboarding.tsx`
 
 ## Scope
 
 ### In Scope
 
-1. Ant Design token theme using the v0.1.10 brand palette.
-2. Shared UI components:
-   - `BrandLogo`
-   - `PageHeader`
-   - `StatusTag`
-   - `UserMenu`
-   - updated `SearchForm`
-   - updated `AppTable`
-3. Stable `AdminLayout`:
-   - fixed header height
-   - stable sider width/collapsed width
-   - right-aligned UserMenu
-   - responsive 1440 / 1280 / 768 behavior
-4. Production and local-dev login page split:
-   - no username/password
-   - no Mock entry in production
-   - DEV ONLY mock entry in local dev
-5. Logout flow:
-   - backend `POST /api/auth/logout`
-   - frontend mutation
-   - query cache clearing
-   - confirm, loading, failure retry, success redirect
-6. Application list layout alignment:
-   - `Breadcrumb -> PageHeader + PrimaryAction -> SearchForm -> Table`
-   - table loading/empty/error/search-empty state stability
-   - query button uses search icon or no icon
-   - status tags use semantic Ant Design colors
-7. Tests, browser verification, design-review, QA, review, ship, land, deploy.
+1. Runtime application detail endpoints:
+   - `GET /api/applications/:id`
+   - `GET /api/applications/:id/permission-registrations`
+   - `POST /api/applications/:id/secret-copy-events`
+2. Application scoped audit filtering through existing audit API.
+3. Frontend HTTP service support:
+   - `getApplication`
+   - `listApplicationPermissionRegistrations`
+   - `recordRuntimeSecretCopy`
+4. Application detail and onboarding HTTP mode fixes:
+   - runtime data mapping
+   - no real secret display after create response
+   - Agent Prompt uses placeholders
+   - secret copy audit is recorded
+5. README refactor:
+   - concise project value
+   - quick local start
+   - quick Docker Compose deploy
+   - third-party integration path
+   - security boundaries
+   - no `bpmt-120`, private paths, private ports, private nginx details, real IPs, or secrets
+6. Version and release metadata:
+   - `package.json`
+   - `package-lock.json`
+   - `VERSION`
+   - `CHANGELOG.md`
 
 ### Out of Scope
 
-- Username/password login.
-- Third-party OAuth Demo closure.
-- OIDC discovery, consent, refresh-token productization.
-- Full Feishu directory sync redesign.
-- Large marketing landing page.
-- Replacing Ant Design with another UI framework.
+- Third-party OAuth server / token endpoint / consent page.
+- OIDC discovery.
+- Sync runtime and Feishu tenant token lifecycle.
+- Reopening `/directory` read-only browsing scope.
+- Persisting or redisplaying real `appSecret` / `apiSecret` after one-time create response.
+- New Pencil prototype.
 
-## Task Boundaries For Subagents
+## Engineering Decisions
 
-### Worker A: Theme And Shared Components
+1. Do not add a migration for callback URLs in this slice. The first runtime slice exposes integration templates and placeholders, plus Application API facts already stored by runtime.
+2. Keep detail access platform-admin only for this slice. Application-admin scoped access remains a future security slice because the DB does not yet model application administrators.
+3. `secret.copy` records the copy action and kind only. It never accepts or stores secret text.
+4. Extend `GET /api/audit-logs` with `targetId` / `targetType` filters instead of adding duplicate audit endpoints.
+5. Runtime permission registrations are read-only and derived from `permission_groups` + `permission_points`.
 
-Ownership:
+## File Tasks
 
-- `src/theme/theme.ts`
-- `src/components/BrandLogo/`
-- `src/components/PageHeader/`
-- `src/components/StatusTag/`
-- `src/components/SearchForm/`
-- `src/components/AppTable/`
-- focused tests for these components if needed
+### Backend
 
-Tasks:
+- `server/src/modules/applications/applicationRoutes.ts`
+  - Add detail endpoint.
+  - Add permission registration endpoint.
+  - Add secret-copy audit endpoint.
+  - Reuse platform-admin guard and avoid returning secret plaintext.
+- `server/src/modules/audit/auditRoutes.ts`
+  - Add `targetId` and `targetType` filters.
+- `server/tests/applications.test.ts`
+  - Cover detail, permission registrations, secret-copy audit, unauthenticated/forbidden cases, and no secret leaks.
+- `server/tests/audit.test.ts`
+  - Cover target filters.
 
-- [ ] Apply theme token palette:
-  - `colorPrimary: #0f4c81`
-  - `colorInfo: #1f67b2`
-  - `colorWarning: #f28c28`
-  - `colorBgLayout: #eef4f8`
-  - `colorTextBase: #122230`
-  - table header `#f6f9fb`
-- [ ] Implement `BrandLogo` SVG-based component with expanded/collapsed/login variants.
-- [ ] Implement `PageHeader` wrapper with title, description, breadcrumb-compatible spacing, and `extra`.
-- [ ] Implement `StatusTag` mapping for active/disabled/draft/system statuses.
-- [ ] Update `SearchForm` to support compact grid/inline layout without decorative card nesting.
-- [ ] Update `AppTable` to support stable loading/empty/error/search-empty states with fixed min-height and preserved table header/pagination area.
-- [ ] Ensure query/search buttons use `SearchOutlined` or no icon, never `PlusOutlined`.
+### Frontend
 
-Verification:
-
-- `npm test -- src/components`
-- Existing page tests still compile.
-
-### Worker B: Auth, Login, Logout, UserMenu
-
-Ownership:
-
-- `server/src/modules/auth/authRoutes.ts`
-- `server/tests/auth.mock-login.test.ts`
-- `server/tests/auth.logout.test.ts` if created
+- `src/features/iam/types.ts`
+  - Add integration status fields if needed.
+- `src/features/iam/dtoMappers.ts`
+  - Map runtime detail fields and permission registration rows.
 - `src/features/iam/httpApi.ts`
-- `src/features/iam/queries.ts`
-- `src/pages/Login/`
-- `src/components/UserMenu/`
-- focused auth/login tests
+  - Implement runtime methods currently marked unsupported.
+  - Pass `applicationId` audit filters to backend.
+- `src/features/iam/httpApi.test.ts`
+  - Cover new runtime calls and mapping.
+- `src/pages/Applications/Detail.tsx`
+  - Use runtime-safe values and clear error/empty states.
+  - Do not expose dangerous secret actions in HTTP mode unless supported.
+- `src/pages/Applications/Onboarding.tsx`
+  - Generate placeholder-based Agent Prompt from runtime application data.
+  - Record copy audit for runtime env and Agent Prompt.
+  - Make connection checks reflect runtime facts.
+- Existing page tests:
+  - Keep mock-mode tests passing and add HTTP service-level coverage.
 
-Tasks:
+### Browser / E2E
 
-- [ ] Add `POST /api/auth/logout`, clearing the session cookie.
-- [ ] Add HTTP API helper `logout()` and mutation hook `useLogout()`.
-- [ ] Build `UserMenu` from the prototype:
-  - user name and role first
-  - environment tag
-  - truncated `open_id`
-  - copy affordance
-  - keyboard-accessible dropdown
-  - logout danger action
-- [ ] Rebuild `LoginPage` from the approved production/local-dev prototype:
-  - production state
-  - local dev state with `DEV ONLY`
-  - callback processing
-  - config/auth/access errors
-  - no username/password inputs
-- [ ] Wire logout success to cache clear and `/login` navigation.
-- [ ] Wire logout failure to visible retryable error without clearing current UI state.
+- `tests/e2e/v0.1.11-application-integration-http.spec.ts`
+  - Login through dev mock.
+  - Initialize.
+  - Create app.
+  - Open application detail.
+  - Verify integration config and permission registration empty state.
+  - Run onboarding copy/check path.
 
-Verification:
+### Docs / Release
 
-- `npm run server:test -- server/tests/auth.mock-login.test.ts server/tests/auth.logout.test.ts`
-- `npm test -- src/pages/Login/index.test.tsx`
-- `npm test -- src/components/UserMenu`
-
-### Worker C: Admin Shell And Applications Page
-
-Ownership:
-
-- `src/layouts/AdminLayout.tsx`
-- `src/layouts/AdminLayout.test.tsx` if created
-- `src/pages/Applications/List.tsx`
-- `src/pages/Applications/List.test.tsx`
-- route/layout test updates
-
-Tasks:
-
-- [ ] Refactor `AdminLayout` to approved shell:
-  - `Sider` 224px, collapsed 64px
-  - Header 56px
-  - `BrandLogo`
-  - environment/sync tags
-  - `UserMenu`
-  - content padding 24 desktop, 16 tablet
-- [ ] Keep HTTP mode visible menu to `/applications`, `/roles`, `/directory`, `/audit-logs`.
-- [ ] Align Applications list to approved order:
-  - `PageHeader + 新增应用`
-  - `SearchForm`
-  - `AppTable`
-- [ ] Add stable table states:
-  - data
-  - loading
-  - empty
-  - error with requestId and retry
-  - search empty with reset filters
-- [ ] Use horizontal scroll at compact viewport and keep application/status/actions accessible.
-- [ ] Replace `+ 查询` with search icon or no icon.
-- [ ] Avoid black high-contrast `停用` status tag.
-
-Verification:
-
-- `npm test -- src/pages/Applications/List.test.tsx`
-- `npm test -- src/router/routes.test.tsx`
-
-### Main Agent: Integration, Version, Verification, Ship, Deploy
-
-Ownership:
-
-- `IMPLEMENTATION_PLAN.md`
-- `docs/superpowers/plans/2026-05-24-v0.1.10-frontend-redesign-eng-review.md`
+- `README.md`
+  - Rewrite as a concise public entry document.
 - `CHANGELOG.md`
-- `VERSION`
-- `package.json`
-- `package-lock.json`
-- verification reports and screenshots
-- final integration across worker output
+  - Add `v0.1.11`.
+- `VERSION`, `package.json`, `package-lock.json`
+  - Update to `0.1.11`.
+- Deployment report under `design/implementation-screenshots/v0.1.11-application-integration/`.
 
-Tasks:
-
-- [ ] Integrate worker outputs and resolve conflicts.
-- [ ] Update version metadata to `0.1.10`.
-- [ ] Update `CHANGELOG.md`.
-- [ ] Run full verification:
-  - `npm run server:test`
-  - `npm test`
-  - `npm run build`
-  - `npm run server:build`
-  - `npm run e2e`
-- [ ] Run browser verification for:
-  - `/login`
-  - `/applications`
-  - UserMenu logout flow
-  - 1440 / 1280 / 768
-- [ ] Run design-review loop and fix in-scope findings.
-- [ ] Run QA loop and fix in-scope findings.
-- [ ] Run review loop and fix in-scope findings.
-- [ ] Git closeout, ship, land, deploy under user authorization.
-
-## Completion Criteria
-
-- Production `/login` has no Mock entry and no username/password fields.
-- Local dev `/login` shows `DEV ONLY` mock entry only when allowed.
-- Admin Shell matches approved hierarchy and does not show long Feishu ID in Header.
-- UserMenu supports logout confirm/loading/error/success.
-- Table states remain dimensionally stable.
-- `SearchForm` does not use `+` icon for query.
-- `停用` status tag is not black high-contrast.
-- Fresh tests and browser evidence exist.
-- `v0.1.10` version metadata and CHANGELOG are updated.
-- Release/deploy artifacts are recorded without secrets.
-
-## Expected Commands
+## Verification Commands
 
 ```bash
 npm run server:test
 npm test
 npm run build
 npm run server:build
-npm run e2e
+E2E_RESET_DATABASE=true TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55433/feishu_iam_test VITE_IAM_API_MODE=http RUNTIME_API_BASE_URL=http://127.0.0.1:4100 npm run e2e -- tests/e2e/v0.1.11-application-integration-http.spec.ts
 ```
+
+## Completion Criteria
+
+- Runtime application detail and onboarding work in HTTP mode.
+- Application detail and onboarding never show real secret plaintext after one-time create response.
+- Permission registration table reflects Application API runtime data.
+- Secret copy actions are audited without leaking secret values.
+- README is concise and contains no private deployment details.
+- Full test/build suite and targeted E2E pass.
+- Browser evidence is saved.
+- Version metadata, changelog, Git commit, remote push, release/deploy report, and cloud health check are complete.
 
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |---|---|---:|---:|---|---|
-| CEO Review | `/office-hours` | Scope & strategy | 1 | clear | v0.1.10 scoped to frontend polish/refactor; v0.2.* keeps third-party OAuth Demo. |
-| Eng Review | `/plan-eng-review` | Architecture & tests | 1 | clear | subagent task boundaries, logout API, theme/layout/data-flow/test strategy locked. |
-| Design Review | `/plan-design-review` | UI/UX gaps | 2 | clear | R2 score 9/10, 0 unresolved; 2 implementation nits folded into tasks. |
+| Office Hours | `/office-hours` | Scope & product boundary | 1 | clear | v0.1.11 selected as Application Integration Runtime; OAuth server and Sync deferred. |
+| Eng Review | local harness review | Architecture & tests | 1 | clear | No migration for callback URLs; platform-admin only; secret copy audit does not store secret text. |

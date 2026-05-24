@@ -69,6 +69,36 @@ describe('audit API', () => {
       request_id: expect.any(String),
     });
   });
+
+  it('filters audit logs by target application', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_audit_admin_target_001', '审计目标管理员');
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '审计目标应用 A' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '审计目标应用 B' },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/audit-logs?targetType=application&targetId=${first.json().application.id}&page=1&pageSize=20`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ total: 1 });
+    expect(response.json().items[0]).toMatchObject({
+      action: 'application.create',
+      target_id: first.json().application.id,
+    });
+  });
 });
 
 async function loginAndBindAdmin(app: Awaited<ReturnType<typeof buildTestApp>>, feishuUserId: string, name: string) {

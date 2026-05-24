@@ -202,15 +202,20 @@ export function useRecordRuntimeSecretCopy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (applicationId: string) => iamService.recordRuntimeSecretCopy(applicationId),
+    mutationFn: (input: string | { applicationId: string; kind?: 'runtime_env' | 'agent_prompt' }) => {
+      const applicationId = typeof input === 'string' ? input : input.applicationId;
+      const kind = typeof input === 'string' ? 'runtime_env' : input.kind;
+      return iamService.recordRuntimeSecretCopy(applicationId, kind);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] }),
   });
 }
 
-export function useApplicationPermissionRegistrations(applicationId: string) {
+export function useApplicationPermissionRegistrations(applicationId: string, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: iamQueryKeys.applicationPermissionRegistrations(applicationId),
     queryFn: () => iamService.listApplicationPermissionRegistrations(applicationId),
+    enabled: options.enabled ?? Boolean(applicationId),
   });
 }
 

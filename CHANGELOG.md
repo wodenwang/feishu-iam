@@ -1,5 +1,11 @@
 # 更新日志
 
+## v0.1.3 - Admin Console HTTP service 切换
+
+- Admin Console 新增 HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
+- 新增 `iamService` facade、HTTP client、DTO/error mapping 和 `VITE_IAM_API_MODE=mock|http` 边界。
+- HTTP mode 下错误展示保留 requestId，应用创建返回 one-time appSecret/apiSecret，审计日志不记录 secret 明文。
+
 ## 0.1.2 - 2026-05-24
 
 - 现在可以用独立 Application API credential 和 `appKey + HMAC` 注册权限组、权限点，并通过 raw body hash、timestamp、nonce 防重放完成验签。

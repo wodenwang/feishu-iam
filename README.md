@@ -13,14 +13,36 @@
 
 ## 当前状态
 
-当前仓库已经进入 `v0.1.2` 内部可验收接入闭环阶段：
+当前仓库已经进入 `v0.1.3` Admin Console HTTP service 切换阶段：
 
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
 - 已保留 Pencil 原型、实现截图、QA 记录和 E2E 测试。
 - `v0.1.1` 已新增本地 Fastify + PostgreSQL runtime slice，用于验证 mock 飞书登录、平台管理员绑定、应用创建和审计日志闭环。
 - `v0.1.2` 已新增 Application API HMAC 鉴权、权限组/权限点注册、角色授权、权限查询、mock directory projection、第三方 Demo 壳和本地验收脚本。
-- 真实飞书 OAuth、前端 HTTP service 切换和交付部署仍在后续独立切片中。
+- `v0.1.3` 已新增 Admin Console HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
+- 真实飞书 OAuth、Roles/Directory 后续 HTTP 切片和交付部署仍在后续独立切片中。
+
+## v0.1.3 HTTP mode 本地验收
+
+`v0.1.3` 的主验收路径是 HTTP runtime，而不是 mock-only 前端。
+
+1. 启动本地 PostgreSQL，并设置 `DATABASE_URL`。
+2. 启动 Fastify runtime：
+
+   ```bash
+   SESSION_SECRET=local-session-secret-at-least-32-bytes \
+   FEISHU_AUTH_MODE=mock \
+   npm run server:dev
+   ```
+
+3. 启动 Vite HTTP mode：
+
+   ```bash
+   VITE_IAM_API_MODE=http npm run dev -- --host 127.0.0.1
+   ```
+
+4. 使用 gstack `/browser` 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、创建应用、审计日志检查。
 
 ## 本地运行
 

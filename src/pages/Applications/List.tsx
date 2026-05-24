@@ -61,7 +61,7 @@ const statusLabels: Record<ApplicationStatus, { text: string; color: string }> =
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
 
 export function ApplicationsListPage() {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const navigate = useNavigate();
   const apiMode = getIamApiMode();
   const [form] = Form.useForm<SearchValues>();
@@ -76,6 +76,7 @@ export function ApplicationsListPage() {
   const [batchDisableOpen, setBatchDisableOpen] = useState(false);
   const [refreshFeedback, setRefreshFeedback] = useState('');
   const [locallyDisabledApplicationIds, setLocallyDisabledApplicationIds] = useState<string[]>([]);
+  const [createdSecrets, setCreatedSecrets] = useState<CreateApplicationResult | undefined>();
   const currentSessionQuery = useCurrentSession();
   const scopedApplicationIds = getScopedApplicationIds(currentSessionQuery.data);
   const applicationsQuery = useApplications({
@@ -228,22 +229,7 @@ export function ApplicationsListPage() {
         setDrawerOpen(false);
         createForm.resetFields();
         await applicationsQuery.refetch();
-        Modal.success({
-          title: '应用已创建',
-          content: (
-            <Space orientation="vertical" size={8}>
-              <Typography.Text>以下密钥只显示一次，关闭后无法再次查看。</Typography.Text>
-              <Typography.Text code copyable>
-                {result.appSecret}
-              </Typography.Text>
-              <Typography.Text code copyable>
-                {result.apiSecret}
-              </Typography.Text>
-            </Space>
-          ),
-          okText: '我已保存，查看审计日志',
-          onOk: () => navigate('/audit-logs'),
-        });
+        setCreatedSecrets(result);
       } catch (error) {
         if (isIamHttpError(error) && error.status === 409 && error.code === 'APPLICATION_NAME_EXISTS') {
           createForm.setFields([{ name: 'name', errors: [error.message] }]);
@@ -273,7 +259,7 @@ export function ApplicationsListPage() {
     setDrawerOpen(false);
     createForm.resetFields();
     await applicationsQuery.refetch();
-    Modal.success({
+    modal.success({
       title: '应用已创建',
       content: '请继续查看应用详情并完成接入配置，避免只停留在列表记录。',
       okText: '查看详情',
@@ -493,6 +479,32 @@ export function ApplicationsListPage() {
           ) : null}
         </Form>
       </FormDrawer>
+
+      <Modal
+        title="应用已创建"
+        open={Boolean(createdSecrets)}
+        okText="我已保存，查看审计日志"
+        cancelText="关闭"
+        onOk={() => {
+          setCreatedSecrets(undefined);
+          navigate('/audit-logs');
+        }}
+        onCancel={() => setCreatedSecrets(undefined)}
+      >
+        <Space orientation="vertical" size={8}>
+          <Typography.Text>以下密钥只显示一次，关闭后无法再次查看。</Typography.Text>
+          {createdSecrets ? (
+            <>
+              <Typography.Text code copyable>
+                {createdSecrets.appSecret}
+              </Typography.Text>
+              <Typography.Text code copyable>
+                {createdSecrets.apiSecret}
+              </Typography.Text>
+            </>
+          ) : null}
+        </Space>
+      </Modal>
 
       <Modal
         title="批量停用应用"

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -159,14 +159,13 @@ describe('ApplicationsListPage', () => {
   });
 
   it('navigates to application detail and onboarding from row actions', async () => {
-    const user = userEvent.setup();
     renderApplicationsList();
 
     const row = await findDemoCrmRow();
-    await user.click(within(row).getByRole('button', { name: '查看' }));
+    fireEvent.click(within(row).getByRole('button', { name: '查看' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/app_demo_crm');
 
-    await user.click(within(row).getByRole('button', { name: '接入配置' }));
+    fireEvent.click(within(row).getByRole('button', { name: '接入配置' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/onboarding');
   });
 

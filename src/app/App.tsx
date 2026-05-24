@@ -25,7 +25,7 @@ function RuntimeLoginPage() {
         setLoading(true);
         try {
           await httpApi.mockFeishuLogin({
-            feishuUserId: `ou_local_admin_${Date.now()}`,
+            feishuUserId: 'ou_v012_verify_admin',
             name: '本地平台管理员',
             email: 'local-admin@example.com',
           });

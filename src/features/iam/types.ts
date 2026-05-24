@@ -222,3 +222,20 @@ export interface DashboardSummary {
   lastSync: SyncSummary;
   auditEventCount24h: number;
 }
+
+export type ApiMode = 'mock' | 'http';
+
+export interface IamHttpError extends Error {
+  name: 'IamHttpError';
+  status: number;
+  code: string;
+  requestId?: string;
+  fieldErrors?: Record<string, string>;
+  details?: unknown;
+}
+
+export interface CreateApplicationResult {
+  application: Application;
+  appSecret: string;
+  apiSecret: string;
+}

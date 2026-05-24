@@ -1,4 +1,6 @@
-FROM node:24-alpine AS deps
+ARG NODE_IMAGE=node:24-alpine
+
+FROM ${NODE_IMAGE} AS deps
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -15,7 +17,7 @@ COPY . .
 RUN npm run server:build && npm run build
 RUN npm prune --omit=dev
 
-FROM node:24-alpine AS runtime
+FROM ${NODE_IMAGE} AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production

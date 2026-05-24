@@ -37,11 +37,69 @@ describe('mock Feishu login', () => {
     expect(audit.rows).toContainEqual({ action: 'auth.mock_login', actor_feishu_user_id: 'ou_auth_001' });
   });
 
-  it('uses the session cookie for current session lookup', async () => {
+  it('returns a frontend-friendly platform admin session', async () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/dev/feishu/mock-login',
       payload: { feishuUserId: 'ou_auth_002', name: '当前会话用户' },
+    });
+    const cookie = String(login.headers['set-cookie']);
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/initialization/bind-platform-admin',
+      headers: { cookie },
+    });
+
+    const current = await app.inject({
+      method: 'GET',
+      url: '/api/session/current',
+      headers: { cookie },
+    });
+
+    expect(current.statusCode).toBe(200);
+    expect(current.json()).toMatchObject({
+      authenticated: true,
+      user: {
+        feishuUserId: 'ou_auth_002',
+        displayName: '当前会话用户',
+        departmentPath: '-',
+        status: 'active',
+      },
+      roles: ['platform_admin'],
+      permissions: [
+        'dashboard:view',
+        'application:view',
+        'application:create',
+        'application:update',
+        'application:disable',
+        'application:secret',
+        'role:view',
+        'role:update',
+        'directory:view',
+        'sync:view',
+        'sync:run',
+        'audit:view',
+      ],
+      applicationIds: [],
+    });
+  });
+
+  it('returns authenticated false when no session cookie exists', async () => {
+    const current = await app.inject({
+      method: 'GET',
+      url: '/api/session/current',
+    });
+
+    expect(current.statusCode).toBe(200);
+    expect(current.json()).toEqual({ authenticated: false });
+  });
+
+  it('returns an authenticated non-admin session without console permissions', async () => {
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      payload: { feishuUserId: 'ou_auth_non_admin_001', name: '普通飞书用户' },
     });
     const cookie = String(login.headers['set-cookie']);
 
@@ -51,9 +109,18 @@ describe('mock Feishu login', () => {
       headers: { cookie },
     });
 
+    expect(current.statusCode).toBe(200);
     expect(current.json()).toMatchObject({
       authenticated: true,
-      actor: { feishuUserId: 'ou_auth_002', name: '当前会话用户' },
+      user: {
+        feishuUserId: 'ou_auth_non_admin_001',
+        displayName: '普通飞书用户',
+        departmentPath: '-',
+        status: 'active',
+      },
+      roles: [],
+      permissions: [],
+      applicationIds: [],
     });
   });
 

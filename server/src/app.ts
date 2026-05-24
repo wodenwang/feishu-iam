@@ -5,7 +5,9 @@ import { registerApplicationApiRoutes } from './modules/applicationApi/applicati
 import { registerApplicationRoutes } from './modules/applications/applicationRoutes';
 import { registerAuditRoutes } from './modules/audit/auditRoutes';
 import { registerAuthRoutes } from './modules/auth/authRoutes';
+import type { FeishuAuthAdapter } from './modules/auth/feishuAuthAdapter';
 import { MockFeishuAuthAdapter } from './modules/auth/mockFeishuAuthAdapter';
+import { RealFeishuAuthAdapter } from './modules/auth/realFeishuAuthAdapter';
 import { registerDirectoryRoutes } from './modules/directory/directoryRoutes';
 import { errorHandler } from './modules/errors/errorHandler';
 import { registerInitializationRoutes } from './modules/initialization/initializationRoutes';
@@ -18,6 +20,11 @@ export interface AppOptions {
   pool: DbPool;
   sessionCookieName: string;
   allowMockLogin: boolean;
+  secureCookies?: boolean;
+  feishuRedirectUri?: string;
+  feishuAppId?: string;
+  feishuAppSecret?: string;
+  feishuAuthAdapter?: FeishuAuthAdapter;
   staticAssetsDir?: string;
 }
 
@@ -34,9 +41,15 @@ export async function buildApp(options: AppOptions) {
 
   await registerAuthRoutes(app, {
     pool: options.pool,
-    adapter: new MockFeishuAuthAdapter(),
+    adapter:
+      options.feishuAuthAdapter ??
+      (options.allowMockLogin
+        ? new MockFeishuAuthAdapter()
+        : new RealFeishuAuthAdapter({ appId: options.feishuAppId ?? '', appSecret: options.feishuAppSecret ?? '' })),
     sessionCookieName: options.sessionCookieName,
     allowMockLogin: options.allowMockLogin,
+    secureCookies: options.secureCookies,
+    feishuRedirectUri: options.feishuRedirectUri,
   });
   await registerInitializationRoutes(app, options.pool);
   await registerApplicationRoutes(app, options.pool);

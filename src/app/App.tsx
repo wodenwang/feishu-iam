@@ -1,8 +1,8 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PermissionGuard } from '../components/PermissionGuard';
-import { getIamApiMode } from '../features/iam/apiMode';
+import { getIamApiBaseUrl, getIamApiMode } from '../features/iam/apiMode';
 import * as httpApi from '../features/iam/httpApi';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { ForbiddenPage } from '../pages/Errors/Forbidden';
@@ -13,14 +13,23 @@ import { routeItems } from '../router/routes';
 
 function RuntimeLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const apiMode = getIamApiMode();
+  const status = new URLSearchParams(location.search).get('status');
+  const loginStatus = status === 'configMissing' || status === 'authFailed' ? status : 'idle';
 
   return (
     <LoginPage
+      status={loginStatus}
       apiModeLabel={apiMode === 'http' ? 'HTTP runtime' : 'Mock data'}
       devMockLoginVisible={apiMode === 'http' && import.meta.env.DEV}
       devMockLoginLoading={loading}
+      onLogin={() => {
+        if (apiMode === 'http') {
+          window.location.href = `${getIamApiBaseUrl()}/api/auth/feishu/start`;
+        }
+      }}
       onDevMockLogin={async () => {
         setLoading(true);
         try {

@@ -11,6 +11,10 @@ const app = await buildApp({
   pool,
   sessionCookieName: config.sessionCookieName,
   allowMockLogin: config.feishuAuthMode === 'mock',
+  secureCookies: config.nodeEnv === 'production',
+  feishuAppId: config.feishuAppId,
+  feishuAppSecret: config.feishuAppSecret,
+  feishuRedirectUri: config.feishuRedirectUri,
   staticAssetsDir: config.staticAssetsDir,
 });
 

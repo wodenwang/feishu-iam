@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.1.8 - 真实飞书 Admin Console 登录
+
+- 新增 `GET /api/auth/feishu/start` 和 `GET /api/auth/feishu/callback`，支持真实飞书 OAuth 登录 Admin Console。
+- 新增 `RealFeishuAuthAdapter`，通过飞书授权码换取 `user_access_token` 并获取登录用户信息。
+- 登录 callback 使用短期 HttpOnly state cookie 防伪，成功后创建 IAM session 并写入最小飞书用户投影。
+- 前端 HTTP mode 的 `/login` 主按钮现在会跳转真实飞书登录入口，本地开发 mock 登录按钮仍只在 DEV 模式显示。
+- 增加真实飞书登录、adapter 解析、state 校验、失败审计和 mock 登录回归测试。
+
 ## v0.1.7 - 部署镜像源兼容
 
 - Dockerfile 支持通过 `NODE_IMAGE` build arg 覆盖 Node base image。

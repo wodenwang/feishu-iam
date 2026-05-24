@@ -13,7 +13,7 @@
 
 ## 当前状态
 
-当前仓库已经进入 `v0.1.6` 最小部署基础设施阶段：
+当前仓库已经进入 `v0.1.8` 真实飞书登录闭环阶段：
 
 - 已提供 React + TypeScript + Vite + Ant Design 前端骨架。
 - 已提供基于 TanStack Query 的 mock IAM service，用于验证页面、权限、同步和审计闭环。
@@ -24,7 +24,34 @@
 - `v0.1.4` 已新增 `/directory` HTTP runtime-backed 只读浏览，可查看部门树、用户分页列表、部门筛选、详情 Drawer 和 requestId 错误态。
 - `v0.1.5` 已新增 `/roles` HTTP runtime-backed 角色管理，可查看角色列表、创建/编辑角色、停用角色、保存授权和查看 requestId 错误态。
 - `v0.1.6` 已新增 Docker Compose 最小部署入口，可用 `feishu-iam` + `postgres` 两个容器完成 runtime 启动和 `/api/health` 健康检查。
-- 真实飞书 OAuth、Sync、Dashboard、Application Detail、Onboarding、备份监控和更完整的自动化部署仍在后续独立切片中。
+- `v0.1.8` 已新增 Admin Console 真实飞书 OAuth 登录入口，可用专用自建飞书应用完成登录、IAM session 创建和首次平台管理员绑定。
+- 第三方应用 OAuth server、Sync、Dashboard、Application Detail、Onboarding、备份监控和更完整的自动化部署仍在后续独立切片中。
+
+## v0.1.8 真实飞书登录
+
+`v0.1.8` 的主目标是让生产部署不再依赖 mock 登录。Admin Console 登录链路为：
+
+```text
+/login
+  -> GET /api/auth/feishu/start
+  -> 飞书授权页
+  -> GET /api/auth/feishu/callback?code=...&state=...
+  -> IAM session cookie
+  -> /initialize 或 /applications
+```
+
+必须配置专用自建飞书应用：
+
+```text
+FEISHU_AUTH_MODE=real
+FEISHU_APP_ID=<replace-me>
+FEISHU_APP_SECRET=<replace-me>
+FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
+```
+
+飞书后台的 redirect URI 必须与 `FEISHU_REDIRECT_URI` 完全一致。真实 `FEISHU_APP_SECRET` 只能写入服务器侧 `.env`、CI secret 或 secret manager，不能写入仓库、README、AGENTS、CLAUDE、示例代码、测试 fixture 或部署报告。
+
+当前版本不保存飞书 `user_access_token` 或 `refresh_token`。callback 只用 token 获取当次登录用户信息，然后创建本系统的 `iam_session`。
 
 ## v0.1.6 Docker Compose 部署
 

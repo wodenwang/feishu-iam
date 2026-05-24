@@ -66,13 +66,17 @@ describe('applications API', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body).toMatchObject({
-      name: '运行时应用',
-      status: 'active',
+      application: {
+        name: '运行时应用',
+        status: 'active',
+      },
     });
-    expect(body.app_key).toMatch(/^app_/);
+    expect(body.application.app_key).toMatch(/^app_/);
     expect(body.appSecret).toMatch(/^sec_/);
 
-    const secrets = await pool.query('select secret_hash from application_secrets where application_id = $1', [body.id]);
+    const secrets = await pool.query('select secret_hash from application_secrets where application_id = $1', [
+      body.application.id,
+    ]);
     const audit = await pool.query("select action, metadata::text as metadata from audit_logs where action = 'application.create'");
     expect(secrets.rows[0].secret_hash).not.toBe(body.appSecret);
     expect(audit.rows[0].action).toBe('application.create');
@@ -107,6 +111,59 @@ describe('applications API', () => {
 
     expect(duplicate.statusCode).toBe(409);
     expect(duplicate.json()).toMatchObject({ code: 'APPLICATION_NAME_EXISTS' });
+  });
+
+  it('lists applications with pagination metadata and count fields', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_list_001', '应用列表管理员');
+
+    await app.inject({ method: 'POST', url: '/api/applications', headers: { cookie }, payload: { name: '列表应用 A' } });
+    await app.inject({ method: 'POST', url: '/api/applications', headers: { cookie }, payload: { name: '列表应用 B' } });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/applications?page=1&pageSize=1',
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+    });
+    expect(response.json().items).toHaveLength(1);
+    expect(response.json().items[0]).toMatchObject({
+      app_key: expect.stringMatching(/^app_/),
+      status: 'active',
+      permission_group_count: 0,
+      permission_point_count: 0,
+    });
+    expect(response.json().items[0]).not.toHaveProperty('appSecret');
+    expect(response.json().items[0]).not.toHaveProperty('apiSecret');
+  });
+
+  it('returns create application as an application plus one-time secrets envelope', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_envelope_001', '应用密钥管理员');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: 'Envelope 应用' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      application: {
+        name: 'Envelope 应用',
+        status: 'active',
+        app_key: expect.stringMatching(/^app_/),
+      },
+      appSecret: expect.stringMatching(/^sec_/),
+      apiSecret: expect.stringMatching(/^api_sec_/),
+    });
+    expect(response.json().application).not.toHaveProperty('appSecret');
+    expect(response.json().application).not.toHaveProperty('apiSecret');
   });
 });
 

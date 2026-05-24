@@ -39,6 +39,36 @@ describe('audit API', () => {
     expect(response.statusCode).toBe(401);
     expect(response.json().requestId).toEqual(expect.any(String));
   });
+
+  it('lists audit logs with pagination and action/result/keyword filters', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_audit_admin_filter_001', '审计筛选管理员');
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '审计筛选应用' },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/audit-logs?page=1&pageSize=10&action=application.create&result=success&keyword=application.create',
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      page: 1,
+      pageSize: 10,
+      total: 1,
+    });
+    expect(response.json().items).toHaveLength(1);
+    expect(response.json().items[0]).toMatchObject({
+      action: 'application.create',
+      result: 'success',
+      request_id: expect.any(String),
+    });
+  });
 });
 
 async function loginAndBindAdmin(app: Awaited<ReturnType<typeof buildTestApp>>, feishuUserId: string, name: string) {

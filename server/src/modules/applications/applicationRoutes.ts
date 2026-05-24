@@ -29,7 +29,7 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     const client = await pool.connect();
     try {
       await client.query('begin');
-      const application = await createApplication(client, {
+      const created = await createApplication(client, {
         name: normalizedName,
         createdByFeishuUserId: request.actor.feishuUserId,
       });
@@ -39,13 +39,13 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
         actorFeishuUserId: request.actor.feishuUserId,
         action: 'application.create',
         targetType: 'application',
-        targetId: application.id,
+        targetId: created.application.id,
         result: 'success',
-        metadata: { appKey: application.app_key },
+        metadata: { appKey: created.application.app_key },
       });
       await client.query('commit');
 
-      return application;
+      return created;
     } catch (error) {
       await client.query('rollback');
       if (isUniqueViolation(error)) {
@@ -61,11 +61,40 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     if (!request.actor) {
       throw unauthorized();
     }
-    const result = await pool.query(
-      'select id, app_key, name, status, created_at from applications order by created_at desc limit 50',
-    );
-    return { items: result.rows };
+    const query = request.query as { page?: string | number; pageSize?: string | number };
+    const page = normalizePositiveInteger(query.page, 1);
+    const pageSize = Math.min(normalizePositiveInteger(query.pageSize, 20), 100);
+    const offset = (page - 1) * pageSize;
+
+    const [items, total] = await Promise.all([
+      pool.query(
+        `
+          select a.id,
+                 a.app_key,
+                 a.name,
+                 a.status,
+                 a.created_at,
+                 count(distinct pg.id)::int as permission_group_count,
+                 count(distinct pp.id)::int as permission_point_count
+          from applications a
+          left join permission_groups pg on pg.application_id = a.id
+          left join permission_points pp on pp.application_id = a.id
+          group by a.id
+          order by a.created_at desc
+          limit $1 offset $2
+        `,
+        [pageSize, offset],
+      ),
+      pool.query('select count(*)::int as total from applications'),
+    ]);
+
+    return { items: items.rows, page, pageSize, total: total.rows[0].total };
   });
+}
+
+function normalizePositiveInteger(value: string | number | undefined, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function isUniqueViolation(error: unknown): boolean {

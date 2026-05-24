@@ -96,7 +96,7 @@ const appCreate = await request('/api/applications', {
   headers: { cookie: adminCookie, 'content-type': 'application/json' },
   body: JSON.stringify({ name: `v0.1.2 Verify Demo ${suffix}` }),
 });
-const application = appCreate.json;
+const application = { ...appCreate.json.application, apiSecret: appCreate.json.apiSecret };
 if (!application.app_key || !application.apiSecret) {
   throw new Error('application response missing app_key or apiSecret');
 }

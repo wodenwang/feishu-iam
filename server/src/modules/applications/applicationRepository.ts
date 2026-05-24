@@ -28,5 +28,5 @@ export async function createApplication(client: DbClient, input: CreateApplicati
     apiSecretHash,
   ]);
 
-  return { ...result.rows[0], appSecret, apiSecret };
+  return { application: result.rows[0], appSecret, apiSecret };
 }

@@ -1,5 +1,13 @@
 # 更新日志
 
+## 0.1.2 - 2026-05-24
+
+- 现在可以用独立 Application API credential 和 `appKey + HMAC` 注册权限组、权限点，并通过 raw body hash、timestamp、nonce 防重放完成验签。
+- 现在可以创建角色、授权飞书用户或部门，并用 IAM session cookie 查询当前飞书用户在指定应用下的权限点 code。
+- 现在可以通过 mock directory 投影、thin third-party demo 和 `scripts/verify-v0.1.2-access-loop.sh` 验证内部接入闭环。
+- 新增完整后端测试、迁移约束测试、Playwright API smoke 和审计泄密检查，覆盖 HMAC 失败、重复 code、disabled 状态、allow/deny 权限查询等关键路径。
+- 修复目录投影 API 权限边界，组织用户和部门列表现在仅平台管理员可读取。
+
 ## 0.1.1 - 2026-05-24
 
 - 现在可以启动本地 Fastify + PostgreSQL runtime，完成 mock 飞书登录、当前 session 查询、首位平台管理员绑定、应用创建和审计日志查询闭环。

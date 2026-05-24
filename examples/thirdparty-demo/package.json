@@ -1,0 +1,9 @@
+{
+  "name": "feishu-iam-thirdparty-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js"
+  }
+}
+

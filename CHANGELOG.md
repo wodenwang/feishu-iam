@@ -5,6 +5,9 @@
 - Admin Console 新增 HTTP runtime mode，可通过真实 Fastify API 完成本地 mock 飞书登录、初始化、应用列表/创建和审计日志查看。
 - 新增 `iamService` facade、HTTP client、DTO/error mapping 和 `VITE_IAM_API_MODE=mock|http` 边界。
 - HTTP mode 下错误展示保留 requestId，应用创建返回 one-time appSecret/apiSecret，审计日志不记录 secret 明文。
+- HTTP mode 应用列表筛选已接入 runtime keyword/status/createdAt 过滤，避免可见筛选控件静默无效。
+- HTTP mode 入口收敛到应用管理和审计日志；后续切片页面直达会回到应用管理，避免进入未接入 runtime 的页面。
+- v0.1.3 Playwright E2E 新增显式 `E2E_RESET_DATABASE=true` 数据库重置门槛，避免本地测试残留 platform admin 影响验收。
 
 ## 0.1.2 - 2026-05-24
 

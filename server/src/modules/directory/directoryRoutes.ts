@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { DbPool } from '../../db/pool';
-import { unauthorized } from '../errors/httpError';
+import { forbidden, unauthorized } from '../errors/httpError';
 
 const listQuerySchema = {
   querystring: {
@@ -15,9 +15,7 @@ const listQuerySchema = {
 
 export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool): Promise<void> {
   app.get('/api/directory/departments', { schema: listQuerySchema }, async (request) => {
-    if (!request.actor) {
-      throw unauthorized();
-    }
+    requirePlatformAdmin(request);
 
     const { page, pageSize } = normalizePagination(request.query as { page?: number; pageSize?: number });
     const offset = (page - 1) * pageSize;
@@ -38,9 +36,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
   });
 
   app.get('/api/directory/users', { schema: listQuerySchema }, async (request) => {
-    if (!request.actor) {
-      throw unauthorized();
-    }
+    requirePlatformAdmin(request);
 
     const { page, pageSize } = normalizePagination(request.query as { page?: number; pageSize?: number });
     const offset = (page - 1) * pageSize;
@@ -66,4 +62,13 @@ function normalizePagination(query: { page?: number; pageSize?: number }) {
     page: query.page ?? 1,
     pageSize: query.pageSize ?? 20,
   };
+}
+
+function requirePlatformAdmin(request: { actor?: { isPlatformAdmin: boolean } | null }) {
+  if (!request.actor) {
+    throw unauthorized();
+  }
+  if (!request.actor.isPlatformAdmin) {
+    throw forbidden('只有平台管理员可以查看组织目录投影');
+  }
 }

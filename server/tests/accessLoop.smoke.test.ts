@@ -58,6 +58,14 @@ describe('v0.1.2 access loop smoke', () => {
     expect(roles.statusCode).toBe(200);
     expect(roles.json()).toMatchObject({ page: 1, pageSize: 20, total: 1 });
 
+    const directoryForbidden = await app.inject({
+      method: 'GET',
+      url: '/api/directory/users',
+      headers: { cookie: deniedCookie },
+    });
+    expect(directoryForbidden.statusCode).toBe(403);
+    expect(directoryForbidden.json()).toMatchObject({ code: 'FORBIDDEN' });
+
     const directoryUsers = await app.inject({
       method: 'GET',
       url: '/api/directory/users',

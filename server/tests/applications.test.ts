@@ -142,6 +142,45 @@ describe('applications API', () => {
     expect(response.json().items[0]).not.toHaveProperty('apiSecret');
   });
 
+  it('filters application list by keyword, status, and created time', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_filter_001', '应用筛选管理员');
+
+    const alpha = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '筛选应用 Alpha' },
+    });
+    const beta = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '筛选应用 Beta' },
+    });
+    await pool.query("update applications set status = 'disabled' where id = $1", [beta.json().application.id]);
+
+    const active = await app.inject({
+      method: 'GET',
+      url: '/api/applications?keyword=Alpha&status=active&page=1&pageSize=20',
+      headers: { cookie },
+    });
+    const disabled = await app.inject({
+      method: 'GET',
+      url: '/api/applications?status=disabled&page=1&pageSize=20',
+      headers: { cookie },
+    });
+    const future = await app.inject({
+      method: 'GET',
+      url: '/api/applications?createdAtFrom=2999-01-01T00%3A00%3A00.000Z&page=1&pageSize=20',
+      headers: { cookie },
+    });
+
+    expect(alpha.statusCode).toBe(200);
+    expect(active.json()).toMatchObject({ total: 1, items: [{ name: '筛选应用 Alpha', status: 'active' }] });
+    expect(disabled.json()).toMatchObject({ total: 1, items: [{ name: '筛选应用 Beta', status: 'disabled' }] });
+    expect(future.json()).toMatchObject({ total: 0, items: [] });
+  });
+
   it('returns create application as an application plus one-time secrets envelope', async () => {
     const cookie = await loginAndBindAdmin(app, 'ou_app_admin_envelope_001', '应用密钥管理员');
 

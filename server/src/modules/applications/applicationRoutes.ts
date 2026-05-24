@@ -61,10 +61,41 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     if (!request.actor) {
       throw unauthorized();
     }
-    const query = request.query as { page?: string | number; pageSize?: string | number };
+    const query = request.query as {
+      page?: string | number;
+      pageSize?: string | number;
+      keyword?: string;
+      status?: string;
+      createdAtFrom?: string;
+      createdAtTo?: string;
+    };
     const page = normalizePositiveInteger(query.page, 1);
     const pageSize = Math.min(normalizePositiveInteger(query.pageSize, 20), 100);
     const offset = (page - 1) * pageSize;
+    const filters: string[] = [];
+    const values: Array<string | number> = [];
+
+    if (query.keyword) {
+      values.push(`%${query.keyword}%`);
+      filters.push(`(a.name ilike $${values.length} or a.app_key ilike $${values.length})`);
+    }
+    if (query.status) {
+      values.push(query.status);
+      filters.push(`a.status = $${values.length}`);
+    }
+    if (query.createdAtFrom) {
+      values.push(query.createdAtFrom);
+      filters.push(`a.created_at >= $${values.length}`);
+    }
+    if (query.createdAtTo) {
+      values.push(query.createdAtTo);
+      filters.push(`a.created_at <= $${values.length}`);
+    }
+
+    const whereClause = filters.length ? `where ${filters.join(' and ')}` : '';
+    const itemValues = [...values, pageSize, offset];
+    const limitIndex = values.length + 1;
+    const offsetIndex = values.length + 2;
 
     const [items, total] = await Promise.all([
       pool.query(
@@ -79,13 +110,21 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
           from applications a
           left join permission_groups pg on pg.application_id = a.id
           left join permission_points pp on pp.application_id = a.id
+          ${whereClause}
           group by a.id
           order by a.created_at desc
-          limit $1 offset $2
+          limit $${limitIndex} offset $${offsetIndex}
         `,
-        [pageSize, offset],
+        itemValues,
       ),
-      pool.query('select count(*)::int as total from applications'),
+      pool.query(
+        `
+          select count(*)::int as total
+          from applications a
+          ${whereClause}
+        `,
+        values,
+      ),
     ]);
 
     return { items: items.rows, page, pageSize, total: total.rows[0].total };

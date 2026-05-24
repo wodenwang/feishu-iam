@@ -83,9 +83,11 @@ export async function listApplications(
     allowedApplicationIds?: string[];
   },
 ): Promise<PageResult<Application>> {
-  const { page, pageSize } = request;
+  const { page, pageSize, keyword, status, createdAtFrom, createdAtTo } = request;
   return mapPageResult(
-    await httpRequest<RuntimePageResult<RuntimeApplication>>('/api/applications', { query: { page, pageSize } }),
+    await httpRequest<RuntimePageResult<RuntimeApplication>>('/api/applications', {
+      query: { page, pageSize, keyword, status, createdAtFrom, createdAtTo },
+    }),
     mapRuntimeApplication,
   );
 }

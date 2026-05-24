@@ -44,9 +44,10 @@
 
 4. 使用 gstack `/browser` 打开 `http://127.0.0.1:5173/login`，走本地 mock 飞书登录、初始化、创建应用、审计日志检查。
 
-5. 可选运行 v0.1.3 HTTP mode E2E。Playwright 会在提供 `DATABASE_URL` 或 `TEST_DATABASE_URL` 时重置并迁移本地 runtime DB，避免其他本地测试残留 platform admin：
+5. 可选运行 v0.1.3 HTTP mode E2E。显式设置 `E2E_RESET_DATABASE=true` 时，Playwright 会使用 `TEST_DATABASE_URL` 或 `DATABASE_URL` 重置并迁移本地 runtime DB，避免其他本地测试残留 platform admin：
 
    ```bash
+   E2E_RESET_DATABASE=true \
    DATABASE_URL=postgres://feishu_iam:<replace-me>@127.0.0.1:5432/feishu_iam \
    VITE_IAM_API_MODE=http \
    npm run e2e -- tests/e2e/v0.1.3-admin-console-http.spec.ts

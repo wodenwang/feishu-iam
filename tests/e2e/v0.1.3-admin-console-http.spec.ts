@@ -9,10 +9,17 @@ test.describe('v0.1.3 Admin Console HTTP mode', () => {
     await expect(page).toHaveURL(/\/initialize/);
 
     const bindButton = page.getByRole('button', { name: /绑定当前飞书用户为平台管理员/ });
-    if (await bindButton.isVisible()) {
+    const enterApplicationsButton = page.getByRole('button', { name: '进入应用管理' });
+    await expect(page.getByText(/初始化已完成|等待完成初始化/)).toBeVisible();
+    if (await enterApplicationsButton.isVisible()) {
+      await enterApplicationsButton.click();
+    } else {
+      await expect(bindButton).toBeVisible();
       await bindButton.click();
+      await expect(enterApplicationsButton).toBeVisible();
+      await enterApplicationsButton.click();
     }
-    await page.goto('/applications');
+    await expect(page).toHaveURL(/\/applications/);
 
     await expect(page.getByText('HTTP runtime')).toBeVisible();
     await page.getByRole('button', { name: '创建应用' }).click();

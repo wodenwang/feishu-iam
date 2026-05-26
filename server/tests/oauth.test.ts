@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { DbPool } from '../src/db/pool';
+import { cleanupExpiredOAuthArtifacts } from '../src/modules/oauth/oauthRoutes';
 import { buildTestApp } from './helpers/testApp';
 import { createTestPool } from './helpers/testDb';
 import { signApplicationApiRequest } from './helpers/accessLoop';
@@ -146,6 +147,152 @@ describe('third-party OAuth runtime', () => {
     const accessToken = await loginThroughOAuth(app!, firstApplication, 'ou_demo_cross_scope', '跨应用用户');
     const crossScope = await queryPermissions(app!, secondApplication, accessToken);
     expect(crossScope.statusCode).toBe(403);
+  });
+
+  it('stores and resumes a pending OAuth authorize request after local login', async () => {
+    const adminCookie = await loginAndBindAdmin(app!, 'ou_oauth_admin_004', 'OAuth 管理员四');
+    const application = await createApplication(app!, adminCookie, 'OAuth Pending Demo');
+
+    const pending = await app!.inject({
+      method: 'GET',
+      url: `/api/oauth/authorize?client_id=${application.app_key}&redirect_uri=${encodeURIComponent(demoRedirectUri)}&state=state-pending`,
+    });
+    expect(pending.statusCode).toBe(302);
+    expect(pending.headers.location).toBe('/login?status=loginRequired');
+    expect(pending.headers['set-cookie']).toContain('iam_oauth_pending=');
+    const pendingCookie = String(pending.headers['set-cookie']).split(';')[0];
+
+    const login = await app!.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      headers: { cookie: pendingCookie },
+      payload: { feishuUserId: 'ou_oauth_pending_user', name: 'Pending OAuth 用户' },
+    });
+    expect(login.statusCode).toBe(200);
+    expect(login.headers['set-cookie']).toEqual(expect.arrayContaining([expect.stringContaining('iam_oauth_pending=;')]));
+    expect(login.json().redirectTo).toContain(`${demoRedirectUri}?`);
+    expect(login.json().redirectTo).toContain('state=state-pending');
+    const code = new URL(login.json().redirectTo).searchParams.get('code');
+
+    const token = await app!.inject({
+      method: 'POST',
+      url: '/api/oauth/token',
+      payload: {
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: demoRedirectUri,
+        client_id: application.app_key,
+        client_secret: application.appSecret,
+      },
+    });
+    expect(token.statusCode).toBe(200);
+    expect(token.json()).toMatchObject({ feishuUserId: 'ou_oauth_pending_user', appKey: application.app_key });
+
+    const audit = await pool!.query(
+      "select action, result from audit_logs where action in ('oauth.pending.create', 'oauth.pending.resume') order by id",
+    );
+    expect(audit.rows).toEqual([
+      { action: 'oauth.pending.create', result: 'success' },
+      { action: 'oauth.pending.resume', result: 'success' },
+    ]);
+  });
+
+  it('does not create pending OAuth requests for invalid clients before login', async () => {
+    const pending = await app!.inject({
+      method: 'GET',
+      url: `/api/oauth/authorize?client_id=app_missing&redirect_uri=${encodeURIComponent(demoRedirectUri)}&state=state-invalid-pending`,
+    });
+
+    expect(pending.statusCode).toBe(400);
+    expect(pending.json()).toMatchObject({ code: 'OAUTH_CLIENT_OR_REDIRECT_INVALID' });
+    expect(pending.headers['set-cookie']).toBeUndefined();
+    const pendingCount = await pool!.query('select count(*)::int as count from application_oauth_pending_requests');
+    expect(pendingCount.rows[0].count).toBe(0);
+  });
+
+  it('does not resume pending OAuth before platform initialization', async () => {
+    const userCookie = await loginCookie(app!, 'ou_no_init_creator', '未初始化创建用户');
+    await app!.inject({ method: 'POST', url: '/api/initialization/bind-platform-admin', headers: { cookie: userCookie } });
+    const application = await createApplication(app!, userCookie, 'OAuth Pending Init Guard');
+    await pool!.query('delete from platform_admins');
+
+    const pending = await app!.inject({
+      method: 'GET',
+      url: `/api/oauth/authorize?client_id=${application.app_key}&redirect_uri=${encodeURIComponent(demoRedirectUri)}&state=state-init`,
+    });
+    const pendingCookie = String(pending.headers['set-cookie']).split(';')[0];
+    const login = await app!.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      headers: { cookie: pendingCookie },
+      payload: { feishuUserId: 'ou_oauth_init_user', name: '初始化前用户' },
+    });
+
+    expect(login.statusCode).toBe(200);
+    expect(login.json().redirectTo).toBeUndefined();
+    const codeCount = await pool!.query('select count(*)::int as count from application_oauth_authorization_codes');
+    expect(codeCount.rows[0].count).toBe(0);
+  });
+
+  it('rejects expired pending OAuth requests and writes a resume failure audit', async () => {
+    const adminCookie = await loginAndBindAdmin(app!, 'ou_oauth_admin_005', 'OAuth 管理员五');
+    const application = await createApplication(app!, adminCookie, 'OAuth Pending Expired');
+    const pending = await app!.inject({
+      method: 'GET',
+      url: `/api/oauth/authorize?client_id=${application.app_key}&redirect_uri=${encodeURIComponent(demoRedirectUri)}&state=state-expired`,
+    });
+    const pendingCookie = String(pending.headers['set-cookie']).split(';')[0];
+    await pool!.query("update application_oauth_pending_requests set expires_at = now() - interval '1 minute'");
+
+    const login = await app!.inject({
+      method: 'POST',
+      url: '/api/dev/feishu/mock-login',
+      headers: { cookie: pendingCookie },
+      payload: { feishuUserId: 'ou_oauth_expired_user', name: '过期 Pending 用户' },
+    });
+
+    expect(login.statusCode).toBe(200);
+    expect(login.json().redirectTo).toBeUndefined();
+    const audit = await pool!.query(
+      "select result, metadata->>'reason' as reason from audit_logs where action = 'oauth.pending.resume' order by id desc limit 1",
+    );
+    expect(audit.rows[0]).toMatchObject({ result: 'failure', reason: 'pending_expired' });
+  });
+
+  it('cleans up expired OAuth artifacts idempotently', async () => {
+    const adminCookie = await loginAndBindAdmin(app!, 'ou_oauth_admin_006', 'OAuth 管理员六');
+    const application = await createApplication(app!, adminCookie, 'OAuth Cleanup Demo');
+    await loginCookie(app!, 'ou_oauth_cleanup_user', 'Cleanup 用户');
+    await pool!.query(
+      `
+        insert into application_oauth_authorization_codes(code_hash, application_id, redirect_uri, feishu_user_id, state, expires_at)
+        values ('expired-code', $1, $2, 'ou_oauth_cleanup_user', 'cleanup-state', now() - interval '1 minute')
+      `,
+      [application.id, demoRedirectUri],
+    );
+    await pool!.query(
+      `
+        insert into application_oauth_sessions(token_hash, application_id, feishu_user_id, expires_at)
+        values ('expired-session', $1, 'ou_oauth_cleanup_user', now() - interval '1 minute')
+      `,
+      [application.id],
+    );
+    await pool!.query(
+      `
+        insert into application_oauth_pending_requests(pending_token_hash, client_id, redirect_uri, state, expires_at)
+        values ('expired-pending', $1, $2, 'cleanup-state', now() - interval '1 minute')
+      `,
+      [application.app_key, demoRedirectUri],
+    );
+
+    const first = await cleanupExpiredOAuthArtifacts(pool!, { requestId: 'cleanup-test', writeAuditLog: true });
+    const second = await cleanupExpiredOAuthArtifacts(pool!, { requestId: 'cleanup-test-2', writeAuditLog: true });
+
+    expect(first).toEqual({ authorizationCodes: 1, oauthSessions: 1, pendingRequests: 1 });
+    expect(second).toEqual({ authorizationCodes: 0, oauthSessions: 0, pendingRequests: 0 });
+    const audit = await pool!.query("select metadata from audit_logs where action = 'oauth.cleanup'");
+    expect(audit.rows).toHaveLength(1);
+    expect(audit.rows[0].metadata).toMatchObject(first);
   });
 });
 

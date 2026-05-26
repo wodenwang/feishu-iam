@@ -3,6 +3,7 @@
 这是一个最小第三方业务系统 Demo，用来验证：
 
 - 第三方系统跳转到 `feishu-iam` 发起 OAuth 登录。
+- 如果浏览器未登录 IAM，IAM 登录成功后会恢复原始 OAuth 请求。
 - `feishu-iam` 返回 authorization code。
 - Demo 用 `IAM_APP_SECRET` 换取短期 bearer token。
 - Demo 使用 Application API HMAC 签名查询当前用户权限点。
@@ -38,7 +39,7 @@ npm --prefix examples/thirdparty-demo run dev
 http://127.0.0.1:4200
 ```
 
-如果浏览器还没有 `feishu-iam` 登录态，OAuth authorize 会要求先登录 IAM。开发环境可以先在 Admin Console 使用本地 mock 飞书登录。
+如果浏览器还没有 `feishu-iam` 登录态，OAuth authorize 会要求先登录 IAM；登录成功后会自动回到 Demo callback。开发环境可以先在 Admin Console 使用本地 mock 飞书登录，mock 登录也会返回 pending OAuth 的 `redirectTo` 供本地验证。
 
 ## 本地 mock fallback
 

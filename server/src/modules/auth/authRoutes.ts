@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { DbPool } from '../../db/pool';
 import { writeAudit } from '../audit/auditRepository';
+import { buildOAuthPendingCookie, oauthPendingCookieName, resumePendingOAuthRequest } from '../oauth/oauthRoutes';
 import type { FeishuAuthAdapter, FeishuUserIdentity } from './feishuAuthAdapter';
 
 interface AuthRouteOptions {
@@ -48,8 +49,19 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
       result: 'success',
     });
 
-    reply.header('set-cookie', buildCookie(options.sessionCookieName, token, { httpOnly: true, secure: options.secureCookies }));
-    return { feishuUserId: user.feishuUserId, name: user.name };
+    const pendingRedirect = await resolvePendingOAuthRedirect(options.pool, {
+      requestId: request.id,
+      feishuUserId: user.feishuUserId,
+      cookieHeader: request.headers.cookie,
+    });
+
+    const sessionCookie = buildCookie(options.sessionCookieName, token, { httpOnly: true, secure: options.secureCookies });
+    if (pendingRedirect) {
+      reply.header('set-cookie', [sessionCookie, buildOAuthPendingCookie('', { maxAge: 0, secure: options.secureCookies })]);
+    } else {
+      reply.header('set-cookie', sessionCookie);
+    }
+    return { feishuUserId: user.feishuUserId, name: user.name, redirectTo: pendingRedirect };
   });
 
   app.get('/api/auth/feishu/start', async (_request, reply) => {
@@ -100,9 +112,25 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
       });
 
       const redirectPath = await resolvePostLoginRedirect(options.pool, user.feishuUserId);
+      const pendingRedirect =
+        redirectPath === '/initialize'
+          ? undefined
+          : await resolvePendingOAuthRedirect(options.pool, {
+              requestId: request.id,
+              feishuUserId: user.feishuUserId,
+              cookieHeader: request.headers.cookie,
+            });
+      const finalRedirectPath = pendingRedirect ?? redirectPath;
+      const cookies = [
+        clearStateCookie,
+        buildCookie(options.sessionCookieName, token, { httpOnly: true, secure: options.secureCookies }),
+      ];
+      if (pendingRedirect || readCookie(request.headers.cookie, oauthPendingCookieName)) {
+        cookies.push(buildOAuthPendingCookie('', { maxAge: 0, secure: options.secureCookies }));
+      }
       reply
-        .header('set-cookie', [clearStateCookie, buildCookie(options.sessionCookieName, token, { httpOnly: true, secure: options.secureCookies })])
-        .redirect(redirectPath);
+        .header('set-cookie', cookies)
+        .redirect(finalRedirectPath);
     } catch (error) {
       await writeAudit(options.pool, {
         requestId: request.id,
@@ -194,6 +222,33 @@ async function resolvePostLoginRedirect(pool: DbPool, feishuUserId: string): Pro
     return '/initialize';
   }
   return row.is_platform_admin ? '/applications' : '/403';
+}
+
+async function resolvePendingOAuthRedirect(
+  pool: DbPool,
+  input: { requestId: string; feishuUserId: string; cookieHeader: string | undefined },
+): Promise<string | undefined> {
+  const pendingToken = readCookie(input.cookieHeader, oauthPendingCookieName);
+  if (!pendingToken) {
+    return undefined;
+  }
+
+  const initialized = await isPlatformInitialized(pool);
+  if (!initialized) {
+    return undefined;
+  }
+
+  const result = await resumePendingOAuthRequest(pool, {
+    pendingToken,
+    feishuUserId: input.feishuUserId,
+    requestId: input.requestId,
+  });
+  return result.redirectUrl;
+}
+
+async function isPlatformInitialized(pool: DbPool): Promise<boolean> {
+  const result = await pool.query('select exists(select 1 from platform_admins) as initialized');
+  return Boolean(result.rows[0]?.initialized);
 }
 
 function readCookie(cookieHeader: string | undefined, name: string): string | undefined {

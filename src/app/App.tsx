@@ -33,11 +33,15 @@ function RuntimeLoginPage() {
       onDevMockLogin={async () => {
         setLoading(true);
         try {
-          await httpApi.mockFeishuLogin({
+          const result = await httpApi.mockFeishuLogin({
             feishuUserId: 'ou_v012_verify_admin',
             name: '本地平台管理员',
             email: 'local-admin@example.com',
           });
+          if (result.redirectTo) {
+            window.location.href = result.redirectTo;
+            return;
+          }
           navigate('/initialize');
         } finally {
           setLoading(false);

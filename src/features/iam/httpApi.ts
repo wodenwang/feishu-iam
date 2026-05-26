@@ -142,7 +142,7 @@ export async function bindPlatformAdmin(): Promise<{ initialized: boolean; platf
   return httpRequest('/api/initialization/bind-platform-admin', { method: 'POST' });
 }
 
-export async function mockFeishuLogin(input: { feishuUserId: string; name: string; email?: string }) {
+export async function mockFeishuLogin(input: { feishuUserId: string; name: string; email?: string }): Promise<{ redirectTo?: string }> {
   return httpRequest('/api/dev/feishu/mock-login', { method: 'POST', body: input });
 }
 

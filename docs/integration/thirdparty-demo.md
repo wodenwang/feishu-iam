@@ -1,6 +1,6 @@
 # 第三方 Demo 接入说明
 
-`v0.1.12` 将 `examples/thirdparty-demo` 从 mock IAM session 推进到最小 OAuth Authorization Code runtime。
+`v0.1.13` 在 `v0.1.12` 最小 OAuth Authorization Code runtime 基础上补齐未登录恢复：如果浏览器还没有 IAM 登录态，Demo 发起 authorize 后会先进入 IAM 登录，登录成功后恢复原始 authorize 请求并回到 Demo callback。
 
 ## 链路
 
@@ -8,6 +8,8 @@
 Demo 首页
   -> /login
   -> feishu-iam /api/oauth/authorize
+  -> 未登录时 feishu-iam 保存 pending OAuth request 并进入 /login
+  -> IAM 飞书登录成功后恢复 pending OAuth request
   -> Demo /oauth/callback?code=...&state=...
   -> feishu-iam /api/oauth/token
   -> Demo 保存短期 bearer token
@@ -29,15 +31,17 @@ Demo 首页
 - Demo 不保存真实飞书 token。
 - Demo 只从环境变量读取 `IAM_APP_SECRET` 和 `IAM_API_SECRET`。
 - OAuth state 使用 HttpOnly cookie 校验。
+- IAM pending OAuth request 使用服务端 hash + HttpOnly cookie，不保存 secret 或 token。
 - `feishu-iam` 返回的 authorization code 是短期、一次性消费。
+- 过期 authorization code、OAuth bearer session 和 pending request 会被清理。
 - `IAM_APP_SECRET` 和 `IAM_API_SECRET` 不得写入 README、截图、日志或提交记录。
 
 ## 本地验收要点
 
 1. 创建应用并保存一次性 `appSecret` / `apiSecret`。
 2. 启动 Demo，填入 `IAM_APP_KEY`、`IAM_APP_SECRET`、`IAM_API_SECRET`。
-3. 第三方 Demo 发起 IAM OAuth 登录。
+3. 第三方 Demo 从未登录浏览器发起 IAM OAuth 登录。
 4. 为登录用户绑定包含 `demo.customer:view` 的角色。
 5. Demo 客户列表可访问。
 6. 换无授权用户登录后进入 403。
-7. 审计日志可以查到 `oauth.authorize`、`oauth.token.exchange` 和 `application_api.permission.query`。
+7. 审计日志可以查到 `oauth.pending.create`、`oauth.pending.resume`、`oauth.authorize`、`oauth.token.exchange` 和 `application_api.permission.query`。

@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.13 - OAuth 小收口
+
+- 新增 pending OAuth request 机制：未登录用户从第三方 Demo 发起 IAM OAuth 后，登录成功可恢复原始 authorize 请求并回到 Demo callback。
+- 新增 `application_oauth_pending_requests` 运行时表，pending token 只保存 hash，浏览器只持有短期 HttpOnly cookie。
+- 登录成功后的 redirect 决策保留初始化优先级：IAM 未初始化时仍进入 `/initialize`，不会绕过首次平台管理员绑定。
+- 新增过期 OAuth artifact cleanup，清理过期 authorization code、OAuth bearer session 和 pending request；仅实际清理到数据时写 `oauth.cleanup` 审计。
+- 补齐 pending create、pending resume success/failure 审计，便于排查第三方登录断链、过期和应用配置错误。
+- 新增 pending OAuth 恢复、初始化保护、过期 pending、cleanup 幂等和 migration 覆盖测试。
+
 ## v0.1.12 - 第三方 OAuth Demo Runtime
 
 - 新增最小第三方 OAuth Authorization Code runtime，支持 `/api/oauth/authorize` 和 `/api/oauth/token`。

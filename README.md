@@ -12,11 +12,12 @@
 
 ## 当前能力
 
-当前版本：`v0.1.12`
+当前版本：`v0.1.13`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
+- 第三方 Demo 从未登录浏览器发起 OAuth 时，IAM 登录成功后可恢复原始 authorize 请求并回到 Demo callback。
 - Application API 支持 HMAC 鉴权、权限组/权限点注册和当前用户权限查询。
 - 角色授权支持创建、编辑、停用和绑定权限点、飞书用户、飞书部门。
 - `/directory` 支持飞书组织和用户投影的只读浏览。

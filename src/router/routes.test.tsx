@@ -38,8 +38,33 @@ const appAdminSession: CurrentSession = {
     status: 'active',
   },
   roles: ['application_admin'],
-  permissions: ['dashboard:view', 'application:view', 'role:view', 'directory:view', 'audit:view'],
+  permissions: ['dashboard:view', 'application:view', 'application:secret', 'role:view', 'role:update', 'audit:view'],
   applicationIds: ['app_demo_crm'],
+};
+
+const platformAdminSession: CurrentSession = {
+  user: {
+    feishuUserId: 'ou_platform_admin_001',
+    displayName: '平台管理员',
+    departmentPath: 'IT 部',
+    status: 'active',
+  },
+  roles: ['platform_admin'],
+  permissions: [
+    'dashboard:view',
+    'application:view',
+    'application:create',
+    'application:update',
+    'application:disable',
+    'application:secret',
+    'role:view',
+    'role:update',
+    'directory:view',
+    'sync:view',
+    'sync:run',
+    'audit:view',
+  ],
+  applicationIds: [],
 };
 
 describe('routes', () => {
@@ -117,7 +142,7 @@ describe('routes', () => {
     expect(screen.queryByText('页面不存在')).not.toBeInTheDocument();
   });
 
-  it('renders approved admin shell dimensions and http-mode menu entries', async () => {
+  it('renders approved admin shell dimensions and http-mode application-admin menu entries', async () => {
     vi.stubEnv('VITE_IAM_API_MODE', 'http');
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -149,6 +174,30 @@ describe('routes', () => {
     expect(screen.queryByText('飞书同步')).not.toBeInTheDocument();
     expect(screen.getAllByText('应用管理').length).toBeGreaterThan(0);
     expect(screen.getByText('角色授权')).toBeInTheDocument();
+    expect(screen.queryByText('组织与用户')).not.toBeInTheDocument();
+    expect(screen.queryByText('审计日志')).not.toBeInTheDocument();
+  });
+
+  it('keeps http-mode global directory and audit menu entries for platform admins', async () => {
+    vi.stubEnv('VITE_IAM_API_MODE', 'http');
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['iam', 'session'], platformAdminSession);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/applications']}>
+          <Routes>
+            <Route element={<AdminLayout />}>
+              <Route path="/applications" element={<div>应用页内容</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('应用页内容')).toBeInTheDocument();
     expect(screen.getByText('组织与用户')).toBeInTheDocument();
     expect(screen.getByText('审计日志')).toBeInTheDocument();
   });

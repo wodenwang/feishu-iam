@@ -49,6 +49,8 @@ interface RuntimeApplication {
   updated_at?: string;
   created_by_feishu_user_id?: string | null;
   created_by_name?: string | null;
+  owner_feishu_user_id?: string | null;
+  owner_name?: string | null;
   permission_group_count?: number;
   permission_point_count?: number;
   last_api_called_at?: string | null;
@@ -168,8 +170,10 @@ export async function listApplications(
   );
 }
 
-export async function createApplication(input: Pick<CreateApplicationInput, 'name'>): Promise<CreateApplicationResult> {
-  return mapCreateApplicationResult(await httpRequest('/api/applications', { method: 'POST', body: { name: input.name } }));
+export async function createApplication(input: Pick<CreateApplicationInput, 'name' | 'ownerFeishuUserId'>): Promise<CreateApplicationResult> {
+  return mapCreateApplicationResult(
+    await httpRequest('/api/applications', { method: 'POST', body: { name: input.name, ownerFeishuUserId: input.ownerFeishuUserId } }),
+  );
 }
 
 export async function listAuditLogs(

@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.14 - 应用管理员 Runtime
+
+- 新增 `application_admins` 运行时表，用飞书用户绑定应用管理员，不引入本地账号。
+- 平台管理员创建应用时可指定应用管理员飞书 User ID，绑定动作写入 `application.admin.bind` 审计。
+- `/api/session/current` 支持返回 `application_admin`、应用范围权限和 scoped `applicationIds`。
+- 应用管理员只能查看自己负责的应用、权限注册、接入配置复制记录和本应用审计。
+- 应用管理员可管理自己负责应用下的角色和授权，跨应用角色、全局审计和同步能力继续禁止。
+- 新增应用管理员 runtime 覆盖测试，包含 session projection、应用 scope、角色 scope、审计 scope 和 migration。
+
 ## v0.1.13 - OAuth 小收口
 
 - 新增 pending OAuth request 机制：未登录用户从第三方 Demo 发起 IAM OAuth 后，登录成功可恢复原始 authorize 请求并回到 Demo callback。

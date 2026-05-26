@@ -5,6 +5,7 @@ export interface CurrentActor {
   feishuUserId: string;
   name: string;
   isPlatformAdmin: boolean;
+  applicationIds: string[];
   oauthApplicationId?: string;
 }
 
@@ -36,11 +37,17 @@ async function resolveActor(request: FastifyRequest, options: AppOptions): Promi
     `
       select u.feishu_user_id, u.name, exists(
         select 1 from platform_admins pa where pa.feishu_user_id = u.feishu_user_id
-      ) as is_platform_admin
+      ) as is_platform_admin,
+      coalesce(
+        array_agg(distinct aa.application_id::text) filter (where aa.application_id is not null),
+        '{}'::text[]
+      ) as application_ids
       from iam_sessions s
       join feishu_users u on u.feishu_user_id = s.feishu_user_id
+      left join application_admins aa on aa.feishu_user_id = u.feishu_user_id
       where s.token_hash = encode(digest($1, 'sha256'), 'hex')
         and s.expires_at > now()
+      group by u.feishu_user_id, u.name
     `,
     [token],
   );
@@ -54,6 +61,7 @@ async function resolveActor(request: FastifyRequest, options: AppOptions): Promi
     feishuUserId: row.feishu_user_id,
     name: row.name,
     isPlatformAdmin: row.is_platform_admin,
+    applicationIds: row.application_ids ?? [],
   };
 }
 
@@ -90,6 +98,7 @@ async function resolveOAuthActor(request: FastifyRequest, options: AppOptions): 
     feishuUserId: row.feishu_user_id,
     name: row.name,
     isPlatformAdmin: false,
+    applicationIds: [],
     oauthApplicationId: row.application_id,
   };
 }

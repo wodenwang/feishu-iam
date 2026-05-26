@@ -15,6 +15,7 @@ describe('database migrations', () => {
     expect(isMigrationFile('002_access_loop.sql')).toBe(true);
     expect(isMigrationFile('003_thirdparty_oauth.sql')).toBe(true);
     expect(isMigrationFile('004_oauth_pending_requests.sql')).toBe(true);
+    expect(isMigrationFile('005_application_admins.sql')).toBe(true);
     expect(isMigrationFile('._001_runtime.sql')).toBe(false);
     expect(isMigrationFile('.DS_Store')).toBe(false);
     expect(isMigrationFile('README.sql')).toBe(false);
@@ -36,6 +37,7 @@ describe('database migrations', () => {
       { version: '002_access_loop' },
       { version: '003_thirdparty_oauth' },
       { version: '004_oauth_pending_requests' },
+      { version: '005_application_admins' },
     ]);
   });
 
@@ -78,12 +80,14 @@ describe('database migrations', () => {
             'idx_directory_users_department_status',
             'idx_application_oauth_codes_expiry',
             'idx_application_oauth_sessions_expiry',
-            'idx_application_oauth_pending_expiry'
+            'idx_application_oauth_pending_expiry',
+            'idx_application_admins_user'
           )
         order by indexname
       `,
     );
     expect(indexes.rows.map((row) => row.indexname)).toEqual([
+      'idx_application_admins_user',
       'idx_application_oauth_codes_expiry',
       'idx_application_oauth_pending_expiry',
       'idx_application_oauth_sessions_expiry',

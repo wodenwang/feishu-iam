@@ -1,15 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { DbPool } from '../../db/pool';
-import { forbidden, unauthorized } from '../errors/httpError';
+import { requireAdminActor, requireApplicationScope } from '../adminScope';
+import { forbidden } from '../errors/httpError';
 
 export async function registerAuditRoutes(app: FastifyInstance, pool: DbPool): Promise<void> {
   app.get('/api/audit-logs', async (request) => {
-    if (!request.actor) {
-      throw unauthorized();
-    }
-    if (!request.actor.isPlatformAdmin) {
-      throw forbidden('只有平台管理员可以查看全局审计日志');
-    }
+    const actor = requireAdminActor(request.actor, '只有管理员可以查看审计日志');
 
     const query = request.query as {
       page?: string | number;
@@ -25,6 +21,13 @@ export async function registerAuditRoutes(app: FastifyInstance, pool: DbPool): P
     const offset = (page - 1) * pageSize;
     const filters: string[] = [];
     const values: Array<string | number> = [];
+
+    if (!actor.isPlatformAdmin) {
+      if (query.targetType !== 'application' || !query.targetId) {
+        throw forbidden('应用管理员只能查看本应用审计日志');
+      }
+      requireApplicationScope(actor, query.targetId, '没有权限查看该应用审计日志');
+    }
 
     if (query.action) {
       values.push(query.action);

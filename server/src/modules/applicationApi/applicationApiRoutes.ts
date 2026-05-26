@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { DbPool } from '../../db/pool';
 import { writeAudit } from '../audit/auditRepository';
-import { HttpError, unauthorized } from '../errors/httpError';
+import { forbidden, HttpError, unauthorized } from '../errors/httpError';
 import { applicationApiAuth } from './applicationApiAuth';
 
 const permissionGroupSchema = {
@@ -193,6 +193,9 @@ export async function registerApplicationApiRoutes(app: FastifyInstance, pool: D
     const application = requireApplicationApi(request);
     if (!request.actor) {
       throw unauthorized();
+    }
+    if (request.actor.oauthApplicationId && request.actor.oauthApplicationId !== application.applicationId) {
+      throw forbidden('OAuth token 不属于当前应用');
     }
 
     const result = await pool.query(

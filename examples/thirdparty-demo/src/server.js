@@ -3,9 +3,11 @@ import http from 'node:http';
 
 const port = Number(process.env.PORT ?? 4200);
 const iamBaseUrl = process.env.IAM_BASE_URL ?? 'http://127.0.0.1:4100';
+const demoBaseUrl = process.env.DEMO_BASE_URL ?? `http://127.0.0.1:${port}`;
 const iamAppKey = process.env.IAM_APP_KEY;
+const iamAppSecret = process.env.IAM_APP_SECRET;
 const iamApiSecret = process.env.IAM_API_SECRET;
-const demoAuthMode = process.env.DEMO_AUTH_MODE ?? 'mock';
+const demoAuthMode = process.env.DEMO_AUTH_MODE ?? 'oauth';
 
 const server = http.createServer(async (request, response) => {
   try {
@@ -16,6 +18,11 @@ const server = http.createServer(async (request, response) => {
 
     if (request.url?.startsWith('/login')) {
       await handleLogin(request, response);
+      return;
+    }
+
+    if (request.url?.startsWith('/oauth/callback')) {
+      await handleOAuthCallback(request, response);
       return;
     }
 
@@ -40,10 +47,28 @@ server.listen(port, '127.0.0.1', () => {
 });
 
 async function handleLogin(request, response) {
-  if (demoAuthMode !== 'mock') {
-    throw new Error('v0.1.2 demo only supports DEMO_AUTH_MODE=mock');
+  if (demoAuthMode === 'mock') {
+    await handleMockLogin(request, response);
+    return;
   }
 
+  if (!iamAppKey) {
+    throw new Error('IAM_APP_KEY is required');
+  }
+  const state = crypto.randomUUID();
+  const redirectUri = `${demoBaseUrl}/oauth/callback`;
+  const authorizeUrl = new URL('/api/oauth/authorize', iamBaseUrl);
+  authorizeUrl.searchParams.set('client_id', iamAppKey);
+  authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+  authorizeUrl.searchParams.set('state', state);
+
+  response.statusCode = 302;
+  response.setHeader('set-cookie', `demo_oauth_state=${state}; HttpOnly; Path=/; SameSite=Lax; Max-Age=300`);
+  response.setHeader('location', authorizeUrl.toString());
+  response.end();
+}
+
+async function handleMockLogin(request, response) {
   const url = new URL(request.url, 'http://127.0.0.1');
   const user = url.searchParams.get('user') === 'denied' ? 'denied' : 'allowed';
   const feishuUserId = user === 'allowed' ? 'ou_demo_customer_allowed' : 'ou_demo_customer_denied';
@@ -63,15 +88,58 @@ async function handleLogin(request, response) {
   response.end();
 }
 
+async function handleOAuthCallback(request, response) {
+  if (!iamAppKey || !iamAppSecret) {
+    throw new Error('IAM_APP_KEY and IAM_APP_SECRET are required');
+  }
+  const url = new URL(request.url, demoBaseUrl);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const stateCookie = readCookie(request.headers.cookie ?? '', 'demo_oauth_state');
+  if (!code || !state || !stateCookie || state !== stateCookie) {
+    sendHtml(response, 400, layout('登录失败', '<h1>登录失败</h1><p>OAuth state 不匹配，请返回重试。</p><p><a href="/">返回</a></p>'));
+    return;
+  }
+
+  const token = await fetch(`${iamBaseUrl}/api/oauth/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: `${demoBaseUrl}/oauth/callback`,
+      client_id: iamAppKey,
+      client_secret: iamAppSecret,
+    }),
+  });
+  if (!token.ok) {
+    throw new Error(`oauth token exchange failed: ${token.status} ${await token.text()}`);
+  }
+  const json = await token.json();
+  response.statusCode = 302;
+  response.setHeader('set-cookie', [
+    'demo_oauth_state=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
+    `demo_access_token=${json.access_token}; HttpOnly; Path=/; SameSite=Lax`,
+  ]);
+  response.setHeader('location', '/customers');
+  response.end();
+}
+
 async function handleCustomers(request, response) {
-  const sessionCookie = readCookie(request.headers.cookie ?? '', 'iam_session');
-  if (!sessionCookie) {
+  const credential =
+    demoAuthMode === 'mock'
+      ? readCookie(request.headers.cookie ?? '', 'iam_session')
+      : readCookie(request.headers.cookie ?? '', 'demo_access_token');
+  if (!credential) {
     response.statusCode = 302;
     response.setHeader('location', '/');
     response.end();
     return;
   }
-  const permissions = await queryPermissions(`iam_session=${sessionCookie}`);
+  const permissions =
+    demoAuthMode === 'mock'
+      ? await queryPermissions({ cookie: `iam_session=${credential}` })
+      : await queryPermissions({ bearerToken: credential });
   if (!permissions.includes('demo.customer:view')) {
     response.statusCode = 302;
     response.setHeader('location', '/403');
@@ -89,7 +157,7 @@ async function handleCustomers(request, response) {
   );
 }
 
-async function queryPermissions(cookie) {
+async function queryPermissions({ cookie, bearerToken }) {
   if (!iamAppKey || !iamApiSecret) {
     throw new Error('IAM_APP_KEY and IAM_API_SECRET are required');
   }
@@ -97,7 +165,8 @@ async function queryPermissions(cookie) {
   const result = await fetch(`${iamBaseUrl}${path}`, {
     method: 'GET',
     headers: {
-      cookie,
+      ...(cookie ? { cookie } : {}),
+      ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
       ...sign({ method: 'GET', path, appKey: iamAppKey, apiSecret: iamApiSecret }),
     },
   });
@@ -136,6 +205,13 @@ function readCookie(cookieHeader, name) {
 }
 
 function homePage() {
+  if (demoAuthMode === 'oauth') {
+    return layout(
+      '飞书 IAM 第三方 Demo',
+      '<h1>飞书 IAM 第三方 Demo</h1><p>使用 IAM OAuth 登录当前飞书用户，并通过 Application API 查询权限点。</p><p><a class="button" href="/login">使用 IAM 登录</a></p>',
+    );
+  }
+
   return layout(
     '飞书 IAM 第三方 Demo',
     '<h1>飞书 IAM 第三方 Demo</h1><p>使用 mock 飞书用户验证权限查询。</p><p><a class="button" href="/login?user=allowed">有权限用户进入</a><a class="button secondary" href="/login?user=denied">无权限用户进入</a></p>',
@@ -176,4 +252,3 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 }
-

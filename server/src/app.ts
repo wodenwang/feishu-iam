@@ -11,6 +11,7 @@ import { RealFeishuAuthAdapter } from './modules/auth/realFeishuAuthAdapter';
 import { registerDirectoryRoutes } from './modules/directory/directoryRoutes';
 import { errorHandler } from './modules/errors/errorHandler';
 import { registerInitializationRoutes } from './modules/initialization/initializationRoutes';
+import { registerOAuthRoutes } from './modules/oauth/oauthRoutes';
 import { registerRoleRoutes } from './modules/roles/roleRoutes';
 import { registerRawBodyParser } from './plugins/rawBody';
 import { registerRequestContext } from './plugins/requestContext';
@@ -52,6 +53,7 @@ export async function buildApp(options: AppOptions) {
     feishuRedirectUri: options.feishuRedirectUri,
   });
   await registerInitializationRoutes(app, options.pool);
+  await registerOAuthRoutes(app, options.pool);
   await registerApplicationRoutes(app, options.pool);
   await registerApplicationApiRoutes(app, options.pool);
   await registerDirectoryRoutes(app, options.pool);

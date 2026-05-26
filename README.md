@@ -12,10 +12,11 @@
 
 ## 当前能力
 
-当前版本：`v0.1.11`
+当前版本：`v0.1.12`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
+- 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
 - Application API 支持 HMAC 鉴权、权限组/权限点注册和当前用户权限查询。
 - 角色授权支持创建、编辑、停用和绑定权限点、飞书用户、飞书部门。
 - `/directory` 支持飞书组织和用户投影的只读浏览。
@@ -105,9 +106,18 @@
 2. 进入 `应用管理`，创建业务系统应用。
 3. 在应用详情查看 `appKey`、Application API endpoint、权限注册结果和最近调用记录。
 4. 在 `应用接入向导` 复制 Agent Prompt 或运行时环境变量模板。
-5. 第三方系统通过 Application API 注册权限组和权限点。
+5. 第三方系统通过 OAuth 登录 IAM，并通过 Application API 注册权限组和权限点。
 6. 平台管理员在 `角色授权` 中把权限点授权给飞书用户或部门。
 7. 第三方系统调用当前用户权限查询接口，根据权限点控制页面和接口。
+
+本仓库提供最小 Demo：
+
+```bash
+cp examples/thirdparty-demo/.env.example examples/thirdparty-demo/.env
+npm --prefix examples/thirdparty-demo run dev
+```
+
+详细说明见 [docs/integration/thirdparty-demo.md](docs/integration/thirdparty-demo.md)。
 
 Application API 请求使用 HMAC header 鉴权。真实 secret 只应写入运行时环境变量或 secret manager，不应写入代码仓库。
 

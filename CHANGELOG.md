@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.12 - 第三方 OAuth Demo Runtime
+
+- 新增最小第三方 OAuth Authorization Code runtime，支持 `/api/oauth/authorize` 和 `/api/oauth/token`。
+- 新增应用 OAuth redirect URI、authorization code 和第三方 bearer session 运行时表，authorization code 短期有效且一次性消费。
+- Application API 权限查询支持第三方 OAuth bearer token，并限制 token 只能用于所属应用。
+- `examples/thirdparty-demo` 默认切换到 OAuth mode，可完成 IAM 登录、token exchange 和权限查询；历史 mock mode 仅作为本地 fallback。
+- 新增第三方 OAuth runtime 后端测试，覆盖 code exchange、防重放、redirect URI、client secret 和跨应用 token 边界。
+- 新增第三方 Demo README、`.env.example` 和接入说明文档，继续禁止提交真实 secret。
+
 ## v0.1.11 - 应用接入配置闭环
 
 - 新增应用详情 HTTP runtime，可查看应用基础信息、创建人、权限组/权限点数量、最近 Application API 调用和 secret 签发状态。

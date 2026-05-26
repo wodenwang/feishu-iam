@@ -10,6 +10,7 @@ import {
   mapRuntimePermissionRegistration,
   mapRuntimePermissionTree,
   mapRuntimeRole,
+  mapRuntimeSyncRun,
 } from './dtoMappers';
 import type {
   Application,
@@ -130,6 +131,21 @@ interface RuntimePermissionRegistration {
   permission_name?: string | null;
   permission_status?: 'active' | 'disabled' | null;
   updated_at?: string | null;
+}
+
+interface RuntimeSyncRun {
+  id: string;
+  trigger: SyncRun['trigger'];
+  status: SyncRun['status'];
+  operator_feishu_user_id: string;
+  request_id?: string | null;
+  started_at: string;
+  finished_at?: string | null;
+  error_message?: string | null;
+  request_batch_count?: number | null;
+  success_count?: number | null;
+  failed_count?: number | null;
+  diff_summary?: Partial<SyncRun['diffSummary']> | null;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -347,20 +363,26 @@ export async function listDirectoryUsers(request: PageRequest & { departmentId?:
   );
 }
 
-export function listSyncRuns(_request: PageRequest): Promise<PageResult<SyncRun>> {
-  return unsupportedHttpMethod('listSyncRuns');
+export async function listSyncRuns(request: PageRequest): Promise<PageResult<SyncRun>> {
+  return mapPageResult(
+    await httpRequest<RuntimePageResult<RuntimeSyncRun>>('/api/sync/runs', {
+      query: { page: request.page, pageSize: request.pageSize },
+    }),
+    mapRuntimeSyncRun,
+  );
 }
 
-export function getLatestSyncRun(): Promise<SyncRun | undefined> {
-  return unsupportedHttpMethod('getLatestSyncRun');
+export async function getLatestSyncRun(): Promise<SyncRun | undefined> {
+  const page = await listSyncRuns({ page: 1, pageSize: 1 });
+  return page.items[0];
 }
 
-export function retrySyncRun(_syncRunId: string): Promise<SyncRun> {
-  return unsupportedHttpMethod('retrySyncRun');
+export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {
+  return mapRuntimeSyncRun(await httpRequest<RuntimeSyncRun>(`/api/sync/runs/${syncRunId}/retry`, { method: 'POST' }));
 }
 
-export function startManualSync(): Promise<SyncRun> {
-  return unsupportedHttpMethod('startManualSync');
+export async function startManualSync(): Promise<SyncRun> {
+  return mapRuntimeSyncRun(await httpRequest<RuntimeSyncRun>('/api/sync/runs', { method: 'POST' }));
 }
 
 function unsupportedHttpMethod(name: string): never {

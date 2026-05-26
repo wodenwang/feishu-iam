@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.15 - 飞书通讯录同步 Runtime
+
+- 新增 `sync_runs` 运行时表，记录同步触发方式、状态、操作人、requestId、差异摘要、错误和耗时。
+- 新增飞书通讯录同步 adapter，生产运行时使用专用自建飞书应用的 tenant access token 读取飞书部门和用户。
+- 新增 `GET /api/sync/runs`、`POST /api/sync/runs` 和 `POST /api/sync/runs/:id/retry`，平台管理员可查看、触发和重试 full sync。
+- 同步结果幂等写入 `feishu_users`、`directory_departments`、`directory_users`，本次缺失的既有目录用户标记为离职。
+- 同步开始、成功和失败都写入审计；失败原因展示在同步历史中。
+- 前端 HTTP mode 接通现有 `飞书同步` 页面，不再调用 mock-only sync 方法。
+
 ## v0.1.14 - 应用管理员 Runtime
 
 - 新增 `application_admins` 运行时表，用飞书用户绑定应用管理员，不引入本地账号。

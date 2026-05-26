@@ -14,6 +14,7 @@ export async function createTestPool(): Promise<DbPool> {
 
 export async function resetDatabase(pool: DbPool): Promise<void> {
   await pool.query(`
+    drop table if exists sync_runs cascade;
     drop table if exists application_oauth_sessions cascade;
     drop table if exists application_oauth_authorization_codes cascade;
     drop table if exists application_oauth_pending_requests cascade;

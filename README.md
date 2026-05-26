@@ -12,12 +12,13 @@
 
 ## 当前能力
 
-当前版本：`v0.1.14`
+当前版本：`v0.1.15`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
 - Runtime API 支持创建应用时绑定一个飞书用户为应用管理员。
 - 应用管理员登录后只能查看和管理自己负责的应用、角色授权和本应用审计。
+- 平台管理员可以在 `飞书同步` 页面触发通讯录 full sync，并查看同步历史、差异摘要和失败原因。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
 - 第三方 Demo 从未登录浏览器发起 OAuth 时，IAM 登录成功后可恢复原始 authorize 请求并回到 Demo callback。
 - Application API 支持 HMAC 鉴权、权限组/权限点注册和当前用户权限查询。
@@ -93,7 +94,7 @@
    FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
    ```
 
-3. 在飞书开放平台把 redirect URI 配成与 `FEISHU_REDIRECT_URI` 完全一致。
+3. 在飞书开放平台把 redirect URI 配成与 `FEISHU_REDIRECT_URI` 完全一致，并为该自建应用开通通讯录读取权限。同步 runtime 至少需要读取部门和用户基础信息的权限范围。
 
 4. 启动：
 

@@ -131,6 +131,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
           select u.feishu_user_id,
                  u.name,
                  u.email,
+                 u.mobile,
                  u.department_id,
                  coalesce(department_tree.name, '-') as department_name,
                  coalesce(department_tree.path, '-') as department_path,

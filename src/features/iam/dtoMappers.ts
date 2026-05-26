@@ -11,6 +11,7 @@ import type {
   IamPermissionNode,
   IamRole,
   PageResult,
+  SyncRun,
 } from './types';
 
 interface RuntimePageResult<T> {
@@ -114,6 +115,21 @@ interface RuntimePermissionRegistration {
   permission_name?: string | null;
   permission_status?: 'active' | 'disabled' | null;
   updated_at?: string | null;
+}
+
+interface RuntimeSyncRun {
+  id: string;
+  trigger: SyncRun['trigger'];
+  status: SyncRun['status'];
+  operator_feishu_user_id: string;
+  request_id?: string | null;
+  started_at: string;
+  finished_at?: string | null;
+  error_message?: string | null;
+  request_batch_count?: number | null;
+  success_count?: number | null;
+  failed_count?: number | null;
+  diff_summary?: Partial<SyncRun['diffSummary']> | null;
 }
 
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
@@ -257,6 +273,34 @@ export function mapRuntimePermissionRegistration(item: RuntimePermissionRegistra
   };
 }
 
+export function mapRuntimeSyncRun(item: RuntimeSyncRun): SyncRun {
+  const diffSummary = {
+    createdUsers: item.diff_summary?.createdUsers ?? 0,
+    updatedUsers: item.diff_summary?.updatedUsers ?? 0,
+    resignedUsers: item.diff_summary?.resignedUsers ?? 0,
+    failedUsers: item.diff_summary?.failedUsers ?? 0,
+    createdDepartments: item.diff_summary?.createdDepartments ?? 0,
+    updatedDepartments: item.diff_summary?.updatedDepartments ?? 0,
+  };
+  return {
+    id: item.id,
+    trigger: item.trigger,
+    status: item.status,
+    startedAt: item.started_at,
+    finishedAt: item.finished_at ?? undefined,
+    durationSeconds: calculateDurationSeconds(item.started_at, item.finished_at),
+    userChanges: diffSummary.createdUsers + diffSummary.updatedUsers + diffSummary.resignedUsers,
+    departmentChanges: diffSummary.createdDepartments + diffSummary.updatedDepartments,
+    operatorFeishuUserId: item.operator_feishu_user_id,
+    requestBatchCount: item.request_batch_count ?? 0,
+    successCount: item.success_count ?? 0,
+    failedCount: item.failed_count ?? 0,
+    diffSummary,
+    requestId: item.request_id ?? undefined,
+    errorMessage: item.error_message ?? undefined,
+  };
+}
+
 export function mapPageResult<Input, Output>(
   page: RuntimePageResult<Input>,
   mapper: (item: Input) => Output,
@@ -296,4 +340,16 @@ function normalizeAuditAction(action: string): AuditAction {
 
 function normalizeAuditResult(result: RuntimeAuditLog['result']): AuditResult {
   return result === 'success' ? 'success' : 'failed';
+}
+
+function calculateDurationSeconds(startedAt: string, finishedAt?: string | null): number | undefined {
+  if (!finishedAt) {
+    return undefined;
+  }
+  const started = new Date(startedAt).getTime();
+  const finished = new Date(finishedAt).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(finished) || finished < started) {
+    return undefined;
+  }
+  return Math.round((finished - started) / 1000);
 }

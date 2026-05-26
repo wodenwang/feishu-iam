@@ -13,6 +13,9 @@ import { errorHandler } from './modules/errors/errorHandler';
 import { registerInitializationRoutes } from './modules/initialization/initializationRoutes';
 import { registerOAuthRoutes } from './modules/oauth/oauthRoutes';
 import { registerRoleRoutes } from './modules/roles/roleRoutes';
+import type { DirectorySyncAdapter } from './modules/sync/directorySyncAdapter';
+import { RealFeishuDirectorySyncAdapter } from './modules/sync/directorySyncAdapter';
+import { registerSyncRoutes } from './modules/sync/syncRoutes';
 import { registerRawBodyParser } from './plugins/rawBody';
 import { registerRequestContext } from './plugins/requestContext';
 import { registerStaticAssets } from './plugins/staticAssets';
@@ -26,6 +29,7 @@ export interface AppOptions {
   feishuAppId?: string;
   feishuAppSecret?: string;
   feishuAuthAdapter?: FeishuAuthAdapter;
+  directorySyncAdapter?: DirectorySyncAdapter;
   staticAssetsDir?: string;
 }
 
@@ -57,6 +61,12 @@ export async function buildApp(options: AppOptions) {
   await registerApplicationRoutes(app, options.pool);
   await registerApplicationApiRoutes(app, options.pool);
   await registerDirectoryRoutes(app, options.pool);
+  await registerSyncRoutes(
+    app,
+    options.pool,
+    options.directorySyncAdapter ??
+      new RealFeishuDirectorySyncAdapter({ appId: options.feishuAppId ?? '', appSecret: options.feishuAppSecret ?? '' }),
+  );
   await registerRoleRoutes(app, options.pool);
   await registerAuditRoutes(app, options.pool);
   if (options.staticAssetsDir) {

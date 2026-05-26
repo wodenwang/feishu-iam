@@ -75,7 +75,7 @@ export function AdminLayout() {
   const visibleRoutes =
     apiMode === 'http'
       ? getVisibleMenuItems(routeItems, session).filter((item) =>
-          ['/applications', '/roles', '/directory', ...(isPlatformAdminSession ? ['/audit-logs'] : [])].includes(item.path),
+          ['/applications', '/roles', '/directory', ...(isPlatformAdminSession ? ['/sync', '/audit-logs'] : [])].includes(item.path),
         )
       : getVisibleMenuItems(routeItems, session);
   const menuItems: MenuProps['items'] = visibleRoutes.map((item) => ({

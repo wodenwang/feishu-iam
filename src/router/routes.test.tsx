@@ -178,7 +178,7 @@ describe('routes', () => {
     expect(screen.queryByText('审计日志')).not.toBeInTheDocument();
   });
 
-  it('keeps http-mode global directory and audit menu entries for platform admins', async () => {
+  it('keeps http-mode global directory, sync, and audit menu entries for platform admins', async () => {
     vi.stubEnv('VITE_IAM_API_MODE', 'http');
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -199,6 +199,7 @@ describe('routes', () => {
 
     expect(await screen.findByText('应用页内容')).toBeInTheDocument();
     expect(screen.getByText('组织与用户')).toBeInTheDocument();
+    expect(screen.getByText('飞书同步')).toBeInTheDocument();
     expect(screen.getByText('审计日志')).toBeInTheDocument();
   });
 });

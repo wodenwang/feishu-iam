@@ -1,6 +1,7 @@
 import { buildApp } from '../../src/app';
 import type { DbPool } from '../../src/db/pool';
 import type { FeishuAuthAdapter } from '../../src/modules/auth/feishuAuthAdapter';
+import type { DirectorySyncAdapter } from '../../src/modules/sync/directorySyncAdapter';
 
 export async function buildTestApp(
   pool: DbPool,
@@ -10,6 +11,7 @@ export async function buildTestApp(
     secureCookies?: boolean;
     feishuRedirectUri?: string;
     feishuAuthAdapter?: FeishuAuthAdapter;
+    directorySyncAdapter?: DirectorySyncAdapter;
   } = {},
 ) {
   return buildApp({
@@ -19,6 +21,11 @@ export async function buildTestApp(
     secureCookies: options.secureCookies,
     feishuRedirectUri: options.feishuRedirectUri,
     feishuAuthAdapter: options.feishuAuthAdapter,
+    directorySyncAdapter: options.directorySyncAdapter ?? {
+      async fetchDirectorySnapshot() {
+        return { departments: [], users: [], requestBatchCount: 0 };
+      },
+    },
     staticAssetsDir: options.staticAssetsDir,
   });
 }

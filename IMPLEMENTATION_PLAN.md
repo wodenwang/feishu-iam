@@ -1,122 +1,111 @@
-# feishu-iam v0.1.14 Application Admin Runtime Implementation Plan
+# feishu-iam v0.1.15 Feishu Directory Sync Runtime Implementation Plan
 
 ## Goal
 
-交付 `v0.1.14` Application Admin Runtime：平台管理员创建应用时绑定一个飞书用户作为应用管理员；该用户登录后只能访问和管理自己负责的应用、角色授权、权限注册和应用审计。
+交付 `v0.1.15` Feishu Directory Sync Runtime：平台管理员可以在 Admin Console 触发飞书通讯录 full sync，后端通过专用自建飞书应用读取部门和用户，幂等写入本地目录投影，并在 `/sync` 页面查看同步记录、结果和失败原因。
 
 ## Source Inputs
 
-- Office-hours design: `/Users/wenzhewang/.gstack/projects/wodenwang-feishu-iam/wenzhewang-main-design-20260526-190652.md`
-- Eng review: `docs/superpowers/plans/2026-05-26-v0.1.14-application-admin-runtime-eng-review.md`
+- Office-hours scope: 当前会话已确认 `v0.1.15 - Feishu Directory Sync Runtime`
+- Eng review: `docs/superpowers/plans/2026-05-26-v0.1.15-feishu-directory-sync-runtime-eng-review.md`
 - Project rules: `AGENTS.md`, `CLAUDE.md`
-- Current runtime:
-  - `server/src/modules/auth/authRoutes.ts`
-  - `server/src/modules/applications/applicationRoutes.ts`
-  - `server/src/modules/roles/roleRoutes.ts`
-  - `server/src/modules/audit/auditRoutes.ts`
-  - `src/features/iam/permissions.ts`
-  - `src/pages/Applications/List.tsx`
-  - `src/pages/Roles/index.tsx`
+- Existing frontend:
+  - `src/pages/Sync/index.tsx`
+  - `src/pages/Directory/index.tsx`
+  - `src/features/iam/httpApi.ts`
+  - `src/features/iam/dtoMappers.ts`
+- Existing backend:
+  - `server/src/modules/directory/directoryRoutes.ts`
+  - `server/src/modules/auth/realFeishuAuthAdapter.ts`
+  - `server/src/config/env.ts`
+  - `server/src/modules/audit/auditRepository.ts`
 
 ## Scope
 
 ### In Scope
 
-1. Application admin persistence:
-   - `application_admins`
-   - `application_id`
-   - `feishu_user_id`
-   - `created_by_feishu_user_id`
-2. Application create binding:
-   - optional `ownerFeishuUserId`
-   - validate owner user exists
-   - bind owner to application
-   - audit `application.admin.bind`
-3. Session projection:
-   - application admin role
-   - scoped permission codes
-   - scoped application IDs
-4. Backend scope enforcement:
-   - applications list/detail/permission registrations/secret-copy audit
-   - roles list/create/update/authorization/permission tree
-   - audit logs limited to owned application target
+1. Sync persistence:
+   - `sync_runs`
+   - trigger/status/operator/requestId
+   - diff summary
+   - error message
+2. Directory sync adapter:
+   - `DirectorySyncAdapter` interface
+   - `RealFeishuDirectorySyncAdapter`
+   - test fake adapter injection
+3. Backend sync routes:
+   - `GET /api/sync/runs`
+   - `POST /api/sync/runs`
+   - `POST /api/sync/runs/:id/retry`
+4. Sync service:
+   - full sync
+   - idempotent department/user upsert
+   - minimal resigned marking
+   - success/failure audit
 5. Frontend HTTP integration:
-   - send `ownerFeishuUserId` on create
-   - map owner fields
-   - preserve scoped UI behavior
+   - `listSyncRuns`
+   - `startManualSync`
+   - `retrySyncRun`
+   - runtime DTO mapping
 6. Docs and release metadata:
    - `README.md`
    - `CHANGELOG.md`
    - `VERSION`
    - `package.json`
-   - reports under `design/implementation-screenshots/v0.1.14-application-admin-runtime/`
+   - reports under `design/implementation-screenshots/v0.1.15-feishu-directory-sync-runtime/`
 
 ### Out of Scope
 
-- 重开 `v0.1.13` OAuth 小收口。
-- redirect URI 管理 UI。
-- OIDC discovery、JWKS、PKCE、refresh token、复杂 consent 页面。
-- Sync runtime、tenant token、通讯录全量同步。
-- `/directory` 能力扩展。
-- 创建后应用管理员维护 UI、多人管理员、邀请审批。
+- 增量同步、定时任务、事件订阅。
+- 全字段通讯录同步和复杂删除策略。
+- `/directory` 编辑能力。
+- 应用管理员触发同步。
+- OAuth/OIDC/redirect URI/secret rotation。
 - username/password 登录。
 
 ## Engineering Decisions
 
-1. `application_admins` 表表达应用管理员绑定，`applications.created_by_feishu_user_id` 保持创建人语义。
-2. 创建应用时只支持一个主要应用管理员，后续多人维护 UI 独立切片处理。
-3. `ownerFeishuUserId` 必须已存在于 `feishu_users`，避免孤儿绑定。
-4. 后端统一做 application scope 校验，前端过滤只作为 UX。
-5. 应用管理员可管理自己应用下角色授权，但不能创建/停用应用、触发同步或读取全局审计。
+1. 真实飞书 API 只在 adapter 内部调用，业务代码只消费标准化 snapshot。
+2. `tenant_access_token` 只在内存里使用，不写数据库、审计或日志。
+3. 同步 run 使用 `running -> succeeded/failed` 状态，失败保留错误摘要。
+4. 运行中已有 sync run 时拒绝再次触发，避免并发写投影。
+5. 本版只做 full sync，后续增量和事件订阅独立切片处理。
 
 ## File Tasks
 
 ### Backend
 
-- `server/src/db/migrations/005_application_admins.sql`
-  - Add application admin binding table and indexes.
-- `server/src/modules/adminScope.ts`
-  - Add shared scope helpers for platform admin and application admin.
-- `server/src/plugins/requestContext.ts`
-  - Resolve actor application admin IDs.
-- `server/src/modules/auth/authRoutes.ts`
-  - Project application admin session roles, permissions and application IDs.
-- `server/src/modules/applications/applicationRoutes.ts`
-  - Accept `ownerFeishuUserId`, bind owner and enforce scoped reads.
-- `server/src/modules/roles/roleRoutes.ts`
-  - Enforce scoped role list/create/update/authorization and permission tree.
-- `server/src/modules/audit/auditRoutes.ts`
-  - Allow application admins to read only owned application target logs.
+- `server/src/db/migrations/006_sync_runs.sql`
+  - Add `sync_runs` table and indexes.
+- `server/src/modules/sync/directorySyncAdapter.ts`
+  - Define snapshot types and real Feishu adapter.
+- `server/src/modules/sync/syncService.ts`
+  - Implement full sync, diff, upsert, audit and failure handling.
+- `server/src/modules/sync/syncRoutes.ts`
+  - Add list/start/retry HTTP routes.
+- `server/src/app.ts`
+  - Register sync routes and accept adapter injection.
+- `server/src/main.ts`
+  - Wire real adapter in production/runtime.
 - `server/tests/helpers/testDb.ts`
-  - Reset application admin table.
+  - Reset `sync_runs`.
 - `server/tests/migrations.test.ts`
-  - Expect migration `005_application_admins`.
-
-### Tests
-
-- `server/tests/applications.test.ts`
-  - Bind application admin on create.
-  - Reject missing owner user.
-  - Scoped application list/detail/permission registration/secret copy.
-- `server/tests/requestContext.test.ts`
-  - Application admin session projection.
-- `server/tests/roles.test.ts`
-  - Application admin role management in owned app and cross-app denial.
-- `server/tests/audit.test.ts`
-  - Scoped application audit allowed, global/other app audit denied.
+  - Expect migration `006_sync_runs`.
+- `server/tests/sync.test.ts`
+  - Cover success, idempotency, resigned, permission denial and failure audit.
 
 ### Frontend
 
-- `src/features/iam/httpApi.ts`
-  - Send `ownerFeishuUserId` in HTTP create application.
+- `src/features/iam/types.ts`
+  - Keep existing `SyncRun` type; extend only if runtime requires it.
 - `src/features/iam/dtoMappers.ts`
-  - Continue mapping owner fields from runtime application.
-- `src/pages/Applications/List.tsx`
-  - Keep owner field active for HTTP mode create.
-- `src/pages/Applications/Detail.tsx`
-  - Display real owner fields from runtime.
-- `src/pages/Roles/index.tsx`
-  - Preserve scoped role UX for application admins.
+  - Add runtime sync run mapper.
+- `src/features/iam/httpApi.ts`
+  - Implement sync HTTP methods.
+- `src/pages/Sync/index.tsx`
+  - Preserve existing UI; rely on HTTP service methods.
+- `src/pages/Sync/index.test.tsx`
+  - Ensure HTTP mode can render runtime sync data if needed.
 
 ### Docs / Release
 
@@ -125,25 +114,24 @@
 - `VERSION`
 - `package.json`
 - `package-lock.json`
-- `design/implementation-screenshots/v0.1.14-application-admin-runtime/*`
+- `design/implementation-screenshots/v0.1.15-feishu-directory-sync-runtime/*`
 
 ## First Vertical Slice
 
-Implement this single end-to-end slice:
+This version intentionally has one vertical slice:
 
-1. Platform admin creates an application with `ownerFeishuUserId`.
-2. Backend validates owner user and inserts `application_admins`.
-3. Owner logs in and receives `application_admin` session with scoped application IDs.
-4. Owner can see/read only the owned application.
-5. Owner can create/update/authorize roles only inside the owned application.
-6. Owner can read only owned application audit logs.
-
-This covers the whole v0.1.14 scope because the version is intentionally narrow.
+1. Platform admin opens `/sync`.
+2. Platform admin clicks manual sync.
+3. Backend creates a `sync_runs` row.
+4. Backend calls the directory sync adapter.
+5. Backend upserts departments and users into local projection.
+6. Backend marks the run succeeded or failed and writes audit.
+7. Frontend refreshes `/sync` and `/directory` can read synced projection.
 
 ## Verification Commands
 
 ```bash
-TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/feishu_iam_test npm run server:test -- server/tests/applicationAdmin.test.ts server/tests/applications.test.ts server/tests/roles.test.ts server/tests/audit.test.ts server/tests/requestContext.test.ts server/tests/migrations.test.ts
+TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55432/feishu_iam_test npm run server:test -- server/tests/sync.test.ts server/tests/migrations.test.ts
 npm run server:test
 npm run server:build
 npm run build
@@ -160,26 +148,28 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam SESSION_SECR
 
 Check:
 
-- platform admin creates app with owner Feishu User ID
-- owner logs in as application admin
-- owner sees scoped application list/detail/onboarding/roles/audit
-- owner cannot access other application/global audit/sync
+- platform admin can open `/sync`
+- manual sync button creates a runtime run
+- sync history shows succeeded/failed status
+- directory page shows synced departments/users
+- application admin cannot see or trigger sync
 
 ## Completion Criteria
 
-- Application admin binding is stored and audited.
-- Application admin session projection returns scoped role, permissions and application IDs.
-- Application admin can access and manage only owned application data.
-- Cross-application and global audit access is denied.
+- Sync runtime persistence and routes exist.
+- Platform admin can trigger full sync and inspect history.
+- Directory projection updates from sync snapshot.
+- Failures are visible in sync history and audit.
 - Tests and builds pass.
-- QA/design-review/review reports are saved under `design/implementation-screenshots/v0.1.14-application-admin-runtime/`.
-- PR is merged, tag `v0.1.14` and GitHub Release exist.
-- Remote Docker Compose runtime deploys `FEISHU_IAM_IMAGE_TAG=v0.1.14` and `/api/health` returns `{"ok":true}`.
+- Browser verification covers `/sync` and `/directory`.
+- QA/design-review/review reports are saved under `design/implementation-screenshots/v0.1.15-feishu-directory-sync-runtime/`.
+- PR is merged or main is updated, tag `v0.1.15` and GitHub Release exist.
+- Remote Docker Compose runtime deploys `FEISHU_IAM_IMAGE_TAG=v0.1.15` and `/api/health` returns `{"ok":true}`.
 
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |---|---|---:|---:|---|---|
-| Office Hours | `/office-hours` | Scope & product boundary | 1 | clear | v0.1.14 selected as Application Admin Runtime; OAuth, Sync and redirect URI UI deferred. |
-| Eng Review | local `/plan-eng-review` equivalent | Session projection, application scope, role scope and audit scope | 1 | clear-with-limits | Use create-time primary application admin only; no maintenance UI. |
-| Writing Plans | Superpowers `writing-plans` equivalent | Implementation path and tests | 1 | ready | First vertical slice is end-to-end application admin runtime. |
+| Office Hours | `/office-hours` | Scope & product boundary | 1 | clear | v0.1.15 selected as Feishu Directory Sync Runtime; v0.2.0, OAuth, OIDC and admin maintenance UI deferred. |
+| Eng Review | local `/plan-eng-review` equivalent | Feishu API, sync idempotency, permissions and audit | 1 | clear-with-limits | Use manual full sync only; no scheduler, incremental sync or event subscription. |
+| Writing Plans | Superpowers `writing-plans` equivalent | Implementation path and tests | 1 | ready | First vertical slice covers end-to-end manual directory sync runtime. |

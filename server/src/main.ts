@@ -2,6 +2,7 @@ import { buildApp } from './app';
 import { parseEnv } from './config/env';
 import { runMigrations } from './db/migrate';
 import { createPool } from './db/pool';
+import { LocalMockDirectorySyncAdapter, RealFeishuDirectorySyncAdapter } from './modules/sync/directorySyncAdapter';
 
 const config = parseEnv(process.env);
 const pool = createPool(config.databaseUrl);
@@ -15,6 +16,10 @@ const app = await buildApp({
   feishuAppId: config.feishuAppId,
   feishuAppSecret: config.feishuAppSecret,
   feishuRedirectUri: config.feishuRedirectUri,
+  directorySyncAdapter:
+    config.feishuAuthMode === 'mock'
+      ? new LocalMockDirectorySyncAdapter()
+      : new RealFeishuDirectorySyncAdapter({ appId: config.feishuAppId ?? '', appSecret: config.feishuAppSecret ?? '' }),
   staticAssetsDir: config.staticAssetsDir,
 });
 

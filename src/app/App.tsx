@@ -54,7 +54,7 @@ function RuntimeLoginPage() {
 export function App() {
   const apiMode = getIamApiMode();
   const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
-  const httpRuntimePaths = ['/applications', '/applications/onboarding', '/applications/:id', '/roles', '/directory', '/audit-logs'];
+  const httpRuntimePaths = ['/applications', '/applications/onboarding', '/applications/:id', '/roles', '/directory', '/sync', '/audit-logs'];
   const runtimeRouteItems =
     apiMode === 'http'
       ? routeItems.filter((item) => httpRuntimePaths.includes(item.path))

@@ -18,6 +18,7 @@ export async function resetDatabase(pool: DbPool): Promise<void> {
     drop table if exists application_oauth_authorization_codes cascade;
     drop table if exists application_oauth_pending_requests cascade;
     drop table if exists application_oauth_redirect_uris cascade;
+    drop table if exists application_admins cascade;
     drop table if exists application_api_nonces cascade;
     drop table if exists role_user_bindings cascade;
     drop table if exists role_department_bindings cascade;

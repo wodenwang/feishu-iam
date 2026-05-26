@@ -6,6 +6,7 @@ import { BrandLogo } from '../components/BrandLogo';
 import { UserMenu } from '../components/UserMenu';
 import { getIamApiMode } from '../features/iam/apiMode';
 import { isIamHttpError } from '../features/iam/httpClient';
+import { isPlatformAdmin } from '../features/iam/permissions';
 import { useCurrentSession } from '../features/iam/queries';
 import { getMenuSelectedKey, getVisibleMenuItems, matchRouteItem, routeItems } from '../router/routes';
 
@@ -28,6 +29,7 @@ export function AdminLayout() {
   const environmentLabel = apiMode === 'http' ? '生产环境' : '本地开发';
   const runtimeLabel = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
   const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
+  const isPlatformAdminSession = isPlatformAdmin(session);
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
   const viewportWidth = getViewportWidth();
@@ -72,7 +74,9 @@ export function AdminLayout() {
 
   const visibleRoutes =
     apiMode === 'http'
-      ? routeItems.filter((item) => ['/applications', '/roles', '/directory', '/audit-logs'].includes(item.path))
+      ? getVisibleMenuItems(routeItems, session).filter((item) =>
+          ['/applications', '/roles', '/directory', ...(isPlatformAdminSession ? ['/audit-logs'] : [])].includes(item.path),
+        )
       : getVisibleMenuItems(routeItems, session);
   const menuItems: MenuProps['items'] = visibleRoutes.map((item) => ({
     key: item.path,

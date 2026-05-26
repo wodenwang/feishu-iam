@@ -29,6 +29,8 @@ interface RuntimeApplication {
   updated_at?: string;
   created_by_feishu_user_id?: string | null;
   created_by_name?: string | null;
+  owner_feishu_user_id?: string | null;
+  owner_name?: string | null;
   permission_group_count?: number;
   permission_point_count?: number;
   last_api_called_at?: string | null;
@@ -147,8 +149,8 @@ export function mapRuntimeApplication(item: RuntimeApplication): Application {
     apiSecretPreview: 'api_****',
     callbackUrls: ['https://your-app.example.com/auth/callback'],
     allowedOrigins: ['https://your-app.example.com'],
-    ownerFeishuUserId: item.created_by_feishu_user_id ?? '-',
-    ownerName: item.created_by_name ?? '-',
+    ownerFeishuUserId: item.owner_feishu_user_id ?? item.created_by_feishu_user_id ?? '-',
+    ownerName: item.owner_name ?? item.created_by_name ?? '-',
     permissionGroupCount: item.permission_group_count ?? 0,
     permissionPointCount: item.permission_point_count ?? 0,
     lastApiCalledAt: item.last_api_called_at ?? item.last_permission_query_at ?? undefined,

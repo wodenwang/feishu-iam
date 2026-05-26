@@ -217,6 +217,7 @@ export function ApplicationsListPage() {
         const result = (await createApplicationMutation.mutateAsync({
           name: values.name,
           code: values.name,
+          ownerFeishuUserId: values.ownerFeishuUserId?.trim() || undefined,
           callbackUrls: [],
           allowedOrigins: [],
         })) as CreateApplicationResult;
@@ -453,6 +454,16 @@ export function ApplicationsListPage() {
           >
             <Input placeholder="例如：Demo CRM" />
           </Form.Item>
+          {apiMode === 'http' ? (
+            <Form.Item
+              name="ownerFeishuUserId"
+              label="应用管理员飞书 User ID"
+              extra="可选。必须是已登录或已同步到 IAM 的飞书用户。"
+              rules={[{ max: 100, message: '飞书 User ID 不能超过 100 个字符' }]}
+            >
+              <Input allowClear placeholder="例如：ou_xxx" />
+            </Form.Item>
+          ) : null}
           {apiMode === 'mock' ? (
             <>
               <Form.Item

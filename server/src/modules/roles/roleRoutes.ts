@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { DbClient, DbPool } from '../../db/pool';
+import { addApplicationScopeFilter, requireAdminActor, requireApplicationScope, requireRoleScope } from '../adminScope';
 import { writeAudit } from '../audit/auditRepository';
-import { forbidden, HttpError, unauthorized } from '../errors/httpError';
+import { HttpError } from '../errors/httpError';
 
 const listRolesSchema = {
   querystring: {
@@ -105,7 +106,7 @@ interface AuthorizationBody {
 
 export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Promise<void> {
   app.get('/api/roles', { schema: listRolesSchema }, async (request) => {
-    requirePlatformAdmin(request);
+    const actor = requireAdminActor(request.actor, '只有管理员可以管理角色');
     const query = request.query as {
       page?: number;
       pageSize?: number;
@@ -118,7 +119,7 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
     const { page, pageSize } = normalizePagination(query);
     const offset = (page - 1) * pageSize;
     const filters: string[] = [];
-    const filterParams: string[] = [];
+    const filterParams: Array<string | number | string[]> = [];
     const addFilter = (buildClause: (paramIndex: number) => string, value: string) => {
       filterParams.push(value);
       filters.push(buildClause(filterParams.length));
@@ -142,8 +143,9 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
     if (query.createdAtTo) {
       addFilter((paramIndex) => `r.created_at <= $${paramIndex}`, query.createdAtTo);
     }
+    addApplicationScopeFilter(actor, filters, filterParams, 'r.application_id');
     const whereClause = filters.length ? `where ${filters.join(' and ')}` : '';
-    const listParams: Array<string | number> = [...filterParams, pageSize, offset];
+    const listParams: Array<string | number | string[]> = [...filterParams, pageSize, offset];
     const limitParam = filterParams.length + 1;
     const offsetParam = filterParams.length + 2;
 
@@ -210,12 +212,13 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
   });
 
   app.post('/api/roles', { schema: createRoleSchema }, async (request) => {
-    requirePlatformAdmin(request);
+    const actor = requireAdminActor(request.actor, '只有管理员可以管理角色');
     const body = request.body as CreateRoleBody;
     const application = await findApplicationByAppKey(pool, body.appKey);
     if (!application) {
       throw new HttpError(400, 'APPLICATION_NOT_FOUND', '应用不存在');
     }
+    requireApplicationScope(actor, application.id, '没有权限管理该应用的角色');
 
     const client = await pool.connect();
     try {
@@ -258,7 +261,10 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
   });
 
   app.get('/api/roles/permission-tree', async (request) => {
-    requirePlatformAdmin(request);
+    const actor = requireAdminActor(request.actor, '只有管理员可以查看权限树');
+    const filters: string[] = ["pg.status = 'active'"];
+    const values: Array<string | number | string[]> = [];
+    addApplicationScopeFilter(actor, filters, values, 'pg.application_id');
     const result = await pool.query(
       `
         select pg.code as group_code,
@@ -267,9 +273,10 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
                pp.name as point_name
         from permission_groups pg
         left join permission_points pp on pp.group_id = pg.id and pp.status = 'active'
-        where pg.status = 'active'
+        where ${filters.join(' and ')}
         order by pg.code asc, pp.code asc
       `,
+      values,
     );
     const groups = new Map<string, { key: string; title: string; children: Array<{ key: string; title: string }>; childKeys: Set<string> }>();
     for (const row of result.rows as Array<{ group_code: string; group_name: string; point_code?: string; point_name?: string }>) {
@@ -292,8 +299,8 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
   });
 
   app.patch('/api/roles/:id', { schema: updateRoleSchema }, async (request) => {
-    requirePlatformAdmin(request);
     const { id } = request.params as { id: string };
+    await requireRoleScope(pool, request.actor, id);
     const body = request.body as UpdateRoleBody;
 
     const result = await pool.query(
@@ -326,7 +333,6 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
   });
 
   app.put('/api/roles/:id/authorization', { schema: authorizationSchema }, async (request) => {
-    requirePlatformAdmin(request);
     const { id } = request.params as { id: string };
     const body = request.body as AuthorizationBody;
     assertUniqueValues(body.permissionPointCodes, 'DUPLICATE_AUTHORIZATION_PERMISSION_POINT', '授权权限点不能重复');
@@ -341,6 +347,7 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
       if (!roleRow) {
         throw new HttpError(404, 'ROLE_NOT_FOUND', '角色不存在');
       }
+      requireApplicationScope(request.actor, roleRow.application_id, '没有权限管理该应用的角色');
 
       const permissionPointIds = await resolvePermissionPointIds(client, roleRow.application_id, body.permissionPointCodes);
       await assertFeishuUsersExist(client, body.feishuUserIds);
@@ -405,15 +412,6 @@ function normalizePagination(query: { page?: number; pageSize?: number }) {
     page: query.page ?? 1,
     pageSize: query.pageSize ?? 20,
   };
-}
-
-function requirePlatformAdmin(request: FastifyRequest) {
-  if (!request.actor) {
-    throw unauthorized();
-  }
-  if (!request.actor.isPlatformAdmin) {
-    throw forbidden('只有平台管理员可以管理角色');
-  }
 }
 
 async function findApplicationByAppKey(pool: DbPool, appKey: string): Promise<{ id: string; app_key: string } | null> {

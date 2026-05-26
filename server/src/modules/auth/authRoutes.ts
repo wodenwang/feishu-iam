@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { DbPool } from '../../db/pool';
 import { writeAudit } from '../audit/auditRepository';
+import { applicationAdminPermissions } from '../adminScope';
 import { buildOAuthPendingCookie, oauthPendingCookieName, resumePendingOAuthRequest } from '../oauth/oauthRoutes';
 import type { FeishuAuthAdapter, FeishuUserIdentity } from './feishuAuthAdapter';
 
@@ -168,9 +169,13 @@ export async function registerAuthRoutes(app: FastifyInstance, options: AuthRout
         departmentPath: '-',
         status: 'active',
       },
-      roles: request.actor.isPlatformAdmin ? ['platform_admin'] : [],
-      permissions: request.actor.isPlatformAdmin ? platformAdminPermissions : [],
-      applicationIds: [],
+      roles: request.actor.isPlatformAdmin ? ['platform_admin'] : request.actor.applicationIds.length ? ['application_admin'] : [],
+      permissions: request.actor.isPlatformAdmin
+        ? platformAdminPermissions
+        : request.actor.applicationIds.length
+          ? applicationAdminPermissions
+          : [],
+      applicationIds: request.actor.isPlatformAdmin ? [] : request.actor.applicationIds,
     };
   });
 }
@@ -213,7 +218,8 @@ async function resolvePostLoginRedirect(pool: DbPool, feishuUserId: string): Pro
     `
       select
         (select count(*)::int from platform_admins) as admin_count,
-        exists(select 1 from platform_admins where feishu_user_id = $1) as is_platform_admin
+        exists(select 1 from platform_admins where feishu_user_id = $1) as is_platform_admin,
+        exists(select 1 from application_admins where feishu_user_id = $1) as is_application_admin
     `,
     [feishuUserId],
   );
@@ -221,7 +227,7 @@ async function resolvePostLoginRedirect(pool: DbPool, feishuUserId: string): Pro
   if (!row || row.admin_count === 0) {
     return '/initialize';
   }
-  return row.is_platform_admin ? '/applications' : '/403';
+  return row.is_platform_admin || row.is_application_admin ? '/applications' : '/403';
 }
 
 async function resolvePendingOAuthRedirect(

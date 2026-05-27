@@ -361,6 +361,98 @@ describe('sync routes', () => {
     expect(audit.rows[0].metadata).toMatchObject({ status: 'failed', errorCode: 'FEISHU_DIRECTORY_API_FAILED' });
   });
 
+  it('answers Feishu event URL verification without writing runtime state', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/feishu/events',
+      payload: { type: 'url_verification', challenge: 'challenge-v030', token: 'local-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ challenge: 'challenge-v030' });
+    const events = await pool.query('select count(*)::int as total from sync_events');
+    expect(events.rows[0].total).toBe(0);
+  });
+
+  it('records and deduplicates Feishu directory events', async () => {
+    const payload = {
+      schema: '2.0',
+      header: {
+        event_id: 'evt_sync_user_updated_001',
+        event_type: 'contact.user.updated_v3',
+        token: 'local-token',
+      },
+      event: {
+        user: { user_id: 'ou_event_user_001' },
+      },
+    };
+
+    const first = await app.inject({ method: 'POST', url: '/api/feishu/events', payload });
+    const duplicate = await app.inject({ method: 'POST', url: '/api/feishu/events', payload });
+
+    expect(first.statusCode).toBe(202);
+    expect(first.json()).toMatchObject({
+      ok: true,
+      duplicate: false,
+      event: {
+        event_id: 'evt_sync_user_updated_001',
+        event_type: 'contact.user.updated_v3',
+        resource_type: 'user',
+        resource_id: 'ou_event_user_001',
+        status: 'pending_sync',
+      },
+    });
+    expect(duplicate.statusCode).toBe(200);
+    expect(duplicate.json()).toMatchObject({ ok: true, duplicate: true });
+
+    const events = await pool.query("select event_id, status from sync_events where event_id = 'evt_sync_user_updated_001'");
+    expect(events.rows).toEqual([{ event_id: 'evt_sync_user_updated_001', status: 'pending_sync' }]);
+    const count = await pool.query("select count(*)::int as total from sync_events where event_id = 'evt_sync_user_updated_001'");
+    expect(count.rows[0].total).toBe(1);
+  });
+
+  it('lists Feishu events and retries pending events through system sync', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_sync_event_admin', '事件同步管理员');
+    adapter.snapshot = {
+      departments: [{ id: 'dept_event_sync', name: '事件同步部门', parentId: null }],
+      users: [{ feishuUserId: 'ou_event_sync_user', name: '事件同步用户', departmentId: 'dept_event_sync', status: 'active' }],
+      requestBatchCount: 2,
+    };
+    const received = await app.inject({
+      method: 'POST',
+      url: '/api/feishu/events',
+      payload: {
+        schema: '2.0',
+        header: {
+          event_id: 'evt_sync_user_created_001',
+          event_type: 'contact.user.created_v3',
+        },
+        event: {
+          user: { user_id: 'ou_event_sync_user' },
+        },
+      },
+    });
+    const eventId = received.json().event.id;
+
+    const status = await app.inject({ method: 'GET', url: '/api/sync/events/status', headers: { cookie: adminCookie } });
+    const list = await app.inject({ method: 'GET', url: '/api/sync/events?page=1&pageSize=20', headers: { cookie: adminCookie } });
+    const retry = await app.inject({ method: 'POST', url: `/api/sync/events/${eventId}/retry`, headers: { cookie: adminCookie } });
+
+    expect(status.statusCode).toBe(200);
+    expect(status.json()).toMatchObject({ pendingCount: 1, healthStatus: 'warning' });
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toMatchObject({ total: 1, items: [expect.objectContaining({ event_id: 'evt_sync_user_created_001' })] });
+    expect(retry.statusCode).toBe(200);
+    expect(retry.json()).toMatchObject({ status: 'processed', sync_run_id: expect.any(String) });
+
+    const users = await pool.query("select feishu_user_id, name from directory_users where feishu_user_id = 'ou_event_sync_user'");
+    expect(users.rows).toEqual([{ feishu_user_id: 'ou_event_sync_user', name: '事件同步用户' }]);
+    const runs = await pool.query("select trigger, operator_type, operator_feishu_user_id from sync_runs where id = $1", [
+      retry.json().sync_run_id,
+    ]);
+    expect(runs.rows).toEqual([{ trigger: 'scheduled', operator_type: 'system', operator_feishu_user_id: null }]);
+  });
+
   it('rejects non-platform admins from status and preflight routes', async () => {
     const userCookie = await loginCookie(app, 'ou_sync_status_forbidden', '同步状态普通用户');
     const ownerCookie = await loginCookie(app, 'ou_sync_app_owner_forbidden', '同步应用负责人');
@@ -369,11 +461,15 @@ describe('sync routes', () => {
 
     const status = await app.inject({ method: 'GET', url: '/api/sync/status', headers: { cookie: userCookie } });
     const preflight = await app.inject({ method: 'POST', url: '/api/sync/preflight', headers: { cookie: userCookie } });
+    const events = await app.inject({ method: 'GET', url: '/api/sync/events', headers: { cookie: userCookie } });
+    const eventStatus = await app.inject({ method: 'GET', url: '/api/sync/events/status', headers: { cookie: userCookie } });
     const appAdminStatus = await app.inject({ method: 'GET', url: '/api/sync/status', headers: { cookie: ownerCookie } });
     const appAdminPreflight = await app.inject({ method: 'POST', url: '/api/sync/preflight', headers: { cookie: ownerCookie } });
 
     expect(status.statusCode).toBe(403);
     expect(preflight.statusCode).toBe(403);
+    expect(events.statusCode).toBe(403);
+    expect(eventStatus.statusCode).toBe(403);
     expect(appAdminStatus.statusCode).toBe(403);
     expect(appAdminPreflight.statusCode).toBe(403);
   });

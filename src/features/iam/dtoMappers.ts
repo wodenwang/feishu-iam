@@ -15,6 +15,8 @@ import type {
   IamRole,
   PageResult,
   SyncPreflightResult,
+  SyncEvent,
+  SyncEventStatusOverview,
   SyncRun,
   SyncStatusOverview,
 } from './types';
@@ -200,6 +202,31 @@ interface RuntimeSyncPreflightResult {
   requestId?: string | null;
   errorCode?: string | null;
   message?: string | null;
+}
+
+interface RuntimeSyncEvent {
+  id: string;
+  event_id: string;
+  event_type: string;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  status: SyncEvent['status'];
+  request_id: string;
+  received_at: string;
+  processed_at?: string | null;
+  sync_run_id?: string | null;
+  error_message?: string | null;
+}
+
+interface RuntimeSyncEventStatusOverview {
+  latestEvent?: RuntimeSyncEvent | null;
+  latestFailedEvent?: RuntimeSyncEvent | null;
+  pendingCount?: number | null;
+  failedCount?: number | null;
+  processedCount?: number | null;
+  ignoredCount?: number | null;
+  healthStatus?: SyncEventStatusOverview['healthStatus'];
+  healthReasons?: string[] | null;
 }
 
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
@@ -463,6 +490,35 @@ export function mapRuntimeSyncPreflightResult(item: RuntimeSyncPreflightResult):
   };
 }
 
+export function mapRuntimeSyncEvent(item: RuntimeSyncEvent): SyncEvent {
+  return {
+    id: item.id,
+    eventId: item.event_id,
+    eventType: item.event_type,
+    resourceType: item.resource_type ?? undefined,
+    resourceId: item.resource_id ?? undefined,
+    status: item.status,
+    requestId: item.request_id,
+    receivedAt: item.received_at,
+    processedAt: item.processed_at ?? undefined,
+    syncRunId: item.sync_run_id ?? undefined,
+    errorMessage: item.error_message ?? undefined,
+  };
+}
+
+export function mapRuntimeSyncEventStatusOverview(item: RuntimeSyncEventStatusOverview): SyncEventStatusOverview {
+  return {
+    latestEvent: item.latestEvent ? mapRuntimeSyncEvent(item.latestEvent) : null,
+    latestFailedEvent: item.latestFailedEvent ? mapRuntimeSyncEvent(item.latestFailedEvent) : null,
+    pendingCount: item.pendingCount ?? 0,
+    failedCount: item.failedCount ?? 0,
+    processedCount: item.processedCount ?? 0,
+    ignoredCount: item.ignoredCount ?? 0,
+    healthStatus: item.healthStatus ?? 'unknown',
+    healthReasons: item.healthReasons ?? [],
+  };
+}
+
 export function mapPageResult<Input, Output>(
   page: RuntimePageResult<Input>,
   mapper: (item: Input) => Output,
@@ -493,6 +549,8 @@ function normalizeAuditAction(action: string): AuditAction {
     'role.update',
     'role.authorization.update',
     'permission.query',
+    'sync.event.receive',
+    'sync.event.retry',
     'sync.run',
     'sync.preflight',
   ]);

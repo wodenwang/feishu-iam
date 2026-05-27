@@ -22,6 +22,8 @@ const app = await buildApp({
   feishuAppSecret: config.feishuAppSecret,
   feishuRedirectUri: config.feishuRedirectUri,
   directorySyncAdapter,
+  feishuEventVerificationToken: config.feishuEventVerificationToken,
+  feishuEventEncryptKey: config.feishuEventEncryptKey,
   staticAssetsDir: config.staticAssetsDir,
 });
 const syncScheduler = createSyncScheduler(pool, directorySyncAdapter, {

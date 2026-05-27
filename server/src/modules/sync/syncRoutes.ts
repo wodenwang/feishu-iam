@@ -3,6 +3,13 @@ import type { DbPool } from '../../db/pool';
 import type { CurrentActor } from '../../plugins/requestContext';
 import { forbidden, unauthorized } from '../errors/httpError';
 import type { DirectorySyncAdapter } from './directorySyncAdapter';
+import {
+  getSyncEventStatus,
+  listSyncEvents,
+  receiveFeishuSyncEvent,
+  retrySyncEvent,
+  type SyncEventConfig,
+} from './syncEventService';
 import { getSyncStatus, listSyncRuns, runDirectorySyncPreflight, startDirectorySync } from './syncService';
 
 const listQuerySchema = {
@@ -16,7 +23,12 @@ const listQuerySchema = {
   },
 } as const;
 
-export async function registerSyncRoutes(app: FastifyInstance, pool: DbPool, adapter: DirectorySyncAdapter): Promise<void> {
+export async function registerSyncRoutes(
+  app: FastifyInstance,
+  pool: DbPool,
+  adapter: DirectorySyncAdapter,
+  eventConfig: SyncEventConfig = {},
+): Promise<void> {
   app.get('/api/sync/status', async (request) => {
     requirePlatformAdmin(request);
     return getSyncStatus(pool);
@@ -26,6 +38,37 @@ export async function registerSyncRoutes(app: FastifyInstance, pool: DbPool, ada
     requirePlatformAdmin(request);
     const query = request.query as { page?: number; pageSize?: number };
     return listSyncRuns(pool, { page: query.page ?? 1, pageSize: query.pageSize ?? 20 });
+  });
+
+  app.get('/api/sync/events/status', async (request) => {
+    requirePlatformAdmin(request);
+    return getSyncEventStatus(pool);
+  });
+
+  app.get('/api/sync/events', { schema: listQuerySchema }, async (request) => {
+    requirePlatformAdmin(request);
+    const query = request.query as { page?: number; pageSize?: number };
+    return listSyncEvents(pool, { page: query.page ?? 1, pageSize: query.pageSize ?? 20 });
+  });
+
+  app.post('/api/feishu/events', async (request, reply) => {
+    const result = await receiveFeishuSyncEvent(pool, {
+      requestId: request.id,
+      rawBody: request.rawBody,
+      body: request.body,
+      headers: {
+        timestamp: request.headers['x-lark-request-timestamp'] as string | undefined,
+        nonce: request.headers['x-lark-request-nonce'] as string | undefined,
+        signature: request.headers['x-lark-signature'] as string | undefined,
+      },
+      config: eventConfig,
+    });
+
+    if (result.challenge) {
+      return { challenge: result.challenge };
+    }
+    reply.code(result.duplicate ? 200 : 202);
+    return { ok: true, duplicate: Boolean(result.duplicate), event: result.event };
   });
 
   app.post('/api/sync/preflight', async (request) => {
@@ -42,6 +85,12 @@ export async function registerSyncRoutes(app: FastifyInstance, pool: DbPool, ada
     const actor = requirePlatformAdmin(request);
     const params = request.params as { id: string };
     return startDirectorySync(pool, adapter, { actor, requestId: request.id, trigger: 'retry', retryOf: params.id });
+  });
+
+  app.post('/api/sync/events/:id/retry', async (request) => {
+    requirePlatformAdmin(request);
+    const params = request.params as { id: string };
+    return retrySyncEvent(pool, adapter, { eventId: params.id, requestId: request.id });
   });
 }
 

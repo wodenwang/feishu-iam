@@ -2,6 +2,7 @@ import { buildApp } from '../../src/app';
 import type { DbPool } from '../../src/db/pool';
 import type { FeishuAuthAdapter } from '../../src/modules/auth/feishuAuthAdapter';
 import type { DirectorySyncAdapter } from '../../src/modules/sync/directorySyncAdapter';
+import type { SyncEventConfig } from '../../src/modules/sync/syncEventService';
 
 export async function buildTestApp(
   pool: DbPool,
@@ -12,6 +13,7 @@ export async function buildTestApp(
     feishuRedirectUri?: string;
     feishuAuthAdapter?: FeishuAuthAdapter;
     directorySyncAdapter?: DirectorySyncAdapter;
+    syncEventConfig?: SyncEventConfig;
   } = {},
 ) {
   return buildApp({
@@ -21,6 +23,8 @@ export async function buildTestApp(
     secureCookies: options.secureCookies,
     feishuRedirectUri: options.feishuRedirectUri,
     feishuAuthAdapter: options.feishuAuthAdapter,
+    feishuEventVerificationToken: options.syncEventConfig?.verificationToken,
+    feishuEventEncryptKey: options.syncEventConfig?.encryptKey,
     directorySyncAdapter: options.directorySyncAdapter ?? {
       async preflight() {
         return {

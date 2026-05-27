@@ -15,6 +15,8 @@ export interface ServerConfig {
   syncScheduleIntervalMinutes: number;
   syncScheduleStartDelaySeconds: number;
   syncStaleAfterHours: number;
+  feishuEventVerificationToken?: string;
+  feishuEventEncryptKey?: string;
 }
 
 export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
@@ -66,6 +68,8 @@ export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
       'FEISHU_SYNC_SCHEDULE_START_DELAY_SECONDS',
     ),
     syncStaleAfterHours: parsePositiveInteger(env.FEISHU_SYNC_STALE_AFTER_HOURS, 24, 'FEISHU_SYNC_STALE_AFTER_HOURS'),
+    feishuEventVerificationToken: env.FEISHU_EVENT_VERIFICATION_TOKEN,
+    feishuEventEncryptKey: env.FEISHU_EVENT_ENCRYPT_KEY,
   };
 }
 

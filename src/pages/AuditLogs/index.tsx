@@ -63,6 +63,8 @@ const actionLabels: Record<AuditAction, string> = {
   'role.update': '管理员操作',
   'role.authorization.update': '更新角色授权',
   'permission.query': '权限查询',
+  'sync.event.receive': '接收飞书事件',
+  'sync.event.retry': '重试飞书事件',
   'sync.run': '同步任务',
   'sync.preflight': '同步预检',
 };

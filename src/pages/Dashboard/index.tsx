@@ -29,6 +29,8 @@ const auditActionLabels: Record<AuditLog['action'], string> = {
   'role.update': '更新角色',
   'role.authorization.update': '更新角色授权',
   'permission.query': '查询权限',
+  'sync.event.receive': '接收飞书事件',
+  'sync.event.retry': '重试飞书事件',
   'sync.run': '执行同步',
   'sync.preflight': '同步预检',
 };

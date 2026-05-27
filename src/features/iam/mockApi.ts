@@ -32,6 +32,8 @@ import type {
   PageResult,
   RotateSecretResult,
   SecretKind,
+  SyncEvent,
+  SyncEventStatusOverview,
   SyncPreflightResult,
   SyncRun,
   SyncStatusOverview,
@@ -50,6 +52,7 @@ interface MockIamStore {
   permissionRegistrations: ApplicationPermissionRegistration[];
   auditLogs: AuditLog[];
   syncRuns: SyncRun[];
+  syncEvents: SyncEvent[];
 }
 
 const cloneApplication = (application: Application): Application => ({
@@ -72,6 +75,7 @@ const cloneSyncRun = (syncRun: SyncRun): SyncRun => ({
   ...syncRun,
   diffSummary: { ...syncRun.diffSummary },
 });
+const cloneSyncEvent = (syncEvent: SyncEvent): SyncEvent => ({ ...syncEvent });
 const clonePermissionRegistration = (
   registration: ApplicationPermissionRegistration,
 ): ApplicationPermissionRegistration => ({ ...registration });
@@ -124,6 +128,18 @@ const createMockIamStore = (): MockIamStore => {
     permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
     auditLogs: auditLogs.map(cloneAuditLog),
     syncRuns: syncRuns.map(cloneSyncRun),
+    syncEvents: [
+      {
+        id: 'sync_event_mock_001',
+        eventId: 'evt_mock_contact_user_updated',
+        eventType: 'contact.user.updated_v3',
+        resourceType: 'user',
+        resourceId: 'ou_demo_zhangsan',
+        status: 'pending_sync',
+        requestId: 'req_mock_sync_event_001',
+        receivedAt: '2026-05-28T10:00:00.000Z',
+      },
+    ],
   };
 };
 
@@ -1064,6 +1080,40 @@ export async function getSyncStatus(): Promise<SyncStatusOverview> {
   };
 }
 
+export async function listSyncEvents(request: PageRequest): Promise<PageResult<SyncEvent>> {
+  await wait();
+  return paginate(mockIamStore.syncEvents.map(cloneSyncEvent), request);
+}
+
+export async function getSyncEventStatus(): Promise<SyncEventStatusOverview> {
+  await wait();
+  const latestEvent = mockIamStore.syncEvents[0] ? cloneSyncEvent(mockIamStore.syncEvents[0]) : null;
+  const latestFailedEvent = mockIamStore.syncEvents.find((item) => item.status === 'failed');
+  const pendingCount = mockIamStore.syncEvents.filter((item) => item.status === 'pending_sync').length;
+  const failedCount = mockIamStore.syncEvents.filter((item) => item.status === 'failed').length;
+  const processedCount = mockIamStore.syncEvents.filter((item) => item.status === 'processed').length;
+  const ignoredCount = mockIamStore.syncEvents.filter((item) => item.status === 'ignored').length;
+  const health =
+    failedCount > 0
+      ? { status: 'failed' as const, reasons: [`存在 ${failedCount} 个失败事件需要处理`] }
+      : pendingCount > 0
+        ? { status: 'warning' as const, reasons: [`存在 ${pendingCount} 个待同步事件`] }
+        : latestEvent
+          ? { status: 'healthy' as const, reasons: ['飞书事件已接收并处理'] }
+          : { status: 'unknown' as const, reasons: ['尚未收到飞书事件'] };
+
+  return {
+    latestEvent,
+    latestFailedEvent: latestFailedEvent ? cloneSyncEvent(latestFailedEvent) : null,
+    pendingCount,
+    failedCount,
+    processedCount,
+    ignoredCount,
+    healthStatus: health.status,
+    healthReasons: health.reasons,
+  };
+}
+
 export async function runSyncPreflight(): Promise<SyncPreflightResult> {
   await wait();
   const now = new Date().toISOString();
@@ -1122,6 +1172,19 @@ export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {
 
   mockIamStore.syncRuns = [retryRun, ...mockIamStore.syncRuns];
   return cloneSyncRun(retryRun);
+}
+
+export async function retrySyncEvent(syncEventId: string): Promise<SyncEvent> {
+  await wait();
+  const event = mockIamStore.syncEvents.find((item) => item.id === syncEventId);
+  if (!event) {
+    throw new Error('sync event not found');
+  }
+  const now = new Date().toISOString();
+  event.status = 'processed';
+  event.processedAt = now;
+  event.syncRunId = `sync_run_event_retry_${Date.now()}`;
+  return cloneSyncEvent(event);
 }
 
 export async function startManualSync(): Promise<SyncRun> {

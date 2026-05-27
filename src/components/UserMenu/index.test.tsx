@@ -43,13 +43,18 @@ beforeAll(() => {
 describe('UserMenu', () => {
   it('prioritizes user, role, environment and truncates open_id in the dropdown', async () => {
     const user = userEvent.setup();
-    renderWithClient(<UserMenu session={session} environmentName="HTTP runtime" />);
+    renderWithClient(<UserMenu session={session} environmentName="生产环境" runtimeName="HTTP runtime" />);
+
+    expect(screen.queryByText('生产环境')).not.toBeInTheDocument();
+    expect(screen.queryByText('HTTP runtime')).not.toBeInTheDocument();
+    expect(screen.queryByText('平台管理员')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /打开用户菜单/ }));
 
     expect(screen.getAllByText('王平台')[0]).toBeInTheDocument();
     expect(screen.getAllByText('平台管理员')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('HTTP runtime')[0]).toBeInTheDocument();
+    expect(screen.getByText('生产环境')).toBeInTheDocument();
+    expect(screen.getByText('HTTP runtime')).toBeInTheDocument();
     expect(screen.getByText('ou_f3a...b8c9')).toBeInTheDocument();
     expect(screen.queryByText('ou_f3a1234567890abcdefb8c9')).not.toBeInTheDocument();
   });

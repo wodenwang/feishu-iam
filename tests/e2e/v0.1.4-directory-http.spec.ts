@@ -25,7 +25,7 @@ test.describe('v0.1.4 Directory HTTP mode', () => {
     }
 
     await page.goto('/directory');
-    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /打开用户菜单/ })).toBeVisible();
     await expect(page.getByText('部门树')).toBeVisible();
     await expect(page.getByText('用户列表')).toBeVisible();
     await expect(page.getByRole('table')).toContainText('ou_v012_verify_admin');

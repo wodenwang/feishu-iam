@@ -21,7 +21,7 @@ test.describe('v0.1.3 Admin Console HTTP mode', () => {
     }
     await expect(page).toHaveURL(/\/applications/);
 
-    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /打开用户菜单/ })).toBeVisible();
     await page.getByRole('button', { name: '新增应用' }).click();
     await page.getByLabel('应用名称').fill(`HTTP Mode Demo ${testInfo.project.name} ${Date.now()}`);
     await page.getByRole('button', { name: /提\s*交/ }).click();

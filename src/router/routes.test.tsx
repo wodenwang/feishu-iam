@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Result } from 'antd';
 import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest';
@@ -142,8 +143,9 @@ describe('routes', () => {
     expect(screen.queryByText('页面不存在')).not.toBeInTheDocument();
   });
 
-  it('renders approved admin shell dimensions and http-mode application-admin menu entries', async () => {
+  it('renders approved admin shell dimensions and keeps runtime labels out of the top bar', async () => {
     vi.stubEnv('VITE_IAM_API_MODE', 'http');
+    const user = userEvent.setup();
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -166,8 +168,8 @@ describe('routes', () => {
     expect(screen.getByTestId('admin-header')).toHaveStyle({ height: '56px' });
     expect(screen.getByTestId('admin-content')).toHaveStyle({ padding: '24px' });
     expect(screen.getByLabelText('feishu-iam')).toBeInTheDocument();
-    expect(screen.getByText('生产环境')).toBeInTheDocument();
-    expect(screen.getByText('HTTP runtime')).toBeInTheDocument();
+    expect(screen.queryByText('生产环境')).not.toBeInTheDocument();
+    expect(screen.queryByText('HTTP runtime')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /打开用户菜单/ })).toBeInTheDocument();
 
     expect(screen.queryByText('工作台')).not.toBeInTheDocument();
@@ -176,6 +178,44 @@ describe('routes', () => {
     expect(screen.getByText('角色授权')).toBeInTheDocument();
     expect(screen.queryByText('组织与用户')).not.toBeInTheDocument();
     expect(screen.queryByText('审计日志')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /打开用户菜单/ }));
+
+    expect(screen.getByText('生产环境')).toBeInTheDocument();
+    expect(screen.getByText('HTTP runtime')).toBeInTheDocument();
+  });
+
+  it('toggles the side navigation from the top bar control', async () => {
+    vi.stubEnv('VITE_IAM_API_MODE', 'http');
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['iam', 'session'], platformAdminSession);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/applications']}>
+          <Routes>
+            <Route element={<AdminLayout />}>
+              <Route path="/applications" element={<div>应用页内容</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('应用页内容')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-sider')).toHaveStyle({ flex: '0 0 224px', maxWidth: '224px', minWidth: '224px', width: '224px' });
+
+    await user.click(screen.getByRole('button', { name: '收起侧边导航' }));
+
+    expect(screen.getByTestId('admin-sider')).toHaveStyle({ flex: '0 0 64px', maxWidth: '64px', minWidth: '64px', width: '64px' });
+    expect(screen.getByRole('button', { name: '展开侧边导航' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '展开侧边导航' }));
+
+    expect(screen.getByTestId('admin-sider')).toHaveStyle({ flex: '0 0 224px', maxWidth: '224px', minWidth: '224px', width: '224px' });
   });
 
   it('keeps http-mode global directory, sync, and audit menu entries for platform admins', async () => {

@@ -12,12 +12,13 @@ const roleLabels: Record<AdminRole, string> = {
 type UserMenuProps = {
   session: CurrentSession;
   environmentName: string;
+  runtimeName?: string;
   compact?: boolean;
   logout?: () => Promise<void>;
   onLogoutSuccess?: () => void;
 };
 
-export function UserMenu({ session, environmentName, compact = false, logout, onLogoutSuccess }: UserMenuProps) {
+export function UserMenu({ session, environmentName, runtimeName, compact = false, logout, onLogoutSuccess }: UserMenuProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [localLogoutError, setLocalLogoutError] = useState(false);
@@ -90,6 +91,11 @@ export function UserMenu({ session, environmentName, compact = false, logout, on
                     <Tag color="green" style={{ marginInlineEnd: 0 }}>
                       {environmentName}
                     </Tag>
+                    {runtimeName ? (
+                      <Tag color="default" style={{ marginInlineEnd: 0 }}>
+                        {runtimeName}
+                      </Tag>
+                    ) : null}
                   </Space>
                 </Space>
               </Space>
@@ -120,18 +126,10 @@ export function UserMenu({ session, environmentName, compact = false, logout, on
         >
           <Avatar size={28} icon={<UserOutlined aria-hidden="true" />} />
           {!compact ? (
-            <>
-              <Typography.Text style={{ maxWidth: 120 }} ellipsis>
-                {session.user.displayName}
-              </Typography.Text>
-              <Tag color="blue" style={{ marginInlineEnd: 0 }}>
-                {primaryRoleLabel}
-              </Tag>
-            </>
+            <Typography.Text style={{ maxWidth: 120 }} ellipsis>
+              {session.user.displayName}
+            </Typography.Text>
           ) : null}
-          <Tag color="green" style={{ marginInlineEnd: 0 }}>
-            {environmentName}
-          </Tag>
         </Button>
       </Dropdown>
       <Modal

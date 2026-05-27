@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.3.1 - Admin Shell 外框与顶部栏修复
+
+- 修复顶部栏侧边导航收缩按钮不可用的问题，collapsed 状态现在由组件交互驱动，菜单、Logo 和内容区宽度会同步更新。
+- 简化右上角账户入口，首屏顶部栏只保留必要用户身份入口，角色、环境、runtime 和 open_id 迁移到用户下拉层。
+- 移除首页首屏显眼的 `HTTP runtime`、`Mock data`、`生产环境`、`本地开发` 运行/调试态标签。
+- 补充 Admin Shell 单元测试，覆盖首屏低干扰展示、用户下拉运行信息和侧边栏展开/收起交互。
+- 本版本不新增目录编辑、事件同步 worker、OIDC/JWKS/PKCE/refresh token、SDK/CLI 或本地账号体系。
+
 ## v0.3.0 - 飞书事件同步可靠性
 
 - 新增飞书事件订阅回调 `POST /api/feishu/events`，支持 URL verification challenge、Verification Token 校验、可选 Encrypt Key 签名校验与 AES 解密。

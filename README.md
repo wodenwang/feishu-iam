@@ -12,7 +12,7 @@
 
 ## 当前能力
 
-当前版本：`v0.2.1`
+当前版本：`v0.2.2`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
@@ -20,6 +20,7 @@
 - Runtime API 支持 `appSecret` / `apiSecret` 轮换，旧 secret 立即失效，新 secret 只返回一次。
 - Runtime API 支持多应用管理员维护，并保护最后 1 位应用管理员不能被移除。
 - 应用管理员登录后只能查看和管理自己负责的应用、角色授权和本应用审计。
+- 应用详情提供 `接入诊断`，聚合 redirect URI、secret、权限注册、角色授权、目录用户投影和最近 requestId，支持复制脱敏诊断包并记录审计。
 - 平台管理员可以在 `飞书同步` 页面查看同步健康状态、运行权限预检、触发通讯录 full sync，并查看手动或定时同步历史、差异摘要和失败原因。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
 - 第三方 Demo 从未登录浏览器发起 OAuth 时，IAM 登录成功后可恢复原始 authorize 请求并回到 Demo callback。
@@ -149,6 +150,15 @@ bash scripts/verify-v0.2-application-onboarding.sh
 脚本会创建临时应用，新增和停用/恢复 redirect URI，验证 disabled URI 不能 authorize，轮换 `appSecret` 和 `apiSecret` 并确认旧 secret 失效，新增/移除应用管理员并验证最后管理员保护，最后检查配置审计动作。脚本不输出一次性 secret、cookie、bearer token、authorization code 或 HMAC signature。
 
 建议在干净数据库中运行该脚本，或使用已由 `ou_v012_verify_admin` 初始化的平台管理员测试库；如果本地库已绑定其他平台管理员，可通过 `VERIFY_PLATFORM_ADMIN_FEISHU_USER_ID=<feishu-user-id>` 指定脚本登录用户。
+
+v0.2.2 还提供应用接入诊断验收脚本，用来证明诊断 API、前端诊断包和复制审计保持脱敏：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.2-access-diagnostics.sh
+```
+
+脚本会创建临时应用，先验证缺少权限注册和角色授权时返回 warning，再通过 Application API 注册权限、创建角色授权并确认 healthy，随后停用所有 active redirect URI 并确认 failed，最后验证 `application.diagnostics.copy` 审计可查询。脚本不会输出一次性 secret、cookie、bearer token、authorization code 或 HMAC signature。
 
 真实飞书验收仍需要在飞书开放平台手动配置 Admin Console 登录 redirect URI、第三方应用 OAuth redirect URI、通讯录读取权限和部署环境白名单；真实凭证只应写入运行时环境变量或 secret manager，不要写入仓库。
 

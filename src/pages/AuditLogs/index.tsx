@@ -50,6 +50,7 @@ const actionLabels: Record<AuditAction, string> = {
   login: '用户登录',
   'application.create': '创建应用',
   'application.api_call': '应用 API 调用',
+  'application.diagnostics.copy': '复制诊断包',
   'application.admin.add': '新增应用管理员',
   'application.admin.bind': '绑定应用管理员',
   'application.admin.remove': '移除应用管理员',

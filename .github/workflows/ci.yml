@@ -17,7 +17,7 @@ jobs:
           POSTGRES_USER: feishu_iam
           POSTGRES_PASSWORD: feishu_iam
         ports:
-          - 55432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U feishu_iam -d feishu_iam_test"
           --health-interval 10s
@@ -43,7 +43,7 @@ jobs:
       - name: Run server tests
         run: npm run server:test
         env:
-          TEST_DATABASE_URL: postgres://feishu_iam:feishu_iam@127.0.0.1:55432/feishu_iam_test
+          TEST_DATABASE_URL: postgres://feishu_iam:feishu_iam@127.0.0.1:${{ job.services.postgres.ports[5432] }}/feishu_iam_test
 
       - name: Run frontend tests
         run: npm test

@@ -14,6 +14,7 @@ import type {
   Application,
   AddApplicationAdminInput,
   ApplicationAdmin,
+  ApplicationDiagnostics,
   ApplicationPermissionRegistration,
   ApplicationRedirectUri,
   ApplicationStatus,
@@ -74,6 +75,21 @@ const cloneSyncRun = (syncRun: SyncRun): SyncRun => ({
 const clonePermissionRegistration = (
   registration: ApplicationPermissionRegistration,
 ): ApplicationPermissionRegistration => ({ ...registration });
+const cloneApplicationDiagnostics = (diagnostics: ApplicationDiagnostics): ApplicationDiagnostics => ({
+  ...diagnostics,
+  endpoints: { ...diagnostics.endpoints },
+  redirectUris: {
+    active: [...diagnostics.redirectUris.active],
+    disabled: [...diagnostics.redirectUris.disabled],
+  },
+  secrets: {
+    appSecret: { ...diagnostics.secrets.appSecret },
+    apiSecret: { ...diagnostics.secrets.apiSecret },
+  },
+  counts: { ...diagnostics.counts },
+  findings: diagnostics.findings.map((finding) => ({ ...finding })),
+  recentEvents: diagnostics.recentEvents.map((event) => ({ ...event })),
+});
 const cloneRole = (role: IamRole): IamRole => ({
   ...role,
   permissionKeys: [...role.permissionKeys],
@@ -253,6 +269,125 @@ function appendApplicationAuditLog(input: {
     },
     ...mockIamStore.auditLogs,
   ];
+}
+
+function buildApplicationDiagnostics(applicationId: string): ApplicationDiagnostics {
+  const application = mockIamStore.applications.find((item) => item.id === applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+
+  const redirectUris = mockIamStore.redirectUris.filter((item) => item.applicationId === applicationId);
+  const applicationAdmins = mockIamStore.applicationAdmins.filter((item) => item.applicationId === applicationId);
+  const roles = mockIamStore.roles.filter((item) => item.applicationId === applicationId);
+  const roleBindings = roles.reduce(
+    (total, role) => total + role.permissionGroupCount + role.permissionPointCount + role.departmentBindingCount + role.userBindingCount,
+    0,
+  );
+  const recentEvents = mockIamStore.auditLogs
+    .filter((item) => item.applicationId === applicationId)
+    .slice(0, 10)
+    .map((item) => ({
+      action: item.action,
+      result: item.result,
+      requestId: item.requestId,
+      createdAt: item.createdAt,
+      message: item.message,
+    }));
+  const activeRedirectUris = redirectUris.filter((item) => item.status === 'active').map((item) => item.redirectUri);
+  const disabledRedirectUris = redirectUris.filter((item) => item.status === 'disabled').map((item) => item.redirectUri);
+  const findings: ApplicationDiagnostics['findings'] = [];
+
+  if (application.status !== 'active') {
+    findings.push({
+      code: 'APPLICATION_DISABLED',
+      severity: 'critical',
+      title: '应用已停用',
+      description: '停用应用不能完成新的 OAuth 授权或 Application API 接入。',
+      nextAction: '先恢复应用状态，再重新执行第三方接入验证。',
+    });
+  }
+  if (activeRedirectUris.length === 0) {
+    findings.push({
+      code: 'NO_ACTIVE_REDIRECT_URI',
+      severity: 'critical',
+      title: '缺少启用状态的 redirect URI',
+      description: 'OAuth authorize 只能命中启用状态的 redirect URI。',
+      nextAction: '在接入配置中新增或恢复第三方系统实际使用的 redirect URI。',
+    });
+  }
+  if (applicationAdmins.length === 0) {
+    findings.push({
+      code: 'NO_APPLICATION_ADMINS',
+      severity: 'warning',
+      title: '没有应用管理员',
+      description: '没有应用管理员会降低第三方系统接入配置的日常维护效率。',
+      nextAction: '由平台管理员在应用详情中添加至少 1 位应用管理员。',
+    });
+  }
+  if (application.permissionGroupCount === 0 || application.permissionPointCount === 0) {
+    findings.push({
+      code: 'NO_PERMISSION_REGISTRATIONS',
+      severity: 'warning',
+      title: '没有权限注册数据',
+      description: '第三方系统尚未通过 Application API 注册权限组或权限点。',
+      nextAction: '让第三方系统使用 Application API 注册权限组和权限点后重试。',
+    });
+  }
+  if (roleBindings === 0) {
+    findings.push({
+      code: 'NO_ROLE_BINDINGS',
+      severity: 'warning',
+      title: '没有角色授权绑定',
+      description: '用户即使完成登录，也可能查询不到任何权限点。',
+      nextAction: '在角色授权中绑定权限组或权限点，并绑定飞书用户或部门。',
+    });
+  }
+  if (disabledRedirectUris.length > 0) {
+    findings.push({
+      code: 'HAS_DISABLED_REDIRECT_URI',
+      severity: 'info',
+      title: '存在停用 redirect URI',
+      description: '停用 URI 不会被 OAuth authorize 接受。',
+      nextAction: '确认第三方系统没有继续使用这些停用 URI。',
+    });
+  }
+
+  const status = findings.some((finding) => finding.severity === 'critical')
+    ? 'failed'
+    : findings.some((finding) => finding.severity === 'warning')
+      ? 'warning'
+      : 'healthy';
+
+  return {
+    applicationId,
+    appKey: application.appKey,
+    status,
+    checkedAt: new Date().toISOString(),
+    endpoints: {
+      oauthAuthorize: '/api/oauth/authorize',
+      oauthToken: '/api/oauth/token',
+      applicationPermissions: '/api/application/me/permissions',
+    },
+    redirectUris: {
+      active: activeRedirectUris,
+      disabled: disabledRedirectUris,
+    },
+    secrets: {
+      appSecret: { status: 'issued', rotatedAt: application.appSecretRotatedAt },
+      apiSecret: { status: 'issued', rotatedAt: application.apiSecretRotatedAt },
+    },
+    counts: {
+      applicationAdmins: applicationAdmins.length,
+      permissionGroups: application.permissionGroupCount,
+      permissionPoints: application.permissionPointCount,
+      roles: roles.length,
+      roleBindings,
+      syncedUsers: mockIamStore.directoryUsers.filter((item) => item.status === 'active').length,
+    },
+    findings,
+    recentEvents,
+  };
 }
 
 function refreshApplicationSummary(applicationId: string, now = new Date().toISOString()) {
@@ -825,6 +960,21 @@ export async function recordRuntimeSecretCopy(
   mockIamStore.auditLogs = [auditLog, ...mockIamStore.auditLogs];
 
   return cloneAuditLog(auditLog);
+}
+
+export async function getApplicationDiagnostics(applicationId: string): Promise<ApplicationDiagnostics> {
+  await wait();
+  return cloneApplicationDiagnostics(buildApplicationDiagnostics(applicationId));
+}
+
+export async function copyApplicationDiagnostics(applicationId: string): Promise<{ ok: true }> {
+  await wait();
+  appendApplicationAuditLog({
+    action: 'application.diagnostics.copy',
+    applicationId,
+    message: '复制接入诊断包',
+  });
+  return { ok: true };
 }
 
 export async function listApplicationPermissionRegistrations(

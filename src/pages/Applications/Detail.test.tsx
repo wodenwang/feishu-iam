@@ -6,8 +6,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetMockIamStore, setMockCurrentSession } from '../../features/iam/mockApi';
 import { applications, platformAdminSession } from '../../features/iam/mockData';
-import type { CurrentSession } from '../../features/iam/types';
+import type { ApplicationDiagnostics, CurrentSession } from '../../features/iam/types';
 import { ApplicationDetailPage, buildApplicationPrompt } from './Detail';
+import { buildApplicationDiagnosticsMarkdown } from './diagnostics';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -71,7 +72,7 @@ describe('ApplicationDetailPage', () => {
     renderApplicationDetail();
 
     expect(screen.getByText('应用详情')).toBeInTheDocument();
-    ['概览', '接入配置', '权限注册', '应用管理员', '审计记录'].forEach((tab) => {
+    ['概览', '接入配置', '权限注册', '接入诊断', '应用管理员', '审计记录'].forEach((tab) => {
       expect(screen.getByRole('tab', { name: tab })).toBeInTheDocument();
     });
 
@@ -88,6 +89,7 @@ describe('ApplicationDetailPage', () => {
 
     await screen.findByText('Demo CRM');
     expect(screen.getByRole('tab', { name: '接入配置' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '接入诊断' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
     expect(screen.getByText('启用 redirect URI')).toBeInTheDocument();
@@ -117,6 +119,7 @@ describe('ApplicationDetailPage', () => {
     expect(screen.queryByRole('button', { name: /轮换 appSecret/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /轮换 API secret/ })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '接入配置' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '接入诊断' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
     expect(screen.getAllByText('王文哲').length).toBeGreaterThan(0);
@@ -164,5 +167,51 @@ describe('ApplicationDetailPage', () => {
     expect(prompt).toContain('IAM_APP_SECRET=<从 feishu-iam 创建或轮换结果取得，只写入运行时环境>');
     expect(prompt).not.toContain('sec_****_crm');
     expect(prompt).not.toContain('api_****_crm');
+  });
+
+  it('shows sanitized access diagnostics and builds a copy package', async () => {
+    const user = userEvent.setup();
+    renderApplicationDetail();
+
+    await screen.findByText('Demo CRM');
+    await user.click(screen.getByRole('tab', { name: '接入诊断' }));
+
+    expect(await screen.findByText('接入诊断：健康')).toBeInTheDocument();
+    expect(screen.getByText('接入端点与配置状态')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /复制诊断包/ })).toBeEnabled();
+    expect(screen.getByText('未发现接入阻塞或风险')).toBeInTheDocument();
+
+    const diagnostics: ApplicationDiagnostics = {
+      applicationId: applications[0].id,
+      appKey: applications[0].appKey,
+      status: 'healthy',
+      checkedAt: '2026-05-28T00:00:00.000Z',
+      endpoints: {
+        oauthAuthorize: '/api/oauth/authorize',
+        oauthToken: '/api/oauth/token',
+        applicationPermissions: '/api/application/me/permissions',
+      },
+      redirectUris: { active: ['https://demo.example.com/auth/callback'], disabled: [] },
+      secrets: {
+        appSecret: { status: 'issued', rotatedAt: '2026-05-23T00:00:00.000Z' },
+        apiSecret: { status: 'issued', rotatedAt: '2026-05-23T00:00:00.000Z' },
+      },
+      counts: {
+        applicationAdmins: 1,
+        permissionGroups: 3,
+        permissionPoints: 12,
+        roles: 1,
+        roleBindings: 9,
+        syncedUsers: 3,
+      },
+      findings: [],
+      recentEvents: [],
+    };
+    const markdown = buildApplicationDiagnosticsMarkdown({ application: applications[0], diagnostics });
+    expect(markdown).toContain('接入诊断包');
+    expect(markdown).toContain('OAuth authorize');
+    expect(markdown).toContain('appKey：app_demo_crm_key');
+    expect(markdown).not.toContain('sec_****_crm');
+    expect(markdown).not.toContain('api_****_crm');
   });
 });

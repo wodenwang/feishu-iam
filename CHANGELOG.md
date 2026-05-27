@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.2.2 - 应用接入诊断与可观测性补强
+
+- 应用详情新增 `接入诊断` Tab，聚合应用状态、redirect URI、secret 签发状态、权限注册、角色授权绑定、目录用户投影和最近接入事件。
+- 新增 `GET /api/applications/:id/diagnostics`，复用应用详情权限边界，只返回脱敏状态、计数、端点和 requestId，不返回 secret、token、code、signature、cookie 或 hash 原文。
+- 新增 `POST /api/applications/:id/diagnostics/copy`，复制诊断包时只写 `application.diagnostics.copy` 审计，后端不接收或保存诊断包正文。
+- 前端新增 Markdown 诊断包生成逻辑，便于第三方系统开发者排查 redirect URI、secret、权限注册和角色授权问题。
+- 新增 `scripts/verify-v0.2-access-diagnostics.sh`，自动验证 warning、healthy、failed 诊断状态、脱敏输出和复制审计。
+
 ## v0.2.1 - 应用接入闭环补缺
 
 - 应用详情 `接入配置` 新增 `复制应用提示词`，面向 Codex / Claude Code 生成第三方项目 `AGENTS.md` / `CLAUDE.md` 接入说明。

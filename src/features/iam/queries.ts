@@ -66,6 +66,7 @@ export const iamQueryKeys = {
   application: (applicationId: string) => ['iam', 'application', applicationId] as const,
   applicationRedirectUris: (applicationId: string) => ['iam', 'applicationRedirectUris', applicationId] as const,
   applicationAdmins: (applicationId: string) => ['iam', 'applicationAdmins', applicationId] as const,
+  applicationDiagnostics: (applicationId: string) => ['iam', 'applicationDiagnostics', applicationId] as const,
   applicationPermissionRegistrations: (applicationId: string) =>
     ['iam', 'applicationPermissionRegistrations', applicationId] as const,
   roles: (params: ListRolesParams) => ['iam', 'roles', params] as const,
@@ -300,6 +301,26 @@ export function useRecordRuntimeSecretCopy() {
       return iamService.recordRuntimeSecretCopy(applicationId, kind);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] }),
+  });
+}
+
+export function useApplicationDiagnostics(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: iamQueryKeys.applicationDiagnostics(applicationId),
+    queryFn: () => iamService.getApplicationDiagnostics(applicationId),
+    enabled: options.enabled ?? Boolean(applicationId),
+  });
+}
+
+export function useCopyApplicationDiagnostics() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (applicationId: string) => iamService.copyApplicationDiagnostics(applicationId),
+    onSuccess: (_result, applicationId) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.applicationDiagnostics(applicationId) });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
   });
 }
 

@@ -4,6 +4,7 @@ import type { DbClient, DbPool } from '../../db/pool';
 import { addApplicationScopeFilter, requireAdminActor, requireApplicationScope } from '../adminScope';
 import { writeAudit } from '../audit/auditRepository';
 import { forbidden, HttpError, unauthorized } from '../errors/httpError';
+import { getApplicationDiagnostics } from './applicationDiagnostics';
 import { createApplication } from './applicationRepository';
 
 export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPool): Promise<void> {
@@ -269,6 +270,15 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
     );
 
     return { items: result.rows };
+  });
+
+  app.get('/api/applications/:id/diagnostics', async (request) => {
+    requireAdminActor(request.actor, '只有管理员可以查看应用接入诊断');
+    const { id } = request.params as { id: string };
+    requireApplicationScope(request.actor, id, '没有权限查看该应用接入诊断');
+    await assertApplicationExists(pool, id);
+
+    return getApplicationDiagnostics(pool, id);
   });
 
   app.get('/api/applications/:id/redirect-uris', async (request) => {
@@ -590,6 +600,25 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
       targetId: application.id,
       result: 'success',
       metadata: { appKey: application.app_key, kind: body.kind },
+    });
+
+    return { ok: true };
+  });
+
+  app.post('/api/applications/:id/diagnostics/copy', async (request) => {
+    requireAdminActor(request.actor, '只有管理员可以复制应用诊断包');
+    const { id } = request.params as { id: string };
+    requireApplicationScope(request.actor, id, '没有权限复制该应用诊断包');
+    const application = await assertApplicationExists(pool, id);
+
+    await writeAudit(pool, {
+      requestId: request.id,
+      actorFeishuUserId: request.actor?.feishuUserId ?? null,
+      action: 'application.diagnostics.copy',
+      targetType: 'application',
+      targetId: application.id,
+      result: 'success',
+      metadata: { appKey: application.app_key },
     });
 
     return { ok: true };

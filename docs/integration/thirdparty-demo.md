@@ -37,6 +37,7 @@ Demo 首页
 - `IAM_APP_SECRET` 和 `IAM_API_SECRET` 不得写入 README、截图、日志或提交记录。
 - v0.2 轮换 secret 后旧 secret 立即失效，新 secret 仅显示一次。
 - 停用的 OAuth redirect URI 不能再通过 authorize 校验，恢复后才可重新使用。
+- v0.2.2 的接入诊断只展示脱敏状态、计数、端点和 requestId，不返回 secret、token、authorization code、signature、cookie 或 hash 原文。
 
 ## 本地验收要点
 
@@ -48,6 +49,15 @@ bash scripts/verify-v0.2-application-onboarding.sh
 ```
 
 该脚本使用 mock Feishu runtime 自动创建临时应用，验证 redirect URI 新增/停用/恢复、OAuth active URI 校验、`appSecret` / `apiSecret` 轮换、旧 secret 失效、新 secret 生效、多应用管理员维护、最后管理员保护和配置审计。脚本不会打印一次性 secret、cookie、authorization code、bearer token 或 HMAC signature。
+
+v0.2.2 接入诊断自动验收：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.2-access-diagnostics.sh
+```
+
+该脚本使用 mock Feishu runtime 自动创建临时应用，验证接入诊断的 warning、healthy、failed 状态转换，检查诊断输出不包含一次性 secret，并确认复制诊断包会写入 `application.diagnostics.copy` 审计。
 
 v0.1 接入闭环自动验收：
 
@@ -70,6 +80,7 @@ bash scripts/verify-v0.1-access-loop.sh
 6. Demo 客户列表可访问。
 7. 换无授权用户登录后进入 403。
 8. 轮换 secret 后同步更新 Demo 环境变量，旧 secret 不应再通过 token exchange 或 HMAC。
-9. 审计日志可以查到 OAuth、Application API、redirect URI、secret rotate 和应用管理员配置变更。
+9. 在 IAM 应用详情查看 `接入诊断`，确认配置健康；需要排查时复制脱敏诊断包给第三方系统开发者。
+10. 审计日志可以查到 OAuth、Application API、redirect URI、secret rotate、应用管理员配置变更和诊断包复制事件。
 
 真实飞书验收仍需要在飞书开放平台手动配置 Admin Console 登录 redirect URI、第三方应用 OAuth redirect URI、通讯录读取权限和部署环境白名单；这些外部配置不由脚本自动完成。

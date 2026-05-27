@@ -76,6 +76,8 @@ export const iamQueryKeys = {
   auditLogs: (params: ListAuditLogsParams) => ['iam', 'auditLogs', params] as const,
   syncStatus: ['iam', 'syncStatus'] as const,
   syncRuns: (params: { page: number; pageSize: number }) => ['iam', 'syncRuns', params] as const,
+  syncEventStatus: ['iam', 'syncEventStatus'] as const,
+  syncEvents: (params: { page: number; pageSize: number }) => ['iam', 'syncEvents', params] as const,
   latestSyncRun: ['iam', 'latestSyncRun'] as const,
 };
 
@@ -401,6 +403,20 @@ export function useSyncStatus() {
   });
 }
 
+export function useSyncEventStatus() {
+  return useQuery({
+    queryKey: iamQueryKeys.syncEventStatus,
+    queryFn: iamService.getSyncEventStatus,
+  });
+}
+
+export function useSyncEvents(params: { page: number; pageSize: number }) {
+  return useQuery({
+    queryKey: iamQueryKeys.syncEvents(params),
+    queryFn: () => iamService.listSyncEvents(params),
+  });
+}
+
 export function useLatestSyncRun() {
   return useQuery({
     queryKey: iamQueryKeys.latestSyncRun,
@@ -430,6 +446,20 @@ export function useRetrySyncRun() {
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.syncStatus });
       queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
+    },
+  });
+}
+
+export function useRetrySyncEvent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (syncEventId: string) => iamService.retrySyncEvent(syncEventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.syncEventStatus });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'syncEvents'] });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.syncStatus });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
     },
   });
 }

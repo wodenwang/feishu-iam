@@ -12,7 +12,7 @@
 
 ## 当前能力
 
-当前版本：`v0.2.2`
+当前版本：`v0.3.0`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
@@ -21,6 +21,7 @@
 - Runtime API 支持多应用管理员维护，并保护最后 1 位应用管理员不能被移除。
 - 应用管理员登录后只能查看和管理自己负责的应用、角色授权和本应用审计。
 - 应用详情提供 `接入诊断`，聚合 redirect URI、secret、权限注册、角色授权、目录用户投影和最近 requestId，支持复制脱敏诊断包并记录审计。
+- 飞书事件订阅回调可接收通讯录事件，完成 URL verification、事件去重、状态记录和失败重试。
 - 平台管理员可以在 `飞书同步` 页面查看同步健康状态、运行权限预检、触发通讯录 full sync，并查看手动或定时同步历史、差异摘要和失败原因。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
 - 第三方 Demo 从未登录浏览器发起 OAuth 时，IAM 登录成功后可恢复原始 authorize 请求并回到 Demo callback。
@@ -92,13 +93,21 @@
    FEISHU_IAM_HOST_PORT=8002
    POSTGRES_PASSWORD=<replace-me-postgres-password>
    SESSION_SECRET=<replace-me-at-least-32-characters>
-   FEISHU_AUTH_MODE=real
-   FEISHU_APP_ID=<replace-me>
-   FEISHU_APP_SECRET=<replace-me>
-   FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
+  FEISHU_AUTH_MODE=real
+  FEISHU_APP_ID=<replace-me>
+  FEISHU_APP_SECRET=<replace-me>
+  FEISHU_REDIRECT_URI=https://<your-domain>/api/auth/feishu/callback
+  FEISHU_EVENT_VERIFICATION_TOKEN=<replace-me-event-verification-token>
+  FEISHU_EVENT_ENCRYPT_KEY=<replace-me-event-encrypt-key>
+  ```
+
+3. 在飞书开放平台把 redirect URI 配成与 `FEISHU_REDIRECT_URI` 完全一致，并为该自建应用开通通讯录读取权限。同步 runtime 至少需要读取部门和用户基础信息的权限范围。事件订阅回调地址配置为：
+
+   ```text
+   https://<your-domain>/api/feishu/events
    ```
 
-3. 在飞书开放平台把 redirect URI 配成与 `FEISHU_REDIRECT_URI` 完全一致，并为该自建应用开通通讯录读取权限。同步 runtime 至少需要读取部门和用户基础信息的权限范围。
+   事件订阅的 Verification Token 和 Encrypt Key 必须与运行时环境变量一致，不要写入仓库。
 
 4. 启动：
 
@@ -159,6 +168,26 @@ bash scripts/verify-v0.2-access-diagnostics.sh
 ```
 
 脚本会创建临时应用，先验证缺少权限注册和角色授权时返回 warning，再通过 Application API 注册权限、创建角色授权并确认 healthy，随后停用所有 active redirect URI 并确认 failed，最后验证 `application.diagnostics.copy` 审计可查询。脚本不会输出一次性 secret、cookie、bearer token、authorization code 或 HMAC signature。
+
+## v0.3 飞书事件同步验收
+
+当前版本提供飞书事件同步验收脚本，用来证明事件订阅回调、幂等去重、事件状态、重试触发系统同步和脱敏输出可以串起来：
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam \
+SESSION_SECRET=local-session-secret-at-least-32-bytes \
+FEISHU_AUTH_MODE=mock \
+npm run server:dev
+```
+
+在另一个终端运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.3-sync-events.sh
+```
+
+脚本会验证 `/api/feishu/events` 的 URL verification、通讯录事件接收、重复 event id 幂等、平台管理员事件列表、事件重试处理和 system actor 同步 run。脚本不会输出 app secret、tenant access token、authorization code、bearer token、cookie 或事件签名。
 
 真实飞书验收仍需要在飞书开放平台手动配置 Admin Console 登录 redirect URI、第三方应用 OAuth redirect URI、通讯录读取权限和部署环境白名单；真实凭证只应写入运行时环境变量或 secret manager，不要写入仓库。
 

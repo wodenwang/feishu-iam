@@ -20,6 +20,7 @@ describe('database migrations', () => {
     expect(isMigrationFile('007_sync_ops.sql')).toBe(true);
     expect(isMigrationFile('008_application_onboarding.sql')).toBe(true);
     expect(isMigrationFile('009_role_permission_groups.sql')).toBe(true);
+    expect(isMigrationFile('010_sync_events.sql')).toBe(true);
     expect(isMigrationFile('._001_runtime.sql')).toBe(false);
     expect(isMigrationFile('.DS_Store')).toBe(false);
     expect(isMigrationFile('README.sql')).toBe(false);
@@ -46,6 +47,7 @@ describe('database migrations', () => {
       { version: '007_sync_ops' },
       { version: '008_application_onboarding' },
       { version: '009_role_permission_groups' },
+      { version: '010_sync_events' },
     ]);
   });
 
@@ -90,8 +92,10 @@ describe('database migrations', () => {
             'idx_application_oauth_sessions_expiry',
             'idx_application_oauth_pending_expiry',
             'idx_application_admins_user',
-            'idx_sync_runs_started_at',
-            'idx_sync_runs_operator_type'
+            'idx_sync_events_received_at',
+            'idx_sync_events_status',
+            'idx_sync_runs_operator_type',
+            'idx_sync_runs_started_at'
           )
         order by indexname
       `,
@@ -105,6 +109,8 @@ describe('database migrations', () => {
       'idx_permission_points_app_group_status',
       'idx_role_user_bindings_user',
       'idx_roles_app_status',
+      'idx_sync_events_received_at',
+      'idx_sync_events_status',
       'idx_sync_runs_operator_type',
       'idx_sync_runs_started_at',
     ]);
@@ -135,5 +141,14 @@ describe('database migrations', () => {
       'sync_runs_operator_consistency_check',
       'sync_runs_operator_type_check',
     ]);
+
+    const syncEventConstraints = await pool.query(
+      `
+        select conname
+        from pg_constraint
+        where conname = 'sync_events_status_check'
+      `,
+    );
+    expect(syncEventConstraints.rows.map((row) => row.conname)).toEqual(['sync_events_status_check']);
   });
 });

@@ -14,6 +14,8 @@ import {
   mapRuntimePermissionTree,
   mapRuntimeRole,
   mapRuntimeSyncPreflightResult,
+  mapRuntimeSyncEvent,
+  mapRuntimeSyncEventStatusOverview,
   mapRuntimeSyncRun,
   mapRuntimeSyncStatusOverview,
 } from './dtoMappers';
@@ -42,6 +44,8 @@ import type {
   RotateSecretResult,
   SecretKind,
   SyncPreflightResult,
+  SyncEvent,
+  SyncEventStatusOverview,
   SyncRun,
   SyncStatusOverview,
   UpdateRoleAuthorizationInput,
@@ -213,6 +217,31 @@ interface RuntimeSyncPreflightResult {
   requestId?: string | null;
   errorCode?: string | null;
   message?: string | null;
+}
+
+interface RuntimeSyncEvent {
+  id: string;
+  event_id: string;
+  event_type: string;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  status: SyncEvent['status'];
+  request_id: string;
+  received_at: string;
+  processed_at?: string | null;
+  sync_run_id?: string | null;
+  error_message?: string | null;
+}
+
+interface RuntimeSyncEventStatusOverview {
+  latestEvent?: RuntimeSyncEvent | null;
+  latestFailedEvent?: RuntimeSyncEvent | null;
+  pendingCount?: number | null;
+  failedCount?: number | null;
+  processedCount?: number | null;
+  ignoredCount?: number | null;
+  healthStatus?: SyncEventStatusOverview['healthStatus'];
+  healthReasons?: string[] | null;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -514,6 +543,23 @@ export async function runSyncPreflight(): Promise<SyncPreflightResult> {
 export async function getLatestSyncRun(): Promise<SyncRun | undefined> {
   const page = await listSyncRuns({ page: 1, pageSize: 1 });
   return page.items[0];
+}
+
+export async function listSyncEvents(request: PageRequest): Promise<PageResult<SyncEvent>> {
+  return mapPageResult(
+    await httpRequest<RuntimePageResult<RuntimeSyncEvent>>('/api/sync/events', {
+      query: { page: request.page, pageSize: request.pageSize },
+    }),
+    mapRuntimeSyncEvent,
+  );
+}
+
+export async function getSyncEventStatus(): Promise<SyncEventStatusOverview> {
+  return mapRuntimeSyncEventStatusOverview(await httpRequest<RuntimeSyncEventStatusOverview>('/api/sync/events/status'));
+}
+
+export async function retrySyncEvent(syncEventId: string): Promise<SyncEvent> {
+  return mapRuntimeSyncEvent(await httpRequest<RuntimeSyncEvent>(`/api/sync/events/${syncEventId}/retry`, { method: 'POST' }));
 }
 
 export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {

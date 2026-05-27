@@ -21,6 +21,7 @@ export type SyncRunStatus = 'running' | 'succeeded' | 'failed';
 export type SyncTrigger = 'manual' | 'scheduled' | 'retry';
 export type SyncOperatorType = 'feishu_user' | 'system';
 export type SyncHealthStatus = 'healthy' | 'warning' | 'failed' | 'unknown';
+export type SyncEventStatus = 'pending_sync' | 'processed' | 'failed' | 'ignored';
 export type SyncPreflightStageName = 'token' | 'departments' | 'users';
 export type SyncPreflightStageStatus = 'passed' | 'failed';
 export type RedirectUriEnvironment = 'production' | 'staging' | 'local';
@@ -43,6 +44,8 @@ export type AuditAction =
   | 'role.update'
   | 'role.authorization.update'
   | 'permission.query'
+  | 'sync.event.receive'
+  | 'sync.event.retry'
   | 'sync.run'
   | 'sync.preflight';
 export type AuditResult = 'success' | 'failed';
@@ -333,6 +336,31 @@ export interface SyncStatusOverview {
   isRunning: boolean;
   directoryUserCount: number;
   directoryDepartmentCount: number;
+  healthStatus: SyncHealthStatus;
+  healthReasons: string[];
+}
+
+export interface SyncEvent {
+  id: string;
+  eventId: string;
+  eventType: string;
+  resourceType?: string;
+  resourceId?: string;
+  status: SyncEventStatus;
+  requestId: string;
+  receivedAt: string;
+  processedAt?: string;
+  syncRunId?: string;
+  errorMessage?: string;
+}
+
+export interface SyncEventStatusOverview {
+  latestEvent: SyncEvent | null;
+  latestFailedEvent: SyncEvent | null;
+  pendingCount: number;
+  failedCount: number;
+  processedCount: number;
+  ignoredCount: number;
   healthStatus: SyncHealthStatus;
   healthReasons: string[];
 }

@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.3.0 - 飞书事件同步可靠性
+
+- 新增飞书事件订阅回调 `POST /api/feishu/events`，支持 URL verification challenge、Verification Token 校验、可选 Encrypt Key 签名校验与 AES 解密。
+- 新增 `sync_events` 运行时表，记录飞书事件 id、事件类型、资源标识、处理状态、requestId、关联同步 run 和失败原因。
+- 新增 `GET /api/sync/events/status`、`GET /api/sync/events`、`POST /api/sync/events/:id/retry`，平台管理员可查看事件健康、去重后的事件列表，并用 system actor 触发事件重试同步。
+- `/sync` 页面新增 `飞书事件同步` 区域，展示待同步、失败、已处理、已忽略事件计数、回调地址和最近事件表格。
+- 新增 `scripts/verify-v0.3-sync-events.sh`，自动验证 challenge、事件接收、幂等去重、事件列表、重试处理和敏感信息不输出。
+- README、环境变量示例和 v0.3.0 验收证据补充飞书事件订阅配置边界；本版本不新增目录编辑、告警平台、OIDC/JWKS/PKCE/refresh token、SDK/CLI 或本地账号体系。
+
 ## v0.2.2 - 应用接入诊断与可观测性补强
 
 - 应用详情新增 `接入诊断` Tab，聚合应用状态、redirect URI、secret 签发状态、权限注册、角色授权绑定、目录用户投影和最近接入事件。

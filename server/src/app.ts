@@ -30,6 +30,8 @@ export interface AppOptions {
   feishuAppSecret?: string;
   feishuAuthAdapter?: FeishuAuthAdapter;
   directorySyncAdapter?: DirectorySyncAdapter;
+  feishuEventVerificationToken?: string;
+  feishuEventEncryptKey?: string;
   staticAssetsDir?: string;
 }
 
@@ -66,6 +68,10 @@ export async function buildApp(options: AppOptions) {
     options.pool,
     options.directorySyncAdapter ??
       new RealFeishuDirectorySyncAdapter({ appId: options.feishuAppId ?? '', appSecret: options.feishuAppSecret ?? '' }),
+    {
+      verificationToken: options.feishuEventVerificationToken,
+      encryptKey: options.feishuEventEncryptKey,
+    },
   );
   await registerRoleRoutes(app, options.pool);
   await registerAuditRoutes(app, options.pool);

@@ -1,4 +1,4 @@
-import { CheckCircleOutlined, EyeOutlined, ReloadOutlined, SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons';
+import { ApiOutlined, CheckCircleOutlined, EyeOutlined, ReloadOutlined, SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -22,14 +22,19 @@ import { useMemo, useState } from 'react';
 import {
   useCurrentSession,
   useRetrySyncRun,
+  useRetrySyncEvent,
   useRunSyncPreflight,
   useStartManualSync,
+  useSyncEvents,
+  useSyncEventStatus,
   useSyncRuns,
   useSyncStatus,
 } from '../../features/iam/queries';
 import { canRunSync as canRunSyncForSession } from '../../features/iam/permissions';
 import type {
   SyncHealthStatus,
+  SyncEvent,
+  SyncEventStatus,
   SyncPreflightResult,
   SyncPreflightStageName,
   SyncRun,
@@ -56,6 +61,13 @@ const healthLabels: Record<SyncHealthStatus, { text: string; color: string }> = 
   warning: { text: '关注', color: 'warning' },
   failed: { text: '异常', color: 'error' },
   unknown: { text: '未知', color: 'default' },
+};
+
+const eventStatusLabels: Record<SyncEventStatus, { text: string; color: string }> = {
+  pending_sync: { text: '待同步', color: 'warning' },
+  processed: { text: '已处理', color: 'success' },
+  failed: { text: '失败', color: 'error' },
+  ignored: { text: '已忽略', color: 'default' },
 };
 
 const preflightStageLabels: Record<SyncPreflightStageName, string> = {
@@ -105,20 +117,25 @@ export function SyncPage() {
   const currentSessionQuery = useCurrentSession();
   const syncStatusQuery = useSyncStatus();
   const syncRunsQuery = useSyncRuns({ page: pagination.page, pageSize: pagination.pageSize });
+  const syncEventStatusQuery = useSyncEventStatus();
+  const syncEventsQuery = useSyncEvents({ page: 1, pageSize: 8 });
   const startManualSyncMutation = useStartManualSync();
   const retrySyncRunMutation = useRetrySyncRun();
+  const retrySyncEventMutation = useRetrySyncEvent();
   const runSyncPreflightMutation = useRunSyncPreflight();
   const syncRuns = syncRunsQuery.data?.items ?? [];
+  const syncEvents = syncEventsQuery.data?.items ?? [];
   const latestRun = syncStatusQuery.data?.latestRun ?? syncRuns[0];
   const latestSuccessRun = syncStatusQuery.data?.latestSuccessfulRun ?? syncRuns.find((run) => run.status === 'succeeded');
   const latestFailedRun = syncStatusQuery.data?.latestFailedRun ?? syncRuns.find((run) => run.status === 'failed');
   const latestScheduledRun = syncRuns.find((run) => run.trigger === 'scheduled');
   const health = healthLabels[syncStatusQuery.data?.healthStatus ?? 'unknown'];
+  const eventHealth = healthLabels[syncEventStatusQuery.data?.healthStatus ?? 'unknown'];
   const canRunSync = canRunSyncForSession(currentSessionQuery.data);
   const syncRunPermissionTip = '需要 sync:run 权限才能发起同步、预检或重试。';
 
   const refreshSyncRuntime = async () => {
-    await Promise.all([syncStatusQuery.refetch(), syncRunsQuery.refetch()]);
+    await Promise.all([syncStatusQuery.refetch(), syncRunsQuery.refetch(), syncEventStatusQuery.refetch(), syncEventsQuery.refetch()]);
   };
 
   const startManualSync = async () => {
@@ -140,6 +157,17 @@ export function SyncPage() {
 
     await retrySyncRunMutation.mutateAsync(run.id);
     message.success('已发起重试同步');
+    await refreshSyncRuntime();
+  };
+
+  const retrySyncEvent = async (event: SyncEvent) => {
+    if (!canRunSync) {
+      message.warning(syncRunPermissionTip);
+      return;
+    }
+
+    await retrySyncEventMutation.mutateAsync(event.id);
+    message.success('已重新处理飞书事件');
     await refreshSyncRuntime();
   };
 
@@ -243,6 +271,58 @@ export function SyncPage() {
     ];
   }, [canRunSync, isCompact, retrySyncRunMutation.isPending]);
 
+  const eventColumns = useMemo<ColumnsType<SyncEvent>>(
+    () => [
+      {
+        title: 'Event ID',
+        dataIndex: 'eventId',
+        width: isCompact ? 180 : 240,
+        ellipsis: true,
+        render: (eventId: string, event) => (
+          <Space orientation="vertical" size={0}>
+            <Typography.Text code>{eventId}</Typography.Text>
+            <Typography.Text type="secondary">{event.eventType}</Typography.Text>
+          </Space>
+        ),
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        width: 100,
+        render: (status: SyncEventStatus) => <Tag color={eventStatusLabels[status].color}>{eventStatusLabels[status].text}</Tag>,
+      },
+      {
+        title: '资源',
+        key: 'resource',
+        width: isCompact ? 160 : 220,
+        render: (_, event) => `${event.resourceType ?? '-'} / ${event.resourceId ?? '-'}`,
+      },
+      { title: '接收时间', dataIndex: 'receivedAt', width: 180, render: formatDateTime },
+      {
+        title: '操作',
+        key: 'actions',
+        fixed: 'right',
+        width: 120,
+        render: (_, event) =>
+          event.status === 'pending_sync' || event.status === 'failed' ? (
+            <Button
+              type="link"
+              size="small"
+              disabled={!canRunSync}
+              loading={retrySyncEventMutation.isPending}
+              onClick={() => retrySyncEvent(event)}
+              title={canRunSync ? undefined : syncRunPermissionTip}
+            >
+              处理事件
+            </Button>
+          ) : (
+            <Typography.Text type="secondary">-</Typography.Text>
+          ),
+      },
+    ],
+    [canRunSync, isCompact, retrySyncEventMutation.isPending],
+  );
+
   return (
     <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={3} style={{ margin: 0 }}>
@@ -289,6 +369,57 @@ export function SyncPage() {
             </Typography.Text>
           </Col>
         </Row>
+      </Card>
+
+      <Card title="飞书事件同步" extra={<Tag color={eventHealth.color}>{eventHealth.text}</Tag>}>
+        {syncEventStatusQuery.isError || syncEventsQuery.isError ? (
+          <Alert type="error" showIcon title="飞书事件状态加载失败" action={<Button onClick={refreshSyncRuntime}>重试</Button>} />
+        ) : (
+          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <Row gutter={16}>
+              <Col xs={12} md={6}>
+                <Statistic title="待同步事件" value={syncEventStatusQuery.data?.pendingCount ?? 0} />
+              </Col>
+              <Col xs={12} md={6}>
+                <Statistic title="失败事件" value={syncEventStatusQuery.data?.failedCount ?? 0} />
+              </Col>
+              <Col xs={12} md={6}>
+                <Statistic title="已处理事件" value={syncEventStatusQuery.data?.processedCount ?? 0} />
+              </Col>
+              <Col xs={12} md={6}>
+                <Statistic title="已忽略事件" value={syncEventStatusQuery.data?.ignoredCount ?? 0} />
+              </Col>
+            </Row>
+            <Alert
+              type={syncEventStatusQuery.data?.healthStatus === 'failed' ? 'error' : syncEventStatusQuery.data?.healthStatus === 'warning' ? 'warning' : 'info'}
+              showIcon
+              icon={<ApiOutlined />}
+              title="事件订阅回调地址"
+              description={
+                <Space orientation="vertical" size={4}>
+                  <Typography.Text code>/api/feishu/events</Typography.Text>
+                  <Typography.Text type="secondary">
+                    健康判断：
+                    {syncEventStatusQuery.data?.healthReasons.length ? syncEventStatusQuery.data.healthReasons.join('；') : '-'}
+                  </Typography.Text>
+                </Space>
+              }
+            />
+            {syncEvents.length === 0 && !syncEventsQuery.isLoading ? (
+              <Empty description="暂无飞书事件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            ) : (
+              <Table
+                rowKey="id"
+                size="middle"
+                columns={eventColumns}
+                dataSource={syncEvents}
+                loading={syncEventsQuery.isLoading}
+                pagination={false}
+                scroll={{ x: isCompact ? 660 : 860 }}
+              />
+            )}
+          </Space>
+        )}
       </Card>
 
       <Card

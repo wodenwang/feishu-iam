@@ -66,7 +66,11 @@ describe('SyncPage', () => {
     expect(screen.getByText('最近失败同步时间')).toBeInTheDocument();
     expect(screen.getByText('最近定时同步')).toBeInTheDocument();
     expect(screen.getByText('最近同步差异')).toBeInTheDocument();
-    expect(screen.getByText(/健康判断/)).toBeInTheDocument();
+    expect(screen.getAllByText(/健康判断/).length).toBeGreaterThan(0);
+    expect(screen.getByText('飞书事件同步')).toBeInTheDocument();
+    expect(screen.getByText('事件订阅回调地址')).toBeInTheDocument();
+    expect(screen.getByText('/api/feishu/events')).toBeInTheDocument();
+    expect(await screen.findByText('evt_mock_contact_user_updated')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /手动同步/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /运行预检/ })).toBeInTheDocument();
 

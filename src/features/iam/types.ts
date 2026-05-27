@@ -30,6 +30,7 @@ export type AuditAction =
   | 'login'
   | 'application.create'
   | 'application.api_call'
+  | 'application.diagnostics.copy'
   | 'application.admin.add'
   | 'application.admin.bind'
   | 'application.admin.remove'
@@ -109,6 +110,56 @@ export interface ApplicationRedirectUri {
   createdAt: string;
   updatedAt: string;
   disabledAt?: string;
+}
+
+export type DiagnosticSeverity = 'info' | 'warning' | 'critical';
+export type DiagnosticStatus = 'healthy' | 'warning' | 'failed';
+
+export interface ApplicationDiagnosticFinding {
+  code: string;
+  severity: DiagnosticSeverity;
+  title: string;
+  description: string;
+  nextAction: string;
+  relatedRequestId?: string;
+}
+
+export interface ApplicationDiagnosticEvent {
+  action: string;
+  result: 'success' | 'failed';
+  requestId: string;
+  createdAt: string;
+  message: string;
+}
+
+export interface ApplicationDiagnostics {
+  applicationId: string;
+  appKey: string;
+  status: DiagnosticStatus;
+  checkedAt: string;
+  endpoints: {
+    oauthAuthorize: string;
+    oauthToken: string;
+    applicationPermissions: string;
+  };
+  redirectUris: {
+    active: string[];
+    disabled: string[];
+  };
+  secrets: {
+    appSecret: { status: 'issued' | 'missing'; rotatedAt?: string };
+    apiSecret: { status: 'issued' | 'missing'; rotatedAt?: string };
+  };
+  counts: {
+    applicationAdmins: number;
+    permissionGroups: number;
+    permissionPoints: number;
+    roles: number;
+    roleBindings: number;
+    syncedUsers: number;
+  };
+  findings: ApplicationDiagnosticFinding[];
+  recentEvents: ApplicationDiagnosticEvent[];
 }
 
 export interface CreateApplicationRedirectUriInput {

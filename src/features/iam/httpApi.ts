@@ -2,6 +2,7 @@ import { httpRequest } from './httpClient';
 import {
   mapAuditLog,
   mapRuntimeApplicationAdmin,
+  mapRuntimeApplicationDiagnostics,
   mapRuntimeRedirectUri,
   mapCreateApplicationResult,
   mapCurrentSessionResponse,
@@ -20,6 +21,7 @@ import type {
   Application,
   AddApplicationAdminInput,
   ApplicationAdmin,
+  ApplicationDiagnostics,
   ApplicationRedirectUri,
   ApplicationPermissionRegistration,
   AuditAction,
@@ -360,6 +362,17 @@ export async function recordRuntimeSecretCopy(
     requestId: '-',
     createdAt: new Date().toISOString(),
   };
+}
+
+export async function getApplicationDiagnostics(applicationId: string): Promise<ApplicationDiagnostics> {
+  return mapRuntimeApplicationDiagnostics(await httpRequest(`/api/applications/${applicationId}/diagnostics`));
+}
+
+export async function copyApplicationDiagnostics(applicationId: string): Promise<{ ok: true }> {
+  return httpRequest<{ ok: true }>(`/api/applications/${applicationId}/diagnostics/copy`, {
+    method: 'POST',
+    body: {},
+  });
 }
 
 export async function listApplicationPermissionRegistrations(

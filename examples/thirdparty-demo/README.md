@@ -36,6 +36,15 @@ bash scripts/verify-v0.2-application-onboarding.sh
 
 `v0.2.0` 脚本会验证 redirect URI 启停、OAuth active URI 校验、`appSecret` / `apiSecret` 轮换、旧 secret 失效、新 secret 生效、应用管理员维护和配置审计。脚本不会打印 `IAM_APP_SECRET`、`IAM_API_SECRET`、cookie、authorization code、bearer token 或 HMAC signature。
 
+如果要验证 v0.2.2 的应用接入诊断和脱敏诊断包，可以运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.2-access-diagnostics.sh
+```
+
+`v0.2.2` 脚本会验证诊断状态从 warning 到 healthy，再到 redirect URI 失效后的 failed，并确认复制诊断包只写审计、不上传诊断包正文。
+
 如需验证 v0.1 OAuth + 权限授权完整链路，也可以运行：
 
 ```bash
@@ -63,7 +72,7 @@ http://127.0.0.1:4200
 
 有 `demo.customer:view` 权限的飞书用户应看到客户列表；没有该权限的飞书用户应进入 403 页面。生产接入时必须使用 OAuth mode，不能依赖 mock fallback。
 
-在 v0.2.0 中，Demo redirect URI 必须在应用详情 `接入配置` 中保持启用；停用后 OAuth authorize 会失败。轮换 `appSecret` 或 `apiSecret` 后，需要立即同步更新 Demo 运行环境变量，旧 secret 不应继续可用。真实飞书环境还需要在飞书开放平台手动配置 redirect URI、通讯录读取权限和部署环境白名单。
+在 v0.2.0 之后，Demo redirect URI 必须在应用详情 `接入配置` 中保持启用；停用后 OAuth authorize 会失败。轮换 `appSecret` 或 `apiSecret` 后，需要立即同步更新 Demo 运行环境变量，旧 secret 不应继续可用。v0.2.2 可在应用详情 `接入诊断` 查看 redirect URI、secret、权限注册和角色授权是否健康，并复制脱敏诊断包给第三方系统开发者。真实飞书环境还需要在飞书开放平台手动配置 redirect URI、通讯录读取权限和部署环境白名单。
 
 ## 本地 mock fallback
 

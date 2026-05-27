@@ -245,6 +245,54 @@ describe('httpApi', () => {
     expect(JSON.stringify(httpRequestMock.mock.calls[0])).not.toContain('api_sec_');
   });
 
+  it('loads and records sanitized application diagnostics', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        applicationId: 'app-id',
+        appKey: 'app_key_1',
+        status: 'healthy',
+        checkedAt: '2026-05-28T00:00:00.000Z',
+        endpoints: {
+          oauthAuthorize: '/api/oauth/authorize',
+          oauthToken: '/api/oauth/token',
+          applicationPermissions: '/api/application/me/permissions',
+        },
+        redirectUris: { active: ['https://demo.example.com/auth/callback'], disabled: [] },
+        secrets: {
+          appSecret: { status: 'issued', rotatedAt: '2026-05-25T00:00:00.000Z' },
+          apiSecret: { status: 'issued', rotatedAt: '2026-05-25T00:00:00.000Z' },
+        },
+        counts: {
+          applicationAdmins: 1,
+          permissionGroups: 1,
+          permissionPoints: 2,
+          roles: 1,
+          roleBindings: 2,
+          syncedUsers: 3,
+        },
+        findings: [],
+        recentEvents: [],
+      })
+      .mockResolvedValueOnce({ ok: true });
+    const { copyApplicationDiagnostics, getApplicationDiagnostics } = await import('./httpApi');
+
+    const diagnostics = await getApplicationDiagnostics('app-id');
+    await copyApplicationDiagnostics('app-id');
+
+    expect(diagnostics).toMatchObject({
+      applicationId: 'app-id',
+      status: 'healthy',
+      counts: { applicationAdmins: 1, roleBindings: 2 },
+    });
+    expect(httpRequestMock).toHaveBeenNthCalledWith(1, '/api/applications/app-id/diagnostics');
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/applications/app-id/diagnostics/copy', {
+      method: 'POST',
+      body: {},
+    });
+    expect(JSON.stringify(httpRequestMock.mock.calls)).not.toContain('sec_');
+    expect(JSON.stringify(httpRequestMock.mock.calls)).not.toContain('api_sec_');
+  });
+
   it('loads runtime departments', async () => {
     httpRequestMock.mockResolvedValue({
       items: [

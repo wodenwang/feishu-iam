@@ -346,6 +346,214 @@ describe('applications API', () => {
     expect(audit.rows[1].metadata).not.toContain(created.json().apiSecret);
   });
 
+  it('returns sanitized application diagnostics for a healthy access setup', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_diag_001', '诊断平台管理员');
+    await loginCookie(app, 'ou_app_diag_owner_001', '诊断应用管理员');
+    await loginCookie(app, 'ou_app_diag_user_001', '诊断授权用户');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '健康诊断应用', ownerFeishuUserId: 'ou_app_diag_owner_001' },
+    });
+    const applicationId = created.json().application.id;
+    const groupId = crypto.randomUUID();
+    const pointId = crypto.randomUUID();
+    const roleId = crypto.randomUUID();
+    await pool.query('insert into permission_groups(id, application_id, code, name) values ($1, $2, $3, $4)', [
+      groupId,
+      applicationId,
+      'diag.customer',
+      '诊断客户',
+    ]);
+    await pool.query('insert into permission_points(id, application_id, group_id, code, name) values ($1, $2, $3, $4, $5)', [
+      pointId,
+      applicationId,
+      groupId,
+      'diag.customer:view',
+      '查看诊断客户',
+    ]);
+    await pool.query('insert into roles(id, application_id, code, name) values ($1, $2, $3, $4)', [
+      roleId,
+      applicationId,
+      'diag.viewer',
+      '诊断查看员',
+    ]);
+    await pool.query('insert into role_permission_points(role_id, permission_point_id) values ($1, $2)', [roleId, pointId]);
+    await pool.query('insert into role_user_bindings(role_id, feishu_user_id) values ($1, $2)', [roleId, 'ou_app_diag_user_001']);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}/diagnostics`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      applicationId,
+      appKey: created.json().application.app_key,
+      status: 'healthy',
+      endpoints: {
+        oauthAuthorize: '/api/oauth/authorize',
+        oauthToken: '/api/oauth/token',
+        applicationPermissions: '/api/application/me/permissions',
+      },
+      counts: {
+        applicationAdmins: 1,
+        permissionGroups: 1,
+        permissionPoints: 1,
+        roles: 1,
+        roleBindings: 2,
+      },
+    });
+    expect(response.json().redirectUris.active).toContain('http://127.0.0.1:4200/oauth/callback');
+    expect(response.json().findings).toEqual([]);
+    expect(JSON.stringify(response.json())).not.toContain(created.json().appSecret);
+    expect(JSON.stringify(response.json())).not.toContain(created.json().apiSecret);
+    expect(JSON.stringify(response.json())).not.toMatch(/authorization_code|bearer|signature|cookie/i);
+  });
+
+  it('returns failed diagnostics when no active redirect URI exists', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_diag_002', '诊断平台管理员二');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '无回调诊断应用' },
+    });
+    const applicationId = created.json().application.id;
+    await pool.query("update application_oauth_redirect_uris set status = 'disabled' where application_id = $1", [applicationId]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}/diagnostics`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'failed' });
+    expect(response.json().findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NO_ACTIVE_REDIRECT_URI',
+          severity: 'critical',
+        }),
+      ]),
+    );
+  });
+
+  it('returns failed diagnostics for disabled applications', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_diag_003', '诊断平台管理员三');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '停用诊断应用' },
+    });
+    const applicationId = created.json().application.id;
+    await pool.query("update applications set status = 'disabled' where id = $1", [applicationId]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}/diagnostics`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'failed' });
+    expect(response.json().findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'APPLICATION_DISABLED',
+          severity: 'critical',
+        }),
+      ]),
+    );
+  });
+
+  it('returns warning diagnostics when roles have no authorization bindings', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_diag_004', '诊断平台管理员四');
+    await loginCookie(app, 'ou_app_diag_owner_004', '诊断应用管理员四');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '无授权诊断应用', ownerFeishuUserId: 'ou_app_diag_owner_004' },
+    });
+    const applicationId = created.json().application.id;
+    const groupId = crypto.randomUUID();
+    const pointId = crypto.randomUUID();
+    const roleId = crypto.randomUUID();
+    await pool.query('insert into permission_groups(id, application_id, code, name) values ($1, $2, $3, $4)', [
+      groupId,
+      applicationId,
+      'diag.empty',
+      '未授权诊断',
+    ]);
+    await pool.query('insert into permission_points(id, application_id, group_id, code, name) values ($1, $2, $3, $4, $5)', [
+      pointId,
+      applicationId,
+      groupId,
+      'diag.empty:view',
+      '查看未授权诊断',
+    ]);
+    await pool.query('insert into roles(id, application_id, code, name) values ($1, $2, $3, $4)', [
+      roleId,
+      applicationId,
+      'diag.empty.viewer',
+      '未授权查看员',
+    ]);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/applications/${applicationId}/diagnostics`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'warning' });
+    expect(response.json().findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'NO_ROLE_BINDINGS',
+          severity: 'warning',
+        }),
+      ]),
+    );
+  });
+
+  it('records diagnostics copy audit without accepting diagnostic package plaintext', async () => {
+    const cookie = await loginAndBindAdmin(app, 'ou_app_admin_diag_copy_001', '诊断复制管理员');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { cookie },
+      payload: { name: '诊断复制应用' },
+    });
+    const applicationId = created.json().application.id;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/applications/${applicationId}/diagnostics/copy`,
+      headers: { cookie },
+      payload: { diagnosticMarkdown: `secret ${created.json().appSecret}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ ok: true });
+    const audit = await pool.query(
+      "select action, target_id, metadata::text as metadata from audit_logs where action = 'application.diagnostics.copy'",
+    );
+    expect(audit.rows).toHaveLength(1);
+    expect(audit.rows[0]).toMatchObject({
+      action: 'application.diagnostics.copy',
+      target_id: applicationId,
+    });
+    expect(audit.rows[0].metadata).toContain(created.json().application.app_key);
+    expect(audit.rows[0].metadata).not.toContain(created.json().appSecret);
+    expect(audit.rows[0].metadata).not.toContain(created.json().apiSecret);
+  });
+
   it('manages OAuth redirect URIs and enforces active redirect status during authorize', async () => {
     const cookie = await loginAndBindAdmin(app, 'ou_app_admin_redirect_001', '回调管理员');
     const created = await app.inject({

@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   batchDisableApplications,
   addApplicationAdmin,
+  copyApplicationDiagnostics,
   createApplication,
   createApplicationRedirectUri,
   createRole,
   disableRoles,
+  getApplicationDiagnostics,
   getCurrentSession,
   listApplicationAdmins,
   listApplicationRedirectUris,
@@ -161,6 +163,29 @@ describe('iam mock API', () => {
       action: 'secret.copy',
       actorFeishuUserId: 'ou_feishu_admin_001',
       requestId: expect.stringMatching(/^req_/),
+    });
+  });
+
+  it('returns diagnostics and records copy events without secret plaintext', async () => {
+    const diagnostics = await getApplicationDiagnostics('app_demo_crm');
+    await copyApplicationDiagnostics('app_demo_crm');
+    const logs = await listAuditLogs({ action: 'application.diagnostics.copy', page: 1, pageSize: 20 });
+
+    expect(diagnostics).toMatchObject({
+      applicationId: 'app_demo_crm',
+      status: 'healthy',
+      secrets: {
+        appSecret: { status: 'issued' },
+        apiSecret: { status: 'issued' },
+      },
+    });
+    expect(diagnostics.findings).toHaveLength(0);
+    expect(JSON.stringify(diagnostics)).not.toContain('sec_****_crm');
+    expect(JSON.stringify(diagnostics)).not.toContain('api_****_crm');
+    expect(logs.items[0]).toMatchObject({
+      action: 'application.diagnostics.copy',
+      applicationId: 'app_demo_crm',
+      message: '复制接入诊断包',
     });
   });
 

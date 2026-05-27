@@ -2,6 +2,7 @@ import {
   AuditOutlined,
   CheckCircleOutlined,
   CopyOutlined,
+  ExclamationCircleOutlined,
   KeyOutlined,
   LinkOutlined,
   PlusOutlined,
@@ -35,9 +36,11 @@ import {
   useAddApplicationAdmin,
   useApplication,
   useApplicationAdmins,
+  useApplicationDiagnostics,
   useApplicationPermissionRegistrations,
   useApplicationRedirectUris,
   useAuditLogs,
+  useCopyApplicationDiagnostics,
   useCreateApplicationRedirectUri,
   useCurrentSession,
   useDirectoryUsers,
@@ -51,6 +54,9 @@ import { isPlatformAdmin } from '../../features/iam/permissions';
 import type {
   ApplicationAdmin,
   Application,
+  ApplicationDiagnosticEvent,
+  ApplicationDiagnosticFinding,
+  ApplicationDiagnostics,
   ApplicationPermissionRegistration,
   ApplicationRedirectUri,
   ApplicationStatus,
@@ -62,6 +68,7 @@ import type {
   RotateSecretResult,
   SecretKind,
 } from '../../features/iam/types';
+import { buildApplicationDiagnosticsMarkdown } from './diagnostics';
 
 const statusLabels: Record<ApplicationStatus, { text: string; color: string }> = {
   active: { text: '启用', color: 'success' },
@@ -72,6 +79,18 @@ const statusLabels: Record<ApplicationStatus, { text: string; color: string }> =
 const redirectStatusLabels: Record<RedirectUriStatus, { text: string; color: string }> = {
   active: { text: '启用', color: 'success' },
   disabled: { text: '停用', color: 'default' },
+};
+
+const diagnosticStatusLabels: Record<ApplicationDiagnostics['status'], { text: string; color: string; alertType: 'success' | 'warning' | 'error' }> = {
+  healthy: { text: '健康', color: 'success', alertType: 'success' },
+  warning: { text: '需关注', color: 'warning', alertType: 'warning' },
+  failed: { text: '失败', color: 'error', alertType: 'error' },
+};
+
+const diagnosticSeverityLabels: Record<ApplicationDiagnosticFinding['severity'], { text: string; color: string }> = {
+  critical: { text: '阻塞', color: 'error' },
+  warning: { text: '警告', color: 'warning' },
+  info: { text: '提示', color: 'processing' },
 };
 
 const environmentLabels: Record<RedirectUriEnvironment, string> = {
@@ -93,6 +112,7 @@ const auditActionOptions: Array<{ label: string; value: AuditAction }> = [
   { label: '新增应用管理员', value: 'application.admin.add' },
   { label: '移除应用管理员', value: 'application.admin.remove' },
   { label: '复制 secret', value: 'secret.copy' },
+  { label: '复制诊断包', value: 'application.diagnostics.copy' },
 ];
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
@@ -197,6 +217,7 @@ export function ApplicationDetailPage() {
   const applicationQuery = useApplication(id);
   const redirectUrisQuery = useApplicationRedirectUris(id);
   const adminsQuery = useApplicationAdmins(id);
+  const diagnosticsQuery = useApplicationDiagnostics(id);
   const permissionRegistrationsQuery = useApplicationPermissionRegistrations(id);
   const auditLogsQuery = useAuditLogs({ applicationId: id, page: 1, pageSize: 20, ...auditFilters });
   const currentSessionQuery = useCurrentSession();
@@ -207,10 +228,13 @@ export function ApplicationDetailPage() {
   const addAdminMutation = useAddApplicationAdmin();
   const removeAdminMutation = useRemoveApplicationAdmin();
   const recordRuntimeSecretCopyMutation = useRecordRuntimeSecretCopy();
+  const copyDiagnosticsMutation = useCopyApplicationDiagnostics();
 
   const application = applicationQuery.data;
+  const diagnostics = diagnosticsQuery.data;
   const canManageApplication = isPlatformAdmin(currentSessionQuery.data);
   const statusConfig = statusLabels[application?.status ?? 'draft'];
+  const diagnosticStatusConfig = diagnosticStatusLabels[diagnostics?.status ?? 'failed'];
   const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
   const applicationPrompt = application
     ? buildApplicationPrompt({ application, redirectUris: redirectUrisQuery.data ?? [] })
@@ -346,6 +370,43 @@ export function ApplicationDetailPage() {
     [],
   );
 
+  const diagnosticFindingColumns = useMemo<ColumnsType<ApplicationDiagnosticFinding>>(
+    () => [
+      {
+        title: '级别',
+        dataIndex: 'severity',
+        width: 96,
+        render: (severity: ApplicationDiagnosticFinding['severity']) => {
+          const config = diagnosticSeverityLabels[severity];
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
+      },
+      { title: '编码', dataIndex: 'code', width: 220, render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+      { title: '问题', dataIndex: 'title', width: 180 },
+      { title: '处理建议', dataIndex: 'nextAction' },
+      { title: '关联请求', dataIndex: 'relatedRequestId', width: 180, render: (value?: string) => value ?? '-' },
+    ],
+    [],
+  );
+
+  const diagnosticEventColumns = useMemo<ColumnsType<ApplicationDiagnosticEvent>>(
+    () => [
+      { title: '事件', dataIndex: 'action', width: 220 },
+      {
+        title: '结果',
+        dataIndex: 'result',
+        width: 96,
+        render: (value: ApplicationDiagnosticEvent['result']) => (
+          <Tag color={value === 'success' ? 'success' : 'error'}>{value === 'success' ? '成功' : '失败'}</Tag>
+        ),
+      },
+      { title: '请求 ID', dataIndex: 'requestId', width: 180 },
+      { title: '时间', dataIndex: 'createdAt', width: 180, render: formatDateTime },
+      { title: '说明', dataIndex: 'message' },
+    ],
+    [],
+  );
+
   if (applicationQuery.isError) {
     return <Alert type="error" showIcon title="加载应用详情失败" description="请确认应用是否存在，或稍后重试。" />;
   }
@@ -411,6 +472,19 @@ export function ApplicationDetailPage() {
       message.success('应用提示词已复制，并记录审计事件');
     } catch {
       message.error('浏览器剪贴板不可用，请手动复制应用提示词。');
+    }
+  };
+
+  const copyApplicationDiagnosticsPackage = async () => {
+    if (!application || !diagnostics) {
+      return;
+    }
+    try {
+      await copyText(buildApplicationDiagnosticsMarkdown({ application, diagnostics }));
+      await copyDiagnosticsMutation.mutateAsync(id);
+      message.success('接入诊断包已复制，并记录审计事件');
+    } catch {
+      message.error('浏览器剪贴板不可用，请手动复制接入诊断包。');
     }
   };
 
@@ -594,6 +668,102 @@ export function ApplicationDetailPage() {
                   }}
                 />
               </Card>
+            ),
+          },
+          {
+            key: 'diagnostics',
+            label: '接入诊断',
+            children: (
+              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+                <Alert
+                  type={diagnosticStatusConfig.alertType}
+                  showIcon
+                  icon={diagnostics?.status === 'healthy' ? <CheckCircleOutlined /> : <ExclamationCircleOutlined />}
+                  title={`接入诊断：${diagnosticStatusConfig.text}`}
+                  description={
+                    diagnostics
+                      ? `最近检查时间：${formatDateTime(diagnostics.checkedAt)}。诊断只展示配置状态、计数、requestId 和接入端点，不展示任何密钥或 token 原文。`
+                      : '正在读取应用接入诊断结果。'
+                  }
+                />
+
+                <Space wrap size={16} style={{ width: '100%' }}>
+                  <Card style={{ flex: '1 1 180px' }} loading={diagnosticsQuery.isLoading}>
+                    <Statistic title="应用管理员" value={diagnostics?.counts.applicationAdmins ?? 0} />
+                  </Card>
+                  <Card style={{ flex: '1 1 180px' }} loading={diagnosticsQuery.isLoading}>
+                    <Statistic title="权限点" value={diagnostics?.counts.permissionPoints ?? 0} />
+                  </Card>
+                  <Card style={{ flex: '1 1 180px' }} loading={diagnosticsQuery.isLoading}>
+                    <Statistic title="角色授权绑定" value={diagnostics?.counts.roleBindings ?? 0} />
+                  </Card>
+                  <Card style={{ flex: '1 1 180px' }} loading={diagnosticsQuery.isLoading}>
+                    <Statistic title="在职用户" value={diagnostics?.counts.syncedUsers ?? 0} />
+                  </Card>
+                </Space>
+
+                <Card
+                  title="接入端点与配置状态"
+                  loading={diagnosticsQuery.isLoading}
+                  extra={
+                    <Button
+                      icon={<CopyOutlined />}
+                      onClick={copyApplicationDiagnosticsPackage}
+                      loading={copyDiagnosticsMutation.isPending}
+                      disabled={!application || !diagnostics}
+                    >
+                      复制诊断包
+                    </Button>
+                  }
+                >
+                  {diagnostics ? (
+                    <Descriptions bordered column={{ xs: 1, md: 2 }} size="middle">
+                      <Descriptions.Item label="OAuth authorize">{diagnostics.endpoints.oauthAuthorize}</Descriptions.Item>
+                      <Descriptions.Item label="OAuth token">{diagnostics.endpoints.oauthToken}</Descriptions.Item>
+                      <Descriptions.Item label="权限查询">{diagnostics.endpoints.applicationPermissions}</Descriptions.Item>
+                      <Descriptions.Item label="启用 redirect URI">{diagnostics.redirectUris.active.length}</Descriptions.Item>
+                      <Descriptions.Item label="appSecret">
+                        <Tag color={diagnostics.secrets.appSecret.status === 'issued' ? 'success' : 'error'}>
+                          {diagnostics.secrets.appSecret.status === 'issued' ? '已签发' : '缺失'}
+                        </Tag>
+                        <Typography.Text type="secondary">{formatDateTime(diagnostics.secrets.appSecret.rotatedAt)}</Typography.Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="API secret">
+                        <Tag color={diagnostics.secrets.apiSecret.status === 'issued' ? 'success' : 'error'}>
+                          {diagnostics.secrets.apiSecret.status === 'issued' ? '已签发' : '缺失'}
+                        </Tag>
+                        <Typography.Text type="secondary">{formatDateTime(diagnostics.secrets.apiSecret.rotatedAt)}</Typography.Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  ) : null}
+                </Card>
+
+                <Card title="诊断发现">
+                  <Table
+                    rowKey="code"
+                    size="middle"
+                    columns={diagnosticFindingColumns}
+                    dataSource={diagnostics?.findings ?? []}
+                    loading={diagnosticsQuery.isLoading}
+                    pagination={false}
+                    scroll={isJsdom ? undefined : { x: 1060 }}
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="未发现接入阻塞或风险" /> }}
+                  />
+                </Card>
+
+                <Card title="最近接入事件">
+                  <Table
+                    rowKey={(row) => `${row.action}:${row.requestId}:${row.createdAt}`}
+                    size="middle"
+                    columns={diagnosticEventColumns}
+                    dataSource={diagnostics?.recentEvents ?? []}
+                    loading={diagnosticsQuery.isLoading}
+                    pagination={false}
+                    scroll={isJsdom ? undefined : { x: 1060 }}
+                    locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无 OAuth 或 Application API 事件" /> }}
+                  />
+                </Card>
+              </Space>
             ),
           },
           {

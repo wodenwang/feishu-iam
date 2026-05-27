@@ -1,6 +1,7 @@
 import type {
   Application,
   ApplicationAdmin,
+  ApplicationDiagnostics,
   ApplicationRedirectUri,
   ApplicationPermissionRegistration,
   AuditAction,
@@ -149,6 +150,19 @@ interface RuntimePermissionRegistration {
   permission_name?: string | null;
   permission_status?: 'active' | 'disabled' | null;
   updated_at?: string | null;
+}
+
+interface RuntimeApplicationDiagnostics {
+  applicationId?: string;
+  appKey?: string;
+  status?: ApplicationDiagnostics['status'];
+  checkedAt?: string;
+  endpoints?: Partial<ApplicationDiagnostics['endpoints']>;
+  redirectUris?: Partial<ApplicationDiagnostics['redirectUris']>;
+  secrets?: Partial<ApplicationDiagnostics['secrets']>;
+  counts?: Partial<ApplicationDiagnostics['counts']>;
+  findings?: ApplicationDiagnostics['findings'] | null;
+  recentEvents?: ApplicationDiagnostics['recentEvents'] | null;
 }
 
 interface RuntimeSyncRun {
@@ -363,6 +377,38 @@ export function mapRuntimePermissionRegistration(item: RuntimePermissionRegistra
   };
 }
 
+export function mapRuntimeApplicationDiagnostics(item: RuntimeApplicationDiagnostics): ApplicationDiagnostics {
+  return {
+    applicationId: item.applicationId ?? '-',
+    appKey: item.appKey ?? '-',
+    status: item.status ?? 'failed',
+    checkedAt: item.checkedAt ?? '',
+    endpoints: {
+      oauthAuthorize: item.endpoints?.oauthAuthorize ?? '/api/oauth/authorize',
+      oauthToken: item.endpoints?.oauthToken ?? '/api/oauth/token',
+      applicationPermissions: item.endpoints?.applicationPermissions ?? '/api/application/me/permissions',
+    },
+    redirectUris: {
+      active: item.redirectUris?.active ?? [],
+      disabled: item.redirectUris?.disabled ?? [],
+    },
+    secrets: {
+      appSecret: item.secrets?.appSecret ?? { status: 'missing' },
+      apiSecret: item.secrets?.apiSecret ?? { status: 'missing' },
+    },
+    counts: {
+      applicationAdmins: item.counts?.applicationAdmins ?? 0,
+      permissionGroups: item.counts?.permissionGroups ?? 0,
+      permissionPoints: item.counts?.permissionPoints ?? 0,
+      roles: item.counts?.roles ?? 0,
+      roleBindings: item.counts?.roleBindings ?? 0,
+      syncedUsers: item.counts?.syncedUsers ?? 0,
+    },
+    findings: item.findings ?? [],
+    recentEvents: item.recentEvents ?? [],
+  };
+}
+
 export function mapRuntimeSyncRun(item: RuntimeSyncRun): SyncRun {
   const diffSummary = {
     createdUsers: item.diff_summary?.createdUsers ?? 0,
@@ -434,6 +480,7 @@ function normalizeAuditAction(action: string): AuditAction {
     'login',
     'application.create',
     'application.api_call',
+    'application.diagnostics.copy',
     'application.admin.add',
     'application.admin.bind',
     'application.admin.remove',

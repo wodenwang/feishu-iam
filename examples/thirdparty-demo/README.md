@@ -11,7 +11,7 @@
 
 ## 环境变量
 
-复制 `.env.example` 后填入应用创建时返回的一次性 secret：
+OAuth mode 是当前版本的默认验收路径。复制 `.env.example` 后填入应用创建时返回的一次性 secret：
 
 ```bash
 cp examples/thirdparty-demo/.env.example examples/thirdparty-demo/.env
@@ -27,6 +27,17 @@ cp examples/thirdparty-demo/.env.example examples/thirdparty-demo/.env
 
 不要把 `.env` 或真实 secret 提交到 Git。
 
+如果只是想先验证 IAM runtime 主链路，可以先运行仓库根目录的自动验收脚本：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.1-access-loop.sh
+```
+
+脚本会自动创建临时应用并验证 OAuth、权限注册、角色授权、allow/deny 权限查询和审计回溯。脚本输出的 `appKey` 只用于定位本次验收，不会打印 `IAM_APP_SECRET`、`IAM_API_SECRET` 或 bearer token。
+
+建议在干净数据库中运行该脚本，或使用已经由 `ou_v017_verify_admin` 完成首次平台管理员绑定的本地测试库。
+
 ## 启动
 
 ```bash
@@ -40,6 +51,8 @@ http://127.0.0.1:4200
 ```
 
 如果浏览器还没有 `feishu-iam` 登录态，OAuth authorize 会要求先登录 IAM；登录成功后会自动回到 Demo callback。开发环境可以先在 Admin Console 使用本地 mock 飞书登录，mock 登录也会返回 pending OAuth 的 `redirectTo` 供本地验证。
+
+有 `demo.customer:view` 权限的飞书用户应看到客户列表；没有该权限的飞书用户应进入 403 页面。生产接入时必须使用 OAuth mode，不能依赖 mock fallback。
 
 ## 本地 mock fallback
 

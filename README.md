@@ -12,7 +12,7 @@
 
 ## 当前能力
 
-当前版本：`v0.1.16`
+当前版本：`v0.1.17`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
@@ -124,6 +124,30 @@ npm --prefix examples/thirdparty-demo run dev
 详细说明见 [docs/integration/thirdparty-demo.md](docs/integration/thirdparty-demo.md)。
 
 Application API 请求使用 HMAC header 鉴权。真实 secret 只应写入运行时环境变量或 secret manager，不应写入代码仓库。
+
+## v0.1 接入闭环验收
+
+当前版本提供一条本地 mock Feishu 自动验收路径，用来证明 IAM runtime、OAuth、Application API、角色授权、同步预检和审计链路可以串起来：
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam \
+SESSION_SECRET=local-session-secret-at-least-32-bytes \
+FEISHU_AUTH_MODE=mock \
+npm run server:dev
+```
+
+在另一个终端运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.1-access-loop.sh
+```
+
+脚本会创建临时 demo 应用，注册 `demo.customer:view` 权限点，授权一个 mock 飞书用户，通过 OAuth code/token 获取第三方 bearer token，并验证有权限用户可获得权限、无权限用户无法获得权限。脚本只输出 `appKey` 和权限摘要，不输出一次性 secret、cookie、bearer token 或 HMAC signature。
+
+建议在干净数据库中运行该脚本，或使用已经由 `ou_v017_verify_admin` 完成首次平台管理员绑定的本地测试库；脚本不会绕过飞书身份边界或直接写数据库。
+
+浏览器验收可继续使用 `examples/thirdparty-demo`，把应用创建时得到的一次性 `appSecret` / `apiSecret` 写入本地 `.env` 后访问 `http://127.0.0.1:4200`。真实飞书验收需要额外在飞书开放平台配置 redirect URI、通讯录读取权限和部署环境白名单；不要把真实凭证写入仓库。
 
 ## 安全边界
 

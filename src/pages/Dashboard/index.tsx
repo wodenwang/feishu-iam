@@ -23,6 +23,7 @@ const auditActionLabels: Record<AuditLog['action'], string> = {
   'role.authorization.update': '更新角色授权',
   'permission.query': '查询权限',
   'sync.run': '执行同步',
+  'sync.preflight': '同步预检',
 };
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');

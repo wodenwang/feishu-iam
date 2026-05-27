@@ -10,7 +10,9 @@ import {
   mapRuntimePermissionRegistration,
   mapRuntimePermissionTree,
   mapRuntimeRole,
+  mapRuntimeSyncPreflightResult,
   mapRuntimeSyncRun,
+  mapRuntimeSyncStatusOverview,
 } from './dtoMappers';
 import type {
   Application,
@@ -29,7 +31,9 @@ import type {
   ListRolesRequest,
   PageRequest,
   PageResult,
+  SyncPreflightResult,
   SyncRun,
+  SyncStatusOverview,
   UpdateRoleAuthorizationInput,
   UpsertRoleInput,
 } from './types';
@@ -137,7 +141,8 @@ interface RuntimeSyncRun {
   id: string;
   trigger: SyncRun['trigger'];
   status: SyncRun['status'];
-  operator_feishu_user_id: string;
+  operator_type?: SyncRun['operatorType'] | null;
+  operator_feishu_user_id?: string | null;
   request_id?: string | null;
   started_at: string;
   finished_at?: string | null;
@@ -146,6 +151,27 @@ interface RuntimeSyncRun {
   success_count?: number | null;
   failed_count?: number | null;
   diff_summary?: Partial<SyncRun['diffSummary']> | null;
+}
+
+interface RuntimeSyncStatusOverview {
+  latestRun?: RuntimeSyncRun | null;
+  latestSuccessfulRun?: RuntimeSyncRun | null;
+  latestFailedRun?: RuntimeSyncRun | null;
+  isRunning?: boolean;
+  directoryUserCount?: number | null;
+  directoryDepartmentCount?: number | null;
+  healthStatus?: SyncStatusOverview['healthStatus'];
+  healthReasons?: string[] | null;
+}
+
+interface RuntimeSyncPreflightResult {
+  status: SyncPreflightResult['status'];
+  checkedAt: string;
+  requestBatchCount?: number | null;
+  stages?: SyncPreflightResult['stages'] | null;
+  requestId?: string | null;
+  errorCode?: string | null;
+  message?: string | null;
 }
 
 export async function getCurrentSession(): Promise<CurrentSession> {
@@ -370,6 +396,14 @@ export async function listSyncRuns(request: PageRequest): Promise<PageResult<Syn
     }),
     mapRuntimeSyncRun,
   );
+}
+
+export async function getSyncStatus(): Promise<SyncStatusOverview> {
+  return mapRuntimeSyncStatusOverview(await httpRequest<RuntimeSyncStatusOverview>('/api/sync/status'));
+}
+
+export async function runSyncPreflight(): Promise<SyncPreflightResult> {
+  return mapRuntimeSyncPreflightResult(await httpRequest<RuntimeSyncPreflightResult>('/api/sync/preflight', { method: 'POST' }));
 }
 
 export async function getLatestSyncRun(): Promise<SyncRun | undefined> {

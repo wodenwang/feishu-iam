@@ -25,7 +25,9 @@ import type {
   ListRolesRequest,
   PageRequest,
   PageResult,
+  SyncPreflightResult,
   SyncRun,
+  SyncStatusOverview,
   UpdateRoleAuthorizationInput,
   UpsertRoleInput,
 } from './types';
@@ -620,6 +622,63 @@ export async function getLatestSyncRun(): Promise<SyncRun | undefined> {
   return mockIamStore.syncRuns[0] ? cloneSyncRun(mockIamStore.syncRuns[0]) : undefined;
 }
 
+export async function getSyncStatus(): Promise<SyncStatusOverview> {
+  await wait();
+  const latestRun = mockIamStore.syncRuns[0] ? cloneSyncRun(mockIamStore.syncRuns[0]) : null;
+  const latestSuccessfulRun = mockIamStore.syncRuns.find((item) => item.status === 'succeeded');
+  const latestFailedRun = mockIamStore.syncRuns.find((item) => item.status === 'failed');
+  const isRunning = mockIamStore.syncRuns.some((item) => item.status === 'running');
+  const health = resolveMockSyncHealth({
+    latestRun,
+    latestSuccessfulRun: latestSuccessfulRun ? cloneSyncRun(latestSuccessfulRun) : null,
+    latestFailedRun: latestFailedRun ? cloneSyncRun(latestFailedRun) : null,
+    isRunning,
+  });
+
+  return {
+    latestRun,
+    latestSuccessfulRun: latestSuccessfulRun ? cloneSyncRun(latestSuccessfulRun) : null,
+    latestFailedRun: latestFailedRun ? cloneSyncRun(latestFailedRun) : null,
+    isRunning,
+    directoryUserCount: mockIamStore.directoryUsers.length,
+    directoryDepartmentCount: mockIamStore.departments.length,
+    healthStatus: health.status,
+    healthReasons: health.reasons,
+  };
+}
+
+export async function runSyncPreflight(): Promise<SyncPreflightResult> {
+  await wait();
+  const now = new Date().toISOString();
+  const result: SyncPreflightResult = {
+    status: 'passed',
+    checkedAt: now,
+    requestBatchCount: 3,
+    requestId: `req_preflight_${Date.now()}`,
+    stages: [
+      { name: 'token', status: 'passed' },
+      { name: 'departments', status: 'passed' },
+      { name: 'users', status: 'passed' },
+    ],
+    message: '飞书通讯录权限预检通过',
+  };
+
+  mockIamStore.auditLogs = [
+    {
+      id: `audit_sync_preflight_${Date.now()}`,
+      action: 'sync.preflight',
+      result: 'success',
+      actorFeishuUserId: mockCurrentSession.user.feishuUserId,
+      message: result.message ?? '飞书通讯录权限预检',
+      requestId: result.requestId,
+      createdAt: now,
+    },
+    ...mockIamStore.auditLogs,
+  ];
+
+  return { ...result, stages: result.stages.map((stage) => ({ ...stage })) };
+}
+
 export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {
   await wait();
 
@@ -634,6 +693,8 @@ export async function retrySyncRun(syncRunId: string): Promise<SyncRun> {
     id: `sync_run_retry_${Date.now()}`,
     trigger: 'retry',
     status: 'running',
+    operatorType: 'feishu_user',
+    operatorFeishuUserId: mockCurrentSession.user.feishuUserId,
     startedAt: now,
     finishedAt: undefined,
     durationSeconds: undefined,
@@ -654,6 +715,7 @@ export async function startManualSync(): Promise<SyncRun> {
     id: `sync_run_manual_${Date.now()}`,
     trigger: 'manual',
     status: 'running',
+    operatorType: 'feishu_user',
     startedAt: now,
     userChanges: 0,
     departmentChanges: 0,
@@ -673,4 +735,29 @@ export async function startManualSync(): Promise<SyncRun> {
 
   mockIamStore.syncRuns = [syncRun, ...mockIamStore.syncRuns];
   return cloneSyncRun(syncRun);
+}
+
+function resolveMockSyncHealth(input: {
+  latestRun: SyncRun | null;
+  latestSuccessfulRun: SyncRun | null;
+  latestFailedRun: SyncRun | null;
+  isRunning: boolean;
+}): { status: SyncStatusOverview['healthStatus']; reasons: string[] } {
+  if (input.isRunning) {
+    return { status: 'warning', reasons: ['已有同步任务正在运行'] };
+  }
+  if (!input.latestRun) {
+    return { status: 'unknown', reasons: ['尚未执行过飞书通讯录同步'] };
+  }
+  if (!input.latestSuccessfulRun) {
+    return { status: 'unknown', reasons: ['尚无成功同步记录'] };
+  }
+  if (input.latestFailedRun && syncRunTime(input.latestFailedRun) > syncRunTime(input.latestSuccessfulRun)) {
+    return { status: 'failed', reasons: ['最近一次失败同步晚于最近一次成功同步'] };
+  }
+  return { status: 'healthy', reasons: ['最近同步状态正常'] };
+}
+
+function syncRunTime(run: SyncRun): number {
+  return new Date(run.finishedAt ?? run.startedAt).getTime();
 }

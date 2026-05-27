@@ -11,7 +11,9 @@ import type {
   IamPermissionNode,
   IamRole,
   PageResult,
+  SyncPreflightResult,
   SyncRun,
+  SyncStatusOverview,
 } from './types';
 
 interface RuntimePageResult<T> {
@@ -121,7 +123,8 @@ interface RuntimeSyncRun {
   id: string;
   trigger: SyncRun['trigger'];
   status: SyncRun['status'];
-  operator_feishu_user_id: string;
+  operator_type?: SyncRun['operatorType'] | null;
+  operator_feishu_user_id?: string | null;
   request_id?: string | null;
   started_at: string;
   finished_at?: string | null;
@@ -130,6 +133,27 @@ interface RuntimeSyncRun {
   success_count?: number | null;
   failed_count?: number | null;
   diff_summary?: Partial<SyncRun['diffSummary']> | null;
+}
+
+interface RuntimeSyncStatusOverview {
+  latestRun?: RuntimeSyncRun | null;
+  latestSuccessfulRun?: RuntimeSyncRun | null;
+  latestFailedRun?: RuntimeSyncRun | null;
+  isRunning?: boolean;
+  directoryUserCount?: number | null;
+  directoryDepartmentCount?: number | null;
+  healthStatus?: SyncStatusOverview['healthStatus'];
+  healthReasons?: string[] | null;
+}
+
+interface RuntimeSyncPreflightResult {
+  status: SyncPreflightResult['status'];
+  checkedAt: string;
+  requestBatchCount?: number | null;
+  stages?: SyncPreflightResult['stages'] | null;
+  requestId?: string | null;
+  errorCode?: string | null;
+  message?: string | null;
 }
 
 export function mapCurrentSessionResponse(payload: unknown): CurrentSession {
@@ -286,18 +310,44 @@ export function mapRuntimeSyncRun(item: RuntimeSyncRun): SyncRun {
     id: item.id,
     trigger: item.trigger,
     status: item.status,
+    operatorType: item.operator_type === 'system' ? 'system' : 'feishu_user',
     startedAt: item.started_at,
     finishedAt: item.finished_at ?? undefined,
     durationSeconds: calculateDurationSeconds(item.started_at, item.finished_at),
     userChanges: diffSummary.createdUsers + diffSummary.updatedUsers + diffSummary.resignedUsers,
     departmentChanges: diffSummary.createdDepartments + diffSummary.updatedDepartments,
-    operatorFeishuUserId: item.operator_feishu_user_id,
+    operatorFeishuUserId: item.operator_feishu_user_id ?? null,
     requestBatchCount: item.request_batch_count ?? 0,
     successCount: item.success_count ?? 0,
     failedCount: item.failed_count ?? 0,
     diffSummary,
     requestId: item.request_id ?? undefined,
     errorMessage: item.error_message ?? undefined,
+  };
+}
+
+export function mapRuntimeSyncStatusOverview(item: RuntimeSyncStatusOverview): SyncStatusOverview {
+  return {
+    latestRun: item.latestRun ? mapRuntimeSyncRun(item.latestRun) : null,
+    latestSuccessfulRun: item.latestSuccessfulRun ? mapRuntimeSyncRun(item.latestSuccessfulRun) : null,
+    latestFailedRun: item.latestFailedRun ? mapRuntimeSyncRun(item.latestFailedRun) : null,
+    isRunning: Boolean(item.isRunning),
+    directoryUserCount: item.directoryUserCount ?? 0,
+    directoryDepartmentCount: item.directoryDepartmentCount ?? 0,
+    healthStatus: item.healthStatus ?? 'unknown',
+    healthReasons: item.healthReasons ?? [],
+  };
+}
+
+export function mapRuntimeSyncPreflightResult(item: RuntimeSyncPreflightResult): SyncPreflightResult {
+  return {
+    status: item.status,
+    checkedAt: item.checkedAt,
+    requestBatchCount: item.requestBatchCount ?? 0,
+    stages: item.stages ?? [],
+    requestId: item.requestId ?? '-',
+    errorCode: item.errorCode ?? undefined,
+    message: item.message ?? undefined,
   };
 }
 
@@ -325,6 +375,7 @@ function normalizeAuditAction(action: string): AuditAction {
     'role.authorization.update',
     'permission.query',
     'sync.run',
+    'sync.preflight',
   ]);
   if (known.has(action as AuditAction)) {
     return action as AuditAction;

@@ -3,7 +3,7 @@ import type { DbPool } from '../../db/pool';
 import type { CurrentActor } from '../../plugins/requestContext';
 import { forbidden, unauthorized } from '../errors/httpError';
 import type { DirectorySyncAdapter } from './directorySyncAdapter';
-import { listSyncRuns, startDirectorySync } from './syncService';
+import { getSyncStatus, listSyncRuns, runDirectorySyncPreflight, startDirectorySync } from './syncService';
 
 const listQuerySchema = {
   querystring: {
@@ -17,10 +17,20 @@ const listQuerySchema = {
 } as const;
 
 export async function registerSyncRoutes(app: FastifyInstance, pool: DbPool, adapter: DirectorySyncAdapter): Promise<void> {
+  app.get('/api/sync/status', async (request) => {
+    requirePlatformAdmin(request);
+    return getSyncStatus(pool);
+  });
+
   app.get('/api/sync/runs', { schema: listQuerySchema }, async (request) => {
     requirePlatformAdmin(request);
     const query = request.query as { page?: number; pageSize?: number };
     return listSyncRuns(pool, { page: query.page ?? 1, pageSize: query.pageSize ?? 20 });
+  });
+
+  app.post('/api/sync/preflight', async (request) => {
+    const actor = requirePlatformAdmin(request);
+    return runDirectorySyncPreflight(pool, adapter, { actor, requestId: request.id });
   });
 
   app.post('/api/sync/runs', async (request) => {

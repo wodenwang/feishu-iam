@@ -57,6 +57,7 @@ const actionLabels: Record<AuditAction, string> = {
   'role.authorization.update': '更新角色授权',
   'permission.query': '权限查询',
   'sync.run': '同步任务',
+  'sync.preflight': '同步预检',
 };
 
 const resultLabels: Record<AuditResult, { text: string; color: string }> = {

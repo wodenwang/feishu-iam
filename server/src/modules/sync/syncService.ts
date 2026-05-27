@@ -3,13 +3,20 @@ import type { DbClient, DbPool } from '../../db/pool';
 import type { CurrentActor } from '../../plugins/requestContext';
 import { writeAudit } from '../audit/auditRepository';
 import { HttpError } from '../errors/httpError';
-import type { DirectoryDepartmentSnapshot, DirectorySyncAdapter, DirectorySyncSnapshot, DirectoryUserSnapshot } from './directorySyncAdapter';
+import type {
+  DirectoryDepartmentSnapshot,
+  DirectorySyncAdapter,
+  DirectorySyncPreflightResult,
+  DirectorySyncSnapshot,
+  DirectoryUserSnapshot,
+} from './directorySyncAdapter';
 
 export interface RuntimeSyncRun {
   id: string;
   trigger: 'manual' | 'scheduled' | 'retry';
   status: 'running' | 'succeeded' | 'failed';
-  operator_feishu_user_id: string;
+  operator_type: 'feishu_user' | 'system';
+  operator_feishu_user_id: string | null;
   request_id: string;
   started_at: string;
   finished_at?: string | null;
@@ -19,6 +26,17 @@ export interface RuntimeSyncRun {
   failed_count: number;
   diff_summary: SyncDiffSummary;
   retry_of?: string | null;
+}
+
+export interface RuntimeSyncStatus {
+  latestRun: RuntimeSyncRun | null;
+  latestSuccessfulRun: RuntimeSyncRun | null;
+  latestFailedRun: RuntimeSyncRun | null;
+  isRunning: boolean;
+  directoryUserCount: number;
+  directoryDepartmentCount: number;
+  healthStatus: 'healthy' | 'warning' | 'failed' | 'unknown';
+  healthReasons: string[];
 }
 
 interface SyncDiffSummary {
@@ -38,6 +56,7 @@ export async function listSyncRuns(pool: DbPool, input: { page: number; pageSize
         select id,
                trigger,
                status,
+               operator_type,
                operator_feishu_user_id,
                request_id,
                started_at,
@@ -60,10 +79,69 @@ export async function listSyncRuns(pool: DbPool, input: { page: number; pageSize
   return { items: items.rows.map(mapSyncRunRow), page: input.page, pageSize: input.pageSize, total: total.rows[0].total };
 }
 
+export async function getSyncStatus(pool: DbPool): Promise<RuntimeSyncStatus> {
+  const [latestRun, latestSuccessfulRun, latestFailedRun, running, userCount, departmentCount] = await Promise.all([
+    pool.query('select * from sync_runs order by started_at desc limit 1'),
+    pool.query("select * from sync_runs where status = 'succeeded' order by started_at desc limit 1"),
+    pool.query("select * from sync_runs where status = 'failed' order by started_at desc limit 1"),
+    pool.query("select id from sync_runs where status = 'running' limit 1"),
+    pool.query('select count(*)::int as total from directory_users'),
+    pool.query('select count(*)::int as total from directory_departments'),
+  ]);
+
+  const statusInput = {
+    latestRun: latestRun.rows[0] ? mapSyncRunRow(latestRun.rows[0]) : null,
+    latestSuccessfulRun: latestSuccessfulRun.rows[0] ? mapSyncRunRow(latestSuccessfulRun.rows[0]) : null,
+    latestFailedRun: latestFailedRun.rows[0] ? mapSyncRunRow(latestFailedRun.rows[0]) : null,
+    isRunning: (running.rowCount ?? 0) > 0,
+  };
+  const health = resolveHealthStatus(statusInput);
+
+  return {
+    ...statusInput,
+    directoryUserCount: Number(userCount.rows[0]?.total ?? 0),
+    directoryDepartmentCount: Number(departmentCount.rows[0]?.total ?? 0),
+    healthStatus: health.status,
+    healthReasons: health.reasons,
+  };
+}
+
+export async function runDirectorySyncPreflight(
+  pool: DbPool,
+  adapter: DirectorySyncAdapter,
+  input: { actor: CurrentActor; requestId: string },
+): Promise<DirectorySyncPreflightResult & { requestId: string }> {
+  let result: DirectorySyncPreflightResult;
+  try {
+    result = await adapter.preflight();
+  } catch (error) {
+    result = buildFailedPreflightResult(error);
+  }
+  await writeAudit(pool, {
+    requestId: input.requestId,
+    actorFeishuUserId: input.actor.feishuUserId,
+    action: 'sync.preflight',
+    targetType: 'sync_preflight',
+    targetId: input.requestId,
+    result: result.status === 'passed' ? 'success' : 'failure',
+    metadata: {
+      status: result.status,
+      stages: result.stages,
+      errorCode: result.errorCode,
+      message: result.message,
+      requestBatchCount: result.requestBatchCount,
+    },
+  });
+
+  return { ...result, requestId: input.requestId };
+}
+
 export async function startDirectorySync(
   pool: DbPool,
   adapter: DirectorySyncAdapter,
-  input: { actor: CurrentActor; requestId: string; trigger: 'manual' | 'retry'; retryOf?: string },
+  input:
+    | { actor: CurrentActor; requestId: string; trigger: 'manual' | 'retry'; retryOf?: string }
+    | { actor: null; requestId: string; trigger: 'scheduled'; retryOf?: undefined },
 ): Promise<RuntimeSyncRun> {
   const running = await pool.query("select id from sync_runs where status = 'running' limit 1");
   if ((running.rowCount ?? 0) > 0) {
@@ -71,21 +149,23 @@ export async function startDirectorySync(
   }
 
   const runId = crypto.randomUUID();
+  const operatorType = input.actor ? 'feishu_user' : 'system';
+  const operatorFeishuUserId = input.actor?.feishuUserId ?? null;
   await pool.query(
     `
-      insert into sync_runs(id, trigger, status, operator_feishu_user_id, request_id, retry_of)
-      values ($1, $2, 'running', $3, $4, $5)
+      insert into sync_runs(id, trigger, status, operator_type, operator_feishu_user_id, request_id, retry_of)
+      values ($1, $2, 'running', $3, $4, $5, $6)
     `,
-    [runId, input.trigger, input.actor.feishuUserId, input.requestId, input.retryOf ?? null],
+    [runId, input.trigger, operatorType, operatorFeishuUserId, input.requestId, input.retryOf ?? null],
   );
   await writeAudit(pool, {
     requestId: input.requestId,
-    actorFeishuUserId: input.actor.feishuUserId,
+    actorFeishuUserId: operatorFeishuUserId,
     action: 'sync.run',
     targetType: 'sync_run',
     targetId: runId,
     result: 'success',
-    metadata: { status: 'started', trigger: input.trigger },
+    metadata: { status: 'started', trigger: input.trigger, operatorType },
   });
 
   try {
@@ -112,12 +192,12 @@ export async function startDirectorySync(
     );
     await writeAudit(pool, {
       requestId: input.requestId,
-      actorFeishuUserId: input.actor.feishuUserId,
+      actorFeishuUserId: operatorFeishuUserId,
       action: 'sync.run',
       targetType: 'sync_run',
       targetId: runId,
       result: 'success',
-      metadata: { status: 'succeeded', diffSummary: diff },
+      metadata: { status: 'succeeded', diffSummary: diff, operatorType },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '飞书同步失败';
@@ -135,12 +215,12 @@ export async function startDirectorySync(
     );
     await writeAudit(pool, {
       requestId: input.requestId,
-      actorFeishuUserId: input.actor.feishuUserId,
+      actorFeishuUserId: operatorFeishuUserId,
       action: 'sync.run',
       targetType: 'sync_run',
       targetId: runId,
       result: 'failure',
-      metadata: { status: 'failed', reason: message },
+      metadata: { status: 'failed', reason: message, operatorType },
     });
   }
 
@@ -293,7 +373,8 @@ function mapSyncRunRow(row: Record<string, unknown>): RuntimeSyncRun {
     id: String(row.id),
     trigger: row.trigger as RuntimeSyncRun['trigger'],
     status: row.status as RuntimeSyncRun['status'],
-    operator_feishu_user_id: String(row.operator_feishu_user_id),
+    operator_type: row.operator_type === 'system' ? 'system' : 'feishu_user',
+    operator_feishu_user_id: typeof row.operator_feishu_user_id === 'string' ? row.operator_feishu_user_id : null,
     request_id: String(row.request_id),
     started_at: toIso(row.started_at),
     finished_at: row.finished_at ? toIso(row.finished_at) : null,
@@ -323,4 +404,42 @@ function normalizeDiff(value: unknown): SyncDiffSummary {
 
 function toIso(value: unknown): string {
   return value instanceof Date ? value.toISOString() : String(value);
+}
+
+function resolveHealthStatus(input: {
+  latestRun: RuntimeSyncRun | null;
+  latestSuccessfulRun: RuntimeSyncRun | null;
+  latestFailedRun: RuntimeSyncRun | null;
+  isRunning: boolean;
+}): { status: RuntimeSyncStatus['healthStatus']; reasons: string[] } {
+  if (input.isRunning) {
+    return { status: 'warning', reasons: ['已有同步任务正在运行'] };
+  }
+  if (!input.latestRun) {
+    return { status: 'unknown', reasons: ['尚未执行过飞书通讯录同步'] };
+  }
+  if (!input.latestSuccessfulRun) {
+    return { status: 'unknown', reasons: ['尚无成功同步记录'] };
+  }
+  if (input.latestFailedRun && syncRunTime(input.latestFailedRun) > syncRunTime(input.latestSuccessfulRun)) {
+    return { status: 'failed', reasons: ['最近一次失败同步晚于最近一次成功同步'] };
+  }
+  return { status: 'healthy', reasons: ['最近同步状态正常'] };
+}
+
+function syncRunTime(run: RuntimeSyncRun): number {
+  return new Date(run.finished_at ?? run.started_at).getTime();
+}
+
+function buildFailedPreflightResult(error: unknown): DirectorySyncPreflightResult {
+  const code = error instanceof HttpError ? error.code : 'FEISHU_DIRECTORY_PREFLIGHT_FAILED';
+  const message = error instanceof Error ? error.message : '飞书通讯录权限预检失败';
+  return {
+    status: 'failed',
+    checkedAt: new Date().toISOString(),
+    requestBatchCount: 0,
+    stages: [{ name: 'token', status: 'failed', message }],
+    errorCode: code,
+    message,
+  };
 }

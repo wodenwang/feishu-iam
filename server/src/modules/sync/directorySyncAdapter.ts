@@ -24,8 +24,27 @@ export interface DirectorySyncSnapshot {
   requestBatchCount: number;
 }
 
+export type DirectorySyncPreflightStageName = 'token' | 'departments' | 'users';
+export type DirectorySyncPreflightStageStatus = 'passed' | 'failed';
+
+export interface DirectorySyncPreflightStage {
+  name: DirectorySyncPreflightStageName;
+  status: DirectorySyncPreflightStageStatus;
+  message?: string;
+}
+
+export interface DirectorySyncPreflightResult {
+  status: DirectorySyncPreflightStageStatus;
+  checkedAt: string;
+  requestBatchCount: number;
+  stages: DirectorySyncPreflightStage[];
+  errorCode?: string;
+  message?: string;
+}
+
 export interface DirectorySyncAdapter {
   fetchDirectorySnapshot(): Promise<DirectorySyncSnapshot>;
+  preflight(): Promise<DirectorySyncPreflightResult>;
 }
 
 interface RealFeishuDirectorySyncAdapterOptions {
@@ -56,6 +75,45 @@ export class RealFeishuDirectorySyncAdapter implements DirectorySyncAdapter {
   private tenantAccessToken: { value: string; expiresAt: number } | undefined;
 
   constructor(private readonly options: RealFeishuDirectorySyncAdapterOptions) {}
+
+  async preflight(): Promise<DirectorySyncPreflightResult> {
+    const checkedAt = new Date().toISOString();
+    const stages: DirectorySyncPreflightStage[] = [];
+    let requestBatchCount = 0;
+    let tenantAccessToken: string;
+
+    try {
+      tenantAccessToken = await this.getTenantAccessToken();
+      requestBatchCount += 1;
+      stages.push({ name: 'token', status: 'passed' });
+    } catch (error) {
+      return buildFailedPreflight(checkedAt, requestBatchCount + 1, stages, 'token', error);
+    }
+
+    try {
+      await this.fetchDepartmentPreflight(tenantAccessToken);
+      requestBatchCount += 1;
+      stages.push({ name: 'departments', status: 'passed' });
+    } catch (error) {
+      return buildFailedPreflight(checkedAt, requestBatchCount + 1, stages, 'departments', error);
+    }
+
+    try {
+      await this.fetchUserPreflight(tenantAccessToken);
+      requestBatchCount += 1;
+      stages.push({ name: 'users', status: 'passed' });
+    } catch (error) {
+      return buildFailedPreflight(checkedAt, requestBatchCount + 1, stages, 'users', error);
+    }
+
+    return {
+      status: 'passed',
+      checkedAt,
+      requestBatchCount,
+      stages,
+      message: '飞书通讯录权限预检通过',
+    };
+  }
 
   async fetchDirectorySnapshot(): Promise<DirectorySyncSnapshot> {
     const tenantAccessToken = await this.getTenantAccessToken();
@@ -155,9 +213,47 @@ export class RealFeishuDirectorySyncAdapter implements DirectorySyncAdapter {
 
     return { users, requestBatchCount };
   }
+
+  private async fetchDepartmentPreflight(tenantAccessToken: string): Promise<void> {
+    const url = new URL('https://open.feishu.cn/open-apis/contact/v3/departments/0/children');
+    url.searchParams.set('department_id_type', 'open_department_id');
+    url.searchParams.set('user_id_type', 'user_id');
+    url.searchParams.set('fetch_child', 'false');
+    url.searchParams.set('page_size', '1');
+
+    await feishuJsonRequest(url.toString(), {
+      headers: { authorization: `Bearer ${tenantAccessToken}` },
+    });
+  }
+
+  private async fetchUserPreflight(tenantAccessToken: string): Promise<void> {
+    const url = new URL('https://open.feishu.cn/open-apis/contact/v3/users/find_by_department');
+    url.searchParams.set('department_id_type', 'open_department_id');
+    url.searchParams.set('user_id_type', 'user_id');
+    url.searchParams.set('department_id', '0');
+    url.searchParams.set('page_size', '1');
+
+    await feishuJsonRequest(url.toString(), {
+      headers: { authorization: `Bearer ${tenantAccessToken}` },
+    });
+  }
 }
 
 export class LocalMockDirectorySyncAdapter implements DirectorySyncAdapter {
+  async preflight(): Promise<DirectorySyncPreflightResult> {
+    return {
+      status: 'passed',
+      checkedAt: new Date().toISOString(),
+      requestBatchCount: 3,
+      stages: [
+        { name: 'token', status: 'passed' },
+        { name: 'departments', status: 'passed' },
+        { name: 'users', status: 'passed' },
+      ],
+      message: '本地 mock 飞书通讯录权限预检通过',
+    };
+  }
+
   async fetchDirectorySnapshot(): Promise<DirectorySyncSnapshot> {
     return {
       departments: [
@@ -183,6 +279,34 @@ export class LocalMockDirectorySyncAdapter implements DirectorySyncAdapter {
       requestBatchCount: 1,
     };
   }
+}
+
+function buildFailedPreflight(
+  checkedAt: string,
+  requestBatchCount: number,
+  passedStages: DirectorySyncPreflightStage[],
+  failedStage: DirectorySyncPreflightStageName,
+  error: unknown,
+): DirectorySyncPreflightResult {
+  const sanitized = sanitizePreflightError(error);
+  return {
+    status: 'failed',
+    checkedAt,
+    requestBatchCount,
+    stages: [...passedStages, { name: failedStage, status: 'failed', message: sanitized.message }],
+    errorCode: sanitized.code,
+    message: sanitized.message,
+  };
+}
+
+function sanitizePreflightError(error: unknown): { code: string; message: string } {
+  if (error instanceof HttpError) {
+    return { code: error.code, message: error.message };
+  }
+  if (error instanceof Error) {
+    return { code: 'FEISHU_DIRECTORY_PREFLIGHT_FAILED', message: error.message };
+  }
+  return { code: 'FEISHU_DIRECTORY_PREFLIGHT_FAILED', message: '飞书通讯录权限预检失败' };
 }
 
 async function feishuJsonRequest(url: string, init: RequestInit): Promise<unknown> {

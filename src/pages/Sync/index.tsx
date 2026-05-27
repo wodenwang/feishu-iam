@@ -1,4 +1,4 @@
-import { EyeOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, EyeOutlined, ReloadOutlined, SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -19,9 +19,23 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { useCurrentSession, useRetrySyncRun, useStartManualSync, useSyncRuns } from '../../features/iam/queries';
+import {
+  useCurrentSession,
+  useRetrySyncRun,
+  useRunSyncPreflight,
+  useStartManualSync,
+  useSyncRuns,
+  useSyncStatus,
+} from '../../features/iam/queries';
 import { canRunSync as canRunSyncForSession } from '../../features/iam/permissions';
-import type { SyncRun, SyncRunStatus, SyncTrigger } from '../../features/iam/types';
+import type {
+  SyncHealthStatus,
+  SyncPreflightResult,
+  SyncPreflightStageName,
+  SyncRun,
+  SyncRunStatus,
+  SyncTrigger,
+} from '../../features/iam/types';
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
 
@@ -35,6 +49,19 @@ const statusLabels: Record<SyncRunStatus, { text: string; color: string }> = {
   running: { text: '运行中', color: 'processing' },
   succeeded: { text: '成功', color: 'success' },
   failed: { text: '失败', color: 'error' },
+};
+
+const healthLabels: Record<SyncHealthStatus, { text: string; color: string }> = {
+  healthy: { text: '健康', color: 'success' },
+  warning: { text: '关注', color: 'warning' },
+  failed: { text: '异常', color: 'error' },
+  unknown: { text: '未知', color: 'default' },
+};
+
+const preflightStageLabels: Record<SyncPreflightStageName, string> = {
+  token: 'Tenant Token',
+  departments: '部门读取',
+  users: '用户读取',
 };
 
 function SyncRunStatusTag({ run }: { run: SyncRun }) {
@@ -59,22 +86,40 @@ function formatDuration(run: SyncRun) {
   return run.durationSeconds ? `${run.durationSeconds} 秒` : '-';
 }
 
+function formatOperator(run: SyncRun) {
+  if (run.operatorType === 'system' || !run.operatorFeishuUserId) {
+    return '系统任务';
+  }
+
+  return run.operatorFeishuUserId;
+}
+
 export function SyncPage() {
   const { message } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isJsdom = typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom');
   const isCompact = !isJsdom && (typeof window === 'undefined' ? !screens.lg : window.innerWidth < 1360);
   const [selectedRun, setSelectedRun] = useState<SyncRun | undefined>();
+  const [preflightResult, setPreflightResult] = useState<SyncPreflightResult | undefined>();
   const [pagination, setPagination] = useState({ page: 1, pageSize: 20 });
   const currentSessionQuery = useCurrentSession();
+  const syncStatusQuery = useSyncStatus();
   const syncRunsQuery = useSyncRuns({ page: pagination.page, pageSize: pagination.pageSize });
   const startManualSyncMutation = useStartManualSync();
   const retrySyncRunMutation = useRetrySyncRun();
+  const runSyncPreflightMutation = useRunSyncPreflight();
   const syncRuns = syncRunsQuery.data?.items ?? [];
-  const latestRun = syncRuns[0];
-  const latestSuccessRun = syncRuns.find((run) => run.status === 'succeeded');
+  const latestRun = syncStatusQuery.data?.latestRun ?? syncRuns[0];
+  const latestSuccessRun = syncStatusQuery.data?.latestSuccessfulRun ?? syncRuns.find((run) => run.status === 'succeeded');
+  const latestFailedRun = syncStatusQuery.data?.latestFailedRun ?? syncRuns.find((run) => run.status === 'failed');
+  const latestScheduledRun = syncRuns.find((run) => run.trigger === 'scheduled');
+  const health = healthLabels[syncStatusQuery.data?.healthStatus ?? 'unknown'];
   const canRunSync = canRunSyncForSession(currentSessionQuery.data);
-  const syncRunPermissionTip = '需要 sync:run 权限才能发起同步或重试。';
+  const syncRunPermissionTip = '需要 sync:run 权限才能发起同步、预检或重试。';
+
+  const refreshSyncRuntime = async () => {
+    await Promise.all([syncStatusQuery.refetch(), syncRunsQuery.refetch()]);
+  };
 
   const startManualSync = async () => {
     if (!canRunSync) {
@@ -84,7 +129,7 @@ export function SyncPage() {
 
     await startManualSyncMutation.mutateAsync();
     message.success('已发起手动同步');
-    await syncRunsQuery.refetch();
+    await refreshSyncRuntime();
   };
 
   const retrySyncRun = async (run: SyncRun) => {
@@ -95,7 +140,22 @@ export function SyncPage() {
 
     await retrySyncRunMutation.mutateAsync(run.id);
     message.success('已发起重试同步');
-    await syncRunsQuery.refetch();
+    await refreshSyncRuntime();
+  };
+
+  const runSyncPreflight = async () => {
+    if (!canRunSync) {
+      message.warning(syncRunPermissionTip);
+      return;
+    }
+
+    const result = await runSyncPreflightMutation.mutateAsync();
+    setPreflightResult(result);
+    if (result.status === 'passed') {
+      message.success('飞书通讯录权限预检通过');
+    } else {
+      message.warning('飞书通讯录权限预检未通过');
+    }
   };
 
   const columns = useMemo<ColumnsType<SyncRun>>(() => {
@@ -178,7 +238,7 @@ export function SyncPage() {
         width: 140,
         render: (_, run) => `新增 ${run.diffSummary.createdDepartments} / 更新 ${run.diffSummary.updatedDepartments}`,
       },
-      { title: '操作人', dataIndex: 'operatorFeishuUserId', width: 180, ellipsis: true },
+      { title: '操作人', key: 'operator', width: 180, ellipsis: true, render: (_, run) => formatOperator(run) },
       actionColumn,
     ];
   }, [canRunSync, isCompact, retrySyncRunMutation.isPending]);
@@ -189,7 +249,16 @@ export function SyncPage() {
         飞书同步
       </Typography.Title>
 
-      <Card title="同步状态摘要">
+      <Card title="同步状态摘要" extra={<Tag color={health.color}>{health.text}</Tag>}>
+        {syncStatusQuery.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            title="同步健康状态加载失败"
+            action={<Button onClick={() => syncStatusQuery.refetch()}>重试</Button>}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
         <Row gutter={16}>
           <Col xs={24} md={12} xl={4}>
             <Statistic title="最近同步状态" value={latestRun ? statusLabels[latestRun.status].text : '-'} />
@@ -198,17 +267,26 @@ export function SyncPage() {
             <Statistic title="最近成功同步时间" value={formatDateTime(latestSuccessRun?.finishedAt)} />
           </Col>
           <Col xs={12} md={6} xl={3}>
-            <Statistic title="用户数量" value={latestSuccessRun?.successCount ?? 0} />
+            <Statistic title="用户数量" value={syncStatusQuery.data?.directoryUserCount ?? latestSuccessRun?.successCount ?? 0} />
           </Col>
           <Col xs={12} md={6} xl={3}>
-            <Statistic title="部门数量" value={latestSuccessRun?.departmentChanges ?? 0} />
+            <Statistic title="部门数量" value={syncStatusQuery.data?.directoryDepartmentCount ?? latestSuccessRun?.departmentChanges ?? 0} />
           </Col>
-          <Col xs={24} md={12} xl={9}>
+          <Col xs={24} md={12} xl={4}>
+            <Statistic title="最近失败同步时间" value={formatDateTime(latestFailedRun?.finishedAt)} />
+          </Col>
+          <Col xs={24} md={12} xl={5}>
+            <Statistic title="最近定时同步" value={formatDateTime(latestScheduledRun?.finishedAt ?? latestScheduledRun?.startedAt)} />
+          </Col>
+          <Col xs={24} md={12} xl={24}>
             <Typography.Text type="secondary">最近同步差异</Typography.Text>
             <div>
               新增 {latestRun?.diffSummary.createdUsers ?? 0} / 更新 {latestRun?.diffSummary.updatedUsers ?? 0} / 离职{' '}
               {latestRun?.diffSummary.resignedUsers ?? 0} / 失败 {latestRun?.diffSummary.failedUsers ?? 0}
             </div>
+            <Typography.Text type="secondary">
+              健康判断：{syncStatusQuery.data?.healthReasons.length ? syncStatusQuery.data.healthReasons.join('；') : '-'}
+            </Typography.Text>
           </Col>
         </Row>
       </Card>
@@ -227,7 +305,16 @@ export function SyncPage() {
             >
               手动同步
             </Button>
-            <Button icon={<ReloadOutlined />} loading={syncRunsQuery.isFetching} onClick={() => syncRunsQuery.refetch()}>
+            <Button
+              icon={<SafetyCertificateOutlined />}
+              disabled={!canRunSync}
+              loading={runSyncPreflightMutation.isPending}
+              onClick={runSyncPreflight}
+              title={canRunSync ? undefined : syncRunPermissionTip}
+            >
+              运行预检
+            </Button>
+            <Button icon={<ReloadOutlined />} loading={syncRunsQuery.isFetching || syncStatusQuery.isFetching} onClick={refreshSyncRuntime}>
               刷新
             </Button>
           </Space>
@@ -271,6 +358,7 @@ export function SyncPage() {
             <Descriptions.Item label="基本信息">
               {triggerLabels[selectedRun.trigger]} / <Tag color={statusLabels[selectedRun.status].color}>{statusLabels[selectedRun.status].text}</Tag>
             </Descriptions.Item>
+            <Descriptions.Item label="操作人">{formatOperator(selectedRun)}</Descriptions.Item>
             <Descriptions.Item label="请求批次数">{selectedRun.requestBatchCount}</Descriptions.Item>
             <Descriptions.Item label="成功数量">{selectedRun.successCount}</Descriptions.Item>
             <Descriptions.Item label="失败数量">{selectedRun.failedCount}</Descriptions.Item>
@@ -283,6 +371,54 @@ export function SyncPage() {
             <Descriptions.Item label="错误信息">{selectedRun.errorMessage ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="关联审计日志入口">{selectedRun.auditLogId ?? '-'}</Descriptions.Item>
           </Descriptions>
+        ) : null}
+      </Drawer>
+
+      <Drawer
+        title="飞书通讯录权限预检"
+        size={560}
+        open={Boolean(preflightResult)}
+        destroyOnClose
+        onClose={() => setPreflightResult(undefined)}
+      >
+        {preflightResult ? (
+          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              type={preflightResult.status === 'passed' ? 'success' : 'error'}
+              showIcon
+              title={preflightResult.status === 'passed' ? '预检通过' : '预检失败'}
+              description={preflightResult.message ?? '预检已完成'}
+            />
+            <Descriptions bordered size="small" column={1}>
+              <Descriptions.Item label="检查时间">{formatDateTime(preflightResult.checkedAt)}</Descriptions.Item>
+              <Descriptions.Item label="请求批次数">{preflightResult.requestBatchCount}</Descriptions.Item>
+              <Descriptions.Item label="Request ID">{preflightResult.requestId}</Descriptions.Item>
+              <Descriptions.Item label="错误码">{preflightResult.errorCode ?? '-'}</Descriptions.Item>
+            </Descriptions>
+            <Table
+              rowKey="name"
+              size="small"
+              pagination={false}
+              dataSource={preflightResult.stages}
+              columns={[
+                { title: '检查项', dataIndex: 'name', render: (name: SyncPreflightStageName) => preflightStageLabels[name] },
+                {
+                  title: '结果',
+                  dataIndex: 'status',
+                  width: 110,
+                  render: (status) =>
+                    status === 'passed' ? (
+                      <Tag icon={<CheckCircleOutlined />} color="success">
+                        通过
+                      </Tag>
+                    ) : (
+                      <Tag color="error">失败</Tag>
+                    ),
+                },
+                { title: '说明', dataIndex: 'message', render: (value?: string) => value ?? '-' },
+              ]}
+            />
+          </Space>
         ) : null}
       </Drawer>
     </Space>

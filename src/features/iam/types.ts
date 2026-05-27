@@ -188,6 +188,7 @@ export interface UpsertRoleInput {
 
 export interface UpdateRoleAuthorizationInput {
   roleId: string;
+  permissionGroupKeys?: string[];
   permissionKeys: string[];
   departmentIds: string[];
   userIds: string[];

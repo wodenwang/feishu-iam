@@ -430,6 +430,7 @@ describe('httpApi', () => {
     expect(httpRequestMock).toHaveBeenNthCalledWith(1, '/api/roles/role-id/authorization', {
       method: 'PUT',
       body: {
+        permissionGroupCodes: [],
         permissionPointCodes: ['crm.customer:view'],
         departmentIds: ['dept_sales'],
         feishuUserIds: ['ou_sales_001'],

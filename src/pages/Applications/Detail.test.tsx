@@ -1,13 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetMockIamStore, setMockCurrentSession } from '../../features/iam/mockApi';
-import { platformAdminSession } from '../../features/iam/mockData';
+import { applications, platformAdminSession } from '../../features/iam/mockData';
 import type { CurrentSession } from '../../features/iam/types';
-import { ApplicationDetailPage } from './Detail';
+import { ApplicationDetailPage, buildApplicationPrompt } from './Detail';
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -129,5 +129,40 @@ describe('ApplicationDetailPage', () => {
     expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
+  });
+
+  it('shows and builds a third-party application prompt without secret plaintext', async () => {
+    const user = userEvent.setup();
+    renderApplicationDetail();
+
+    await screen.findByText('Demo CRM');
+    await user.click(screen.getByRole('tab', { name: '接入配置' }));
+    await screen.findByText('第三方应用接入提示词');
+    const copyButton = screen.getByRole('button', { name: /复制应用提示词/ });
+    await waitFor(() => expect(copyButton).not.toBeDisabled());
+    const prompt = buildApplicationPrompt({
+      application: applications[0],
+      redirectUris: [
+        {
+          applicationId: applications[0].id,
+          redirectUri: 'https://demo.example.com/auth/callback',
+          environment: 'production',
+          status: 'active',
+          note: '生产回调地址',
+          createdByName: '王文哲',
+          createdAt: applications[0].createdAt,
+          updatedAt: applications[0].updatedAt,
+        },
+      ],
+    });
+    expect(prompt).toContain('AGENTS.md');
+    expect(prompt).toContain('CLAUDE.md');
+    expect(prompt).toContain('OAUTH_AUTHORIZE_ENDPOINT');
+    expect(prompt).toContain('APPLICATION_API_BASE');
+    expect(prompt).toContain('HMAC-SHA256');
+    expect(prompt).toContain('https://demo.example.com/auth/callback');
+    expect(prompt).toContain('IAM_APP_SECRET=<从 feishu-iam 创建或轮换结果取得，只写入运行时环境>');
+    expect(prompt).not.toContain('sec_****_crm');
+    expect(prompt).not.toContain('api_****_crm');
   });
 });

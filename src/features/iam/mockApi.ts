@@ -480,10 +480,10 @@ export async function updateRoleAuthorization(input: UpdateRoleAuthorizationInpu
 
     updatedRole = {
       ...role,
-      permissionKeys: [...input.permissionKeys],
+      permissionKeys: [...(input.permissionGroupKeys ?? []), ...input.permissionKeys],
       departmentIds: [...input.departmentIds],
       userIds: [...input.userIds],
-      permissionGroupCount: countPermissionGroups(input.permissionKeys),
+      permissionGroupCount: countPermissionGroups([...(input.permissionGroupKeys ?? []), ...input.permissionKeys]),
       permissionPointCount: countPermissionPoints(input.permissionKeys),
       departmentBindingCount: input.departmentIds.length,
       userBindingCount: input.userIds.length,

@@ -202,13 +202,26 @@ export async function registerApplicationApiRoutes(app: FastifyInstance, pool: D
       `
         select distinct pp.code
         from roles r
-        join role_permission_points rpp on rpp.role_id = r.id
-        join permission_points pp on pp.id = rpp.permission_point_id
+        join permission_points pp on pp.application_id = r.application_id
         join permission_groups pg on pg.id = pp.group_id
         where r.application_id = $1
           and r.status = 'active'
           and pp.status = 'active'
           and pg.status = 'active'
+          and (
+            exists (
+              select 1
+              from role_permission_points rpp
+              where rpp.role_id = r.id
+                and rpp.permission_point_id = pp.id
+            )
+            or exists (
+              select 1
+              from role_permission_groups rpg
+              where rpg.role_id = r.id
+                and rpg.permission_group_id = pg.id
+            )
+          )
           and (
             exists (
               select 1

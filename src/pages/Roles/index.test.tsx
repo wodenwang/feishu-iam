@@ -125,8 +125,10 @@ describe('RolesPage', () => {
     await user.click(within(drawer).getByRole('button', { name: /保存授权/ }));
 
     expect(await screen.findByText('授权变更摘要')).toBeInTheDocument();
-    expect(screen.getByText(/新增权限：/)).toBeInTheDocument();
-    expect(screen.getByText(/移除权限：/)).toBeInTheDocument();
+    expect(screen.getByText(/新增权限组：/)).toBeInTheDocument();
+    expect(screen.getByText(/移除权限组：/)).toBeInTheDocument();
+    expect(screen.getByText(/新增权限点：/)).toBeInTheDocument();
+    expect(screen.getByText(/移除权限点：/)).toBeInTheDocument();
     expect(screen.getByText(/新增组织：/)).toBeInTheDocument();
     expect(screen.getByText(/移除组织：/)).toBeInTheDocument();
     expect(screen.getByText(/新增用户：/)).toBeInTheDocument();
@@ -191,7 +193,7 @@ describe('RolesPage', () => {
     await user.click(screen.getByRole('button', { name: /保存授权/ }));
 
     await screen.findByText('授权变更摘要');
-    expect(screen.getByText('移除权限：1 个')).toBeInTheDocument();
+    expect(screen.getByText('移除权限点：1 个')).toBeInTheDocument();
     expect(screen.getByText('新增组织：1 个')).toBeInTheDocument();
     expect(screen.getByText('新增用户：1 个')).toBeInTheDocument();
 

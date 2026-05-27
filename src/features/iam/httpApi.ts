@@ -1,6 +1,8 @@
 import { httpRequest } from './httpClient';
 import {
   mapAuditLog,
+  mapRuntimeApplicationAdmin,
+  mapRuntimeRedirectUri,
   mapCreateApplicationResult,
   mapCurrentSessionResponse,
   mapPageResult,
@@ -16,11 +18,15 @@ import {
 } from './dtoMappers';
 import type {
   Application,
+  AddApplicationAdminInput,
+  ApplicationAdmin,
+  ApplicationRedirectUri,
   ApplicationPermissionRegistration,
   AuditAction,
   AuditLog,
   AuditResult,
   CreateApplicationInput,
+  CreateApplicationRedirectUriInput,
   CreateApplicationResult,
   CurrentSession,
   DashboardSummary,
@@ -31,11 +37,14 @@ import type {
   ListRolesRequest,
   PageRequest,
   PageResult,
+  RotateSecretResult,
+  SecretKind,
   SyncPreflightResult,
   SyncRun,
   SyncStatusOverview,
   UpdateRoleAuthorizationInput,
   UpsertRoleInput,
+  UpdateApplicationRedirectUriStatusInput,
 } from './types';
 
 interface RuntimePageResult<T> {
@@ -58,8 +67,38 @@ interface RuntimeApplication {
   owner_name?: string | null;
   permission_group_count?: number;
   permission_point_count?: number;
+  redirect_uri_count?: number | null;
+  active_redirect_uri_count?: number | null;
+  admin_count?: number | null;
+  app_secret_rotated_at?: string | null;
+  api_secret_rotated_at?: string | null;
   last_api_called_at?: string | null;
   last_permission_query_at?: string | null;
+}
+
+interface RuntimeRedirectUri {
+  application_id: string;
+  redirect_uri: string;
+  environment: ApplicationRedirectUri['environment'];
+  status: ApplicationRedirectUri['status'];
+  note?: string | null;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  disabled_at?: string | null;
+}
+
+interface RuntimeApplicationAdmin {
+  application_id: string;
+  feishu_user_id: string;
+  name: string;
+  email?: string | null;
+  status?: ApplicationAdmin['status'] | null;
+  role?: ApplicationAdmin['role'] | null;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
 }
 
 interface RuntimeAuditLog {
@@ -247,8 +286,60 @@ export function batchDisableApplications(_applicationIds: string[]): Promise<App
   return unsupportedHttpMethod('batchDisableApplications');
 }
 
-export function rotateApplicationSecret(_applicationId: string, _secretType: 'appsecret' | 'apiSecret'): Promise<Application> {
-  return unsupportedHttpMethod('rotateApplicationSecret');
+export async function listApplicationRedirectUris(applicationId: string): Promise<ApplicationRedirectUri[]> {
+  const result = await httpRequest<{ items: RuntimeRedirectUri[] }>(`/api/applications/${applicationId}/redirect-uris`);
+  return result.items.map(mapRuntimeRedirectUri);
+}
+
+export async function createApplicationRedirectUri(
+  applicationId: string,
+  input: CreateApplicationRedirectUriInput,
+): Promise<ApplicationRedirectUri> {
+  return mapRuntimeRedirectUri(
+    await httpRequest<RuntimeRedirectUri>(`/api/applications/${applicationId}/redirect-uris`, {
+      method: 'POST',
+      body: input,
+    }),
+  );
+}
+
+export async function updateApplicationRedirectUriStatus(
+  applicationId: string,
+  input: UpdateApplicationRedirectUriStatusInput,
+): Promise<ApplicationRedirectUri> {
+  return mapRuntimeRedirectUri(
+    await httpRequest<RuntimeRedirectUri>(`/api/applications/${applicationId}/redirect-uris/status`, {
+      method: 'PATCH',
+      body: input,
+    }),
+  );
+}
+
+export async function rotateApplicationSecret(applicationId: string, kind: SecretKind): Promise<RotateSecretResult> {
+  return httpRequest<RotateSecretResult>(`/api/applications/${applicationId}/secrets/rotate`, {
+    method: 'POST',
+    body: { kind },
+  });
+}
+
+export async function listApplicationAdmins(applicationId: string): Promise<ApplicationAdmin[]> {
+  const result = await httpRequest<{ items: RuntimeApplicationAdmin[] }>(`/api/applications/${applicationId}/admins`);
+  return result.items.map(mapRuntimeApplicationAdmin);
+}
+
+export async function addApplicationAdmin(applicationId: string, input: AddApplicationAdminInput): Promise<ApplicationAdmin> {
+  return mapRuntimeApplicationAdmin(
+    await httpRequest<RuntimeApplicationAdmin>(`/api/applications/${applicationId}/admins`, {
+      method: 'POST',
+      body: input,
+    }),
+  );
+}
+
+export async function removeApplicationAdmin(applicationId: string, feishuUserId: string): Promise<{ ok: true }> {
+  return httpRequest<{ ok: true }>(`/api/applications/${applicationId}/admins/${encodeURIComponent(feishuUserId)}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function recordRuntimeSecretCopy(

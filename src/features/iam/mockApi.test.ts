@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   batchDisableApplications,
+  addApplicationAdmin,
   createApplication,
+  createApplicationRedirectUri,
   createRole,
   disableRoles,
   getCurrentSession,
+  listApplicationAdmins,
+  listApplicationRedirectUris,
   listApplications,
   listAuditLogs,
   listRoles,
   listSyncRuns,
+  removeApplicationAdmin,
   resetMockIamStore,
+  rotateApplicationSecret,
+  updateApplicationRedirectUriStatus,
   updateRole,
   updateRoleAuthorization,
 } from './mockApi';
@@ -155,6 +162,75 @@ describe('iam mock API', () => {
       actorFeishuUserId: 'ou_feishu_admin_001',
       requestId: expect.stringMatching(/^req_/),
     });
+  });
+
+  it('manages redirect URI lifecycle and keeps application summary counts current', async () => {
+    const created = await createApplicationRedirectUri('app_demo_crm', {
+      redirectUri: 'https://staging.example.com/auth/callback',
+      environment: 'staging',
+      note: '预发环境',
+    });
+
+    expect(created).toMatchObject({ status: 'active', environment: 'staging' });
+    await updateApplicationRedirectUriStatus('app_demo_crm', {
+      redirectUri: 'https://demo.example.com/auth/callback',
+      status: 'disabled',
+    });
+
+    const redirectUris = await listApplicationRedirectUris('app_demo_crm');
+    expect(redirectUris).toHaveLength(2);
+    expect(redirectUris.find((item) => item.redirectUri === 'https://demo.example.com/auth/callback')).toMatchObject({
+      status: 'disabled',
+      disabledAt: expect.any(String),
+    });
+
+    const application = (await listApplications({ keyword: 'CRM', page: 1, pageSize: 20 })).items[0];
+    expect(application).toMatchObject({ redirectUriCount: 2, activeRedirectUriCount: 1 });
+
+    const auditLogs = await listAuditLogs({ applicationId: 'app_demo_crm', page: 1, pageSize: 20 });
+    expect(auditLogs.items.map((item) => item.action)).toEqual(
+      expect.arrayContaining(['oauth.redirect_uri.create', 'oauth.redirect_uri.disable']),
+    );
+  });
+
+  it('rotates secrets with one-time values and audit trail only', async () => {
+    const appSecretResult = await rotateApplicationSecret('app_demo_crm', 'app_secret');
+    const apiSecretResult = await rotateApplicationSecret('app_demo_crm', 'api_secret');
+
+    expect(appSecretResult).toMatchObject({ kind: 'app_secret', secret: expect.stringMatching(/^sec_mock_/) });
+    expect(apiSecretResult).toMatchObject({ kind: 'api_secret', secret: expect.stringMatching(/^api_sec_mock_/) });
+
+    const application = (await listApplications({ keyword: 'CRM', page: 1, pageSize: 20 })).items[0];
+    expect(application.appSecretRotatedAt).toBeTruthy();
+    expect(application.apiSecretRotatedAt).toBeTruthy();
+
+    const auditLogs = await listAuditLogs({ action: 'secret.rotate', page: 1, pageSize: 20 });
+    expect(auditLogs.items).toHaveLength(2);
+    expect(JSON.stringify(auditLogs.items)).not.toContain(appSecretResult.secret);
+    expect(JSON.stringify(auditLogs.items)).not.toContain(apiSecretResult.secret);
+  });
+
+  it('manages application admins and protects the last admin', async () => {
+    await expect(removeApplicationAdmin('app_demo_crm', 'ou_feishu_admin_001')).rejects.toThrow('LAST_APPLICATION_ADMIN');
+
+    const added = await addApplicationAdmin('app_demo_crm', { feishuUserId: 'ou_sales_001' });
+    expect(added).toMatchObject({
+      applicationId: 'app_demo_crm',
+      feishuUserId: 'ou_sales_001',
+      role: 'application_admin',
+    });
+
+    await removeApplicationAdmin('app_demo_crm', 'ou_sales_001');
+    const admins = await listApplicationAdmins('app_demo_crm');
+    expect(admins).toEqual([expect.objectContaining({ feishuUserId: 'ou_feishu_admin_001', role: 'primary' })]);
+
+    const application = (await listApplications({ keyword: 'CRM', page: 1, pageSize: 20 })).items[0];
+    expect(application.adminCount).toBe(1);
+
+    const auditLogs = await listAuditLogs({ applicationId: 'app_demo_crm', page: 1, pageSize: 20 });
+    expect(auditLogs.items.map((item) => item.action)).toEqual(
+      expect.arrayContaining(['application.admin.add', 'application.admin.remove']),
+    );
   });
 
   it('keeps sync run audit links consistent with run status', async () => {

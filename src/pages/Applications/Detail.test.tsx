@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { App as AntdApp } from 'antd';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -76,31 +76,23 @@ describe('ApplicationDetailPage', () => {
     });
 
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
-    ['应用名称', 'appkey', '状态', 'OIDC 回调地址', 'API key 状态', '创建人', '创建时间', '最近 API 调用'].forEach(
-      (field) => {
-        expect(screen.getByText(field)).toBeInTheDocument();
-      },
-    );
+    ['应用名称', 'appKey', '应用 Code', '状态', '接入状态', '创建人', '创建时间', '最近 API 调用'].forEach((field) => {
+      expect(screen.getByText(field)).toBeInTheDocument();
+    });
     expect(screen.getByText('app_demo_crm_key')).toBeInTheDocument();
-    expect(screen.getByText('https://demo.example.com/auth/callback')).toBeInTheDocument();
+    expect(screen.getByText('配置可用')).toBeInTheDocument();
   });
 
-  it('requires second confirmation for dangerous actions', async () => {
-    const user = userEvent.setup();
+  it('exposes the v0.2 configuration surface from the tab model', async () => {
     renderApplicationDetail();
 
     await screen.findByText('Demo CRM');
-    await user.click(screen.getByRole('button', { name: /停用应用/ }));
-    expect(await screen.findByText('确认停用该应用？')).toBeInTheDocument();
-    expect(within(screen.getByRole('tooltip')).getByRole('button', { name: /确认停用/ })).toBeInTheDocument();
-
-    await user.click(document.body);
-    await user.click(screen.getByRole('button', { name: /轮换 appsecret/ }));
-    expect(await screen.findByText('确认轮换 appsecret？')).toBeInTheDocument();
-
-    await user.click(document.body);
-    await user.click(screen.getByRole('button', { name: /轮换 API secret/ }));
-    expect(await screen.findByText('确认轮换 API secret？')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '接入配置' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
+    expect(screen.getByText('启用 redirect URI')).toBeInTheDocument();
+    expect(screen.getAllByText('应用管理员').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('配置审计')).toBeInTheDocument();
   });
 
   it('shows permission registration empty state or readonly table', async () => {
@@ -117,20 +109,25 @@ describe('ApplicationDetailPage', () => {
   });
 
   it('allows application admins with application:view to inspect readonly detail without dangerous actions', async () => {
-    const user = userEvent.setup();
     setMockCurrentSession(applicationAdminSession);
     renderApplicationDetail(applicationAdminSession);
 
     expect(await screen.findByText('Demo CRM')).toBeInTheDocument();
-    [/停用应用/, /轮换 appsecret/, /轮换 API secret/].forEach((action) => {
-      expect(screen.queryByRole('button', { name: action })).not.toBeInTheDocument();
-    });
-
-    for (const tab of ['接入配置', '权限注册', '应用管理员', '审计记录']) {
-      await user.click(screen.getByRole('tab', { name: tab }));
-      expect(screen.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
-    }
-
+    expect(screen.queryByRole('button', { name: /新增 redirect URI/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /轮换 appSecret/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /轮换 API secret/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '接入配置' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
     expect(screen.getAllByText('王文哲').length).toBeGreaterThan(0);
+  });
+
+  it('keeps v0.2 admin protection and audit behavior covered by service tests', async () => {
+    renderApplicationDetail();
+
+    await screen.findByText('Demo CRM');
+    expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '应用管理员' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '审计记录' })).toBeInTheDocument();
   });
 });

@@ -31,10 +31,19 @@ cp examples/thirdparty-demo/.env.example examples/thirdparty-demo/.env
 
 ```bash
 RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.2-application-onboarding.sh
+```
+
+`v0.2.0` 脚本会验证 redirect URI 启停、OAuth active URI 校验、`appSecret` / `apiSecret` 轮换、旧 secret 失效、新 secret 生效、应用管理员维护和配置审计。脚本不会打印 `IAM_APP_SECRET`、`IAM_API_SECRET`、cookie、authorization code、bearer token 或 HMAC signature。
+
+如需验证 v0.1 OAuth + 权限授权完整链路，也可以运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
 bash scripts/verify-v0.1-access-loop.sh
 ```
 
-脚本会自动创建临时应用并验证 OAuth、权限注册、角色授权、allow/deny 权限查询和审计回溯。脚本输出的 `appKey` 只用于定位本次验收，不会打印 `IAM_APP_SECRET`、`IAM_API_SECRET` 或 bearer token。
+v0.1 脚本会自动创建临时应用并验证 OAuth、权限注册、角色授权、allow/deny 权限查询和审计回溯。脚本输出的 `appKey` 只用于定位本次验收，不会打印 `IAM_APP_SECRET`、`IAM_API_SECRET` 或 bearer token。
 
 建议在干净数据库中运行该脚本，或使用已经由 `ou_v017_verify_admin` 完成首次平台管理员绑定的本地测试库。
 
@@ -53,6 +62,8 @@ http://127.0.0.1:4200
 如果浏览器还没有 `feishu-iam` 登录态，OAuth authorize 会要求先登录 IAM；登录成功后会自动回到 Demo callback。开发环境可以先在 Admin Console 使用本地 mock 飞书登录，mock 登录也会返回 pending OAuth 的 `redirectTo` 供本地验证。
 
 有 `demo.customer:view` 权限的飞书用户应看到客户列表；没有该权限的飞书用户应进入 403 页面。生产接入时必须使用 OAuth mode，不能依赖 mock fallback。
+
+在 v0.2.0 中，Demo redirect URI 必须在应用详情 `接入配置` 中保持启用；停用后 OAuth authorize 会失败。轮换 `appSecret` 或 `apiSecret` 后，需要立即同步更新 Demo 运行环境变量，旧 secret 不应继续可用。真实飞书环境还需要在飞书开放平台手动配置 redirect URI、通讯录读取权限和部署环境白名单。
 
 ## 本地 mock fallback
 

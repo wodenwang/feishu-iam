@@ -1,5 +1,7 @@
 import type {
   Application,
+  ApplicationAdmin,
+  ApplicationRedirectUri,
   ApplicationPermissionRegistration,
   AuditAction,
   AuditLog,
@@ -38,10 +40,40 @@ interface RuntimeApplication {
   permission_point_count?: number;
   last_api_called_at?: string | null;
   last_permission_query_at?: string | null;
+  redirect_uri_count?: number | null;
+  active_redirect_uri_count?: number | null;
+  admin_count?: number | null;
+  app_secret_rotated_at?: string | null;
+  api_secret_rotated_at?: string | null;
   secret_status?: {
     app_secret?: string;
     api_secret?: string;
   };
+}
+
+interface RuntimeRedirectUri {
+  application_id: string;
+  redirect_uri: string;
+  environment: ApplicationRedirectUri['environment'];
+  status: ApplicationRedirectUri['status'];
+  note?: string | null;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  disabled_at?: string | null;
+}
+
+interface RuntimeApplicationAdmin {
+  application_id: string;
+  feishu_user_id: string;
+  name: string;
+  email?: string | null;
+  status?: ApplicationAdmin['status'] | null;
+  role?: ApplicationAdmin['role'] | null;
+  created_by_feishu_user_id?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
 }
 
 interface RuntimeAuditLog {
@@ -193,10 +225,44 @@ export function mapRuntimeApplication(item: RuntimeApplication): Application {
     ownerName: item.owner_name ?? item.created_by_name ?? '-',
     permissionGroupCount: item.permission_group_count ?? 0,
     permissionPointCount: item.permission_point_count ?? 0,
+    redirectUriCount: item.redirect_uri_count ?? undefined,
+    activeRedirectUriCount: item.active_redirect_uri_count ?? undefined,
+    adminCount: item.admin_count ?? undefined,
+    appSecretRotatedAt: item.app_secret_rotated_at ?? undefined,
+    apiSecretRotatedAt: item.api_secret_rotated_at ?? undefined,
     lastApiCalledAt: item.last_api_called_at ?? item.last_permission_query_at ?? undefined,
     agentPrompt: '',
     createdAt: item.created_at,
     updatedAt: item.updated_at ?? item.created_at,
+  };
+}
+
+export function mapRuntimeRedirectUri(item: RuntimeRedirectUri): ApplicationRedirectUri {
+  return {
+    applicationId: item.application_id,
+    redirectUri: item.redirect_uri,
+    environment: item.environment,
+    status: item.status,
+    note: item.note ?? '',
+    createdByFeishuUserId: item.created_by_feishu_user_id ?? undefined,
+    createdByName: item.created_by_name ?? item.created_by_feishu_user_id ?? '-',
+    createdAt: item.created_at ?? '',
+    updatedAt: item.updated_at ?? item.created_at ?? '',
+    disabledAt: item.disabled_at ?? undefined,
+  };
+}
+
+export function mapRuntimeApplicationAdmin(item: RuntimeApplicationAdmin): ApplicationAdmin {
+  return {
+    applicationId: item.application_id,
+    feishuUserId: item.feishu_user_id,
+    name: item.name,
+    email: item.email ?? undefined,
+    status: item.status ?? 'active',
+    role: item.role ?? 'application_admin',
+    createdByFeishuUserId: item.created_by_feishu_user_id ?? undefined,
+    createdByName: item.created_by_name ?? item.created_by_feishu_user_id ?? '-',
+    createdAt: item.created_at ?? '',
   };
 }
 
@@ -368,6 +434,12 @@ function normalizeAuditAction(action: string): AuditAction {
     'login',
     'application.create',
     'application.api_call',
+    'application.admin.add',
+    'application.admin.bind',
+    'application.admin.remove',
+    'oauth.redirect_uri.create',
+    'oauth.redirect_uri.disable',
+    'oauth.redirect_uri.enable',
     'role.create',
     'secret.copy',
     'secret.rotate',

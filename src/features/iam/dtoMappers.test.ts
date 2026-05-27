@@ -6,8 +6,10 @@ import {
   mapPageResult,
   mapRuntimeDepartment,
   mapRuntimeApplication,
+  mapRuntimeApplicationAdmin,
   mapRuntimeDirectoryUser,
   mapRuntimePermissionTree,
+  mapRuntimeRedirectUri,
   mapRuntimeRole,
 } from './dtoMappers';
 
@@ -42,6 +44,11 @@ describe('dtoMappers', () => {
         created_at: '2026-05-24T00:00:00.000Z',
         permission_group_count: 2,
         permission_point_count: 3,
+        redirect_uri_count: 4,
+        active_redirect_uri_count: 3,
+        admin_count: 2,
+        app_secret_rotated_at: '2026-05-24T01:00:00.000Z',
+        api_secret_rotated_at: '2026-05-24T02:00:00.000Z',
       }),
     ).toMatchObject({
       id: 'app-id',
@@ -50,6 +57,63 @@ describe('dtoMappers', () => {
       code: 'app_key_1',
       permissionGroupCount: 2,
       permissionPointCount: 3,
+      redirectUriCount: 4,
+      activeRedirectUriCount: 3,
+      adminCount: 2,
+      appSecretRotatedAt: '2026-05-24T01:00:00.000Z',
+      apiSecretRotatedAt: '2026-05-24T02:00:00.000Z',
+    });
+  });
+
+  it('maps runtime redirect URI and application admin records', () => {
+    expect(
+      mapRuntimeRedirectUri({
+        application_id: 'app-id',
+        redirect_uri: 'https://demo.example.com/auth/callback',
+        environment: 'production',
+        status: 'disabled',
+        note: null,
+        created_by_feishu_user_id: 'ou_admin',
+        created_by_name: null,
+        created_at: '2026-05-24T00:00:00.000Z',
+        updated_at: '2026-05-24T01:00:00.000Z',
+        disabled_at: '2026-05-24T01:00:00.000Z',
+      }),
+    ).toEqual({
+      applicationId: 'app-id',
+      redirectUri: 'https://demo.example.com/auth/callback',
+      environment: 'production',
+      status: 'disabled',
+      note: '',
+      createdByFeishuUserId: 'ou_admin',
+      createdByName: 'ou_admin',
+      createdAt: '2026-05-24T00:00:00.000Z',
+      updatedAt: '2026-05-24T01:00:00.000Z',
+      disabledAt: '2026-05-24T01:00:00.000Z',
+    });
+
+    expect(
+      mapRuntimeApplicationAdmin({
+        application_id: 'app-id',
+        feishu_user_id: 'ou_admin',
+        name: '管理员',
+        email: null,
+        status: null,
+        role: null,
+        created_by_feishu_user_id: 'ou_creator',
+        created_by_name: '创建人',
+        created_at: '2026-05-24T00:00:00.000Z',
+      }),
+    ).toEqual({
+      applicationId: 'app-id',
+      feishuUserId: 'ou_admin',
+      name: '管理员',
+      email: undefined,
+      status: 'active',
+      role: 'application_admin',
+      createdByFeishuUserId: 'ou_creator',
+      createdByName: '创建人',
+      createdAt: '2026-05-24T00:00:00.000Z',
     });
   });
 

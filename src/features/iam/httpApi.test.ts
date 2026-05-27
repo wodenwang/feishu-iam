@@ -109,6 +109,128 @@ describe('httpApi', () => {
     ]);
   });
 
+  it('manages runtime redirect URI endpoints without rewriting URI fields', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          {
+            application_id: 'app-id',
+            redirect_uri: 'https://demo.example.com/auth/callback',
+            environment: 'production',
+            status: 'active',
+            note: '生产',
+            created_at: '2026-05-25T00:00:00.000Z',
+            updated_at: '2026-05-25T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        application_id: 'app-id',
+        redirect_uri: 'https://staging.example.com/auth/callback',
+        environment: 'staging',
+        status: 'active',
+        note: '预发',
+        created_at: '2026-05-25T01:00:00.000Z',
+        updated_at: '2026-05-25T01:00:00.000Z',
+      })
+      .mockResolvedValueOnce({
+        application_id: 'app-id',
+        redirect_uri: 'https://demo.example.com/auth/callback',
+        environment: 'production',
+        status: 'disabled',
+        note: '生产',
+        created_at: '2026-05-25T00:00:00.000Z',
+        updated_at: '2026-05-25T02:00:00.000Z',
+        disabled_at: '2026-05-25T02:00:00.000Z',
+      });
+    const { createApplicationRedirectUri, listApplicationRedirectUris, updateApplicationRedirectUriStatus } = await import('./httpApi');
+
+    await listApplicationRedirectUris('app-id');
+    await createApplicationRedirectUri('app-id', {
+      redirectUri: 'https://staging.example.com/auth/callback',
+      environment: 'staging',
+      note: '预发',
+    });
+    await updateApplicationRedirectUriStatus('app-id', {
+      redirectUri: 'https://demo.example.com/auth/callback',
+      status: 'disabled',
+    });
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(1, '/api/applications/app-id/redirect-uris');
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/applications/app-id/redirect-uris', {
+      method: 'POST',
+      body: {
+        redirectUri: 'https://staging.example.com/auth/callback',
+        environment: 'staging',
+        note: '预发',
+      },
+    });
+    expect(httpRequestMock).toHaveBeenNthCalledWith(3, '/api/applications/app-id/redirect-uris/status', {
+      method: 'PATCH',
+      body: {
+        redirectUri: 'https://demo.example.com/auth/callback',
+        status: 'disabled',
+      },
+    });
+  });
+
+  it('rotates runtime secrets through one-time result endpoints', async () => {
+    httpRequestMock.mockResolvedValue({
+      kind: 'app_secret',
+      secret: 'sec_demo_only_not_real_000000000000',
+      rotatedAt: '2026-05-25T00:00:00.000Z',
+    });
+    const { rotateApplicationSecret } = await import('./httpApi');
+
+    const result = await rotateApplicationSecret('app-id', 'app_secret');
+
+    expect(result.secret).toBe('sec_demo_only_not_real_000000000000');
+    expect(httpRequestMock).toHaveBeenCalledWith('/api/applications/app-id/secrets/rotate', {
+      method: 'POST',
+      body: { kind: 'app_secret' },
+    });
+  });
+
+  it('manages runtime application admin endpoints with encoded Feishu user ids', async () => {
+    httpRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          {
+            application_id: 'app-id',
+            feishu_user_id: 'ou_admin',
+            name: '管理员',
+            email: 'admin@example.com',
+            status: 'active',
+            role: 'primary',
+            created_at: '2026-05-25T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        application_id: 'app-id',
+        feishu_user_id: 'ou_new/admin',
+        name: '新管理员',
+        status: 'active',
+        role: 'application_admin',
+        created_at: '2026-05-25T01:00:00.000Z',
+      })
+      .mockResolvedValueOnce({ ok: true });
+    const { addApplicationAdmin, listApplicationAdmins, removeApplicationAdmin } = await import('./httpApi');
+
+    await listApplicationAdmins('app-id');
+    await addApplicationAdmin('app-id', { feishuUserId: 'ou_new/admin' });
+    await removeApplicationAdmin('app-id', 'ou_new/admin');
+
+    expect(httpRequestMock).toHaveBeenNthCalledWith(1, '/api/applications/app-id/admins');
+    expect(httpRequestMock).toHaveBeenNthCalledWith(2, '/api/applications/app-id/admins', {
+      method: 'POST',
+      body: { feishuUserId: 'ou_new/admin' },
+    });
+    expect(httpRequestMock).toHaveBeenNthCalledWith(3, '/api/applications/app-id/admins/ou_new%2Fadmin', {
+      method: 'DELETE',
+    });
+  });
+
   it('records runtime secret copy events without sending secret values', async () => {
     httpRequestMock.mockResolvedValue({ ok: true });
     const { recordRuntimeSecretCopy } = await import('./httpApi');

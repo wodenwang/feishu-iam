@@ -7,10 +7,14 @@ import type {
   AuditAction,
   AuditResult,
   Application,
+  AddApplicationAdminInput,
   CreateApplicationInput,
+  CreateApplicationRedirectUriInput,
   CreateApplicationResult,
+  SecretKind,
   ListRolesRequest,
   RoleStatus,
+  UpdateApplicationRedirectUriStatusInput,
   UpdateRoleAuthorizationInput,
   UpsertRoleInput,
 } from './types';
@@ -60,6 +64,8 @@ export const iamQueryKeys = {
   dashboardSummary: ['iam', 'dashboardSummary'] as const,
   applications: (params: ListApplicationsParams) => ['iam', 'applications', params] as const,
   application: (applicationId: string) => ['iam', 'application', applicationId] as const,
+  applicationRedirectUris: (applicationId: string) => ['iam', 'applicationRedirectUris', applicationId] as const,
+  applicationAdmins: (applicationId: string) => ['iam', 'applicationAdmins', applicationId] as const,
   applicationPermissionRegistrations: (applicationId: string) =>
     ['iam', 'applicationPermissionRegistrations', applicationId] as const,
   roles: (params: ListRolesParams) => ['iam', 'roles', params] as const,
@@ -189,10 +195,95 @@ export function useRotateApplicationSecret() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ applicationId, secretType }: { applicationId: string; secretType: 'appsecret' | 'apiSecret' }) =>
-      iamService.rotateApplicationSecret(applicationId, secretType),
-    onSuccess: (application) => {
-      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(application.id) });
+    mutationFn: ({ applicationId, kind }: { applicationId: string; kind: SecretKind }) =>
+      iamService.rotateApplicationSecret(applicationId, kind),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useApplicationRedirectUris(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: iamQueryKeys.applicationRedirectUris(applicationId),
+    queryFn: () => iamService.listApplicationRedirectUris(applicationId),
+    enabled: options.enabled ?? Boolean(applicationId),
+  });
+}
+
+export function useCreateApplicationRedirectUri() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      input,
+    }: {
+      applicationId: string;
+      input: CreateApplicationRedirectUriInput;
+    }) => iamService.createApplicationRedirectUri(applicationId, input),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.applicationRedirectUris(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useUpdateApplicationRedirectUriStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      input,
+    }: {
+      applicationId: string;
+      input: UpdateApplicationRedirectUriStatusInput;
+    }) => iamService.updateApplicationRedirectUriStatus(applicationId, input),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.applicationRedirectUris(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useApplicationAdmins(applicationId: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: iamQueryKeys.applicationAdmins(applicationId),
+    queryFn: () => iamService.listApplicationAdmins(applicationId),
+    enabled: options.enabled ?? Boolean(applicationId),
+  });
+}
+
+export function useAddApplicationAdmin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ applicationId, input }: { applicationId: string; input: AddApplicationAdminInput }) =>
+      iamService.addApplicationAdmin(applicationId, input),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.applicationAdmins(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] });
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
+    },
+  });
+}
+
+export function useRemoveApplicationAdmin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ applicationId, feishuUserId }: { applicationId: string; feishuUserId: string }) =>
+      iamService.removeApplicationAdmin(applicationId, feishuUserId),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.applicationAdmins(variables.applicationId) });
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.application(variables.applicationId) });
       queryClient.invalidateQueries({ queryKey: ['iam', 'applications'] });
       queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
     },

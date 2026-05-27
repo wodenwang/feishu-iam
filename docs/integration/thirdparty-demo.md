@@ -1,6 +1,6 @@
 # 第三方 Demo 接入说明
 
-`v0.1.13` 在 `v0.1.12` 最小 OAuth Authorization Code runtime 基础上补齐未登录恢复：如果浏览器还没有 IAM 登录态，Demo 发起 authorize 后会先进入 IAM 登录，登录成功后恢复原始 authorize 请求并回到 Demo callback。
+`v0.1.17` 将第三方 Demo 纳入 v0.1 接入闭环验收包。Demo 基于 `v0.1.12` 最小 OAuth Authorization Code runtime 和 `v0.1.13` 未登录恢复能力：如果浏览器还没有 IAM 登录态，Demo 发起 authorize 后会先进入 IAM 登录，登录成功后恢复原始 authorize 请求并回到 Demo callback。
 
 ## 链路
 
@@ -37,6 +37,19 @@ Demo 首页
 - `IAM_APP_SECRET` 和 `IAM_API_SECRET` 不得写入 README、截图、日志或提交记录。
 
 ## 本地验收要点
+
+自动验收：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.1-access-loop.sh
+```
+
+该脚本使用 mock Feishu runtime 自动创建临时应用、注册 `demo.customer:view`、创建角色授权、执行 OAuth authorize/token、查询有权限和无权限用户权限，并检查审计日志。脚本不会打印一次性 secret、cookie、bearer token 或 HMAC signature。
+
+建议在干净数据库中运行该脚本，或使用已经由 `ou_v017_verify_admin` 完成首次平台管理员绑定的本地测试库；脚本仍通过公开 API 完成验收，不直接写数据库。
+
+浏览器验收：
 
 1. 创建应用并保存一次性 `appSecret` / `apiSecret`。
 2. 启动 Demo，填入 `IAM_APP_KEY`、`IAM_APP_SECRET`、`IAM_API_SECRET`。

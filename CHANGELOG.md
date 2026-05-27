@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.1.17 - 接入闭环验收包
+
+- 新增 `scripts/verify-v0.1-access-loop.sh`，用本地 mock Feishu runtime 自动验证 v0.1 接入主链路。
+- 验收脚本通过公开 API 串联健康检查、mock 飞书登录、平台管理员绑定、同步状态/预检、应用创建、Application API 权限注册、角色授权、OAuth authorize/token、allow/deny 权限查询和审计回溯。
+- 脚本输出仅包含 `appKey` 和权限摘要，不打印一次性 secret、cookie、bearer token 或 HMAC signature。
+- README、第三方 Demo README 和接入文档补充 v0.1 接入闭环验收路径，明确自动脚本与浏览器 Demo 验收分工。
+- 新增 v0.1.17 工程评审、QA 报告和 pre-landing review 证据；本版本不新增产品 runtime 能力，只锁定接入闭环可验收性。
+
 ## v0.1.16 - 同步运营 Runtime
 
 - 新增 `GET /api/sync/status`，平台管理员可查看最近同步、最近成功/失败、运行中状态、目录投影数量和健康判断。

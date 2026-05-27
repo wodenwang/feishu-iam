@@ -19,6 +19,10 @@ export type RoleStatus = 'active' | 'disabled';
 export type SyncStatus = 'success' | 'partial_failed' | 'failed' | 'running';
 export type SyncRunStatus = 'running' | 'succeeded' | 'failed';
 export type SyncTrigger = 'manual' | 'scheduled' | 'retry';
+export type SyncOperatorType = 'feishu_user' | 'system';
+export type SyncHealthStatus = 'healthy' | 'warning' | 'failed' | 'unknown';
+export type SyncPreflightStageName = 'token' | 'departments' | 'users';
+export type SyncPreflightStageStatus = 'passed' | 'failed';
 export type AuditAction =
   | 'login'
   | 'application.create'
@@ -29,7 +33,8 @@ export type AuditAction =
   | 'role.update'
   | 'role.authorization.update'
   | 'permission.query'
-  | 'sync.run';
+  | 'sync.run'
+  | 'sync.preflight';
 export type AuditResult = 'success' | 'failed';
 
 export interface FeishuUser {
@@ -193,12 +198,13 @@ export interface SyncRun {
   id: string;
   trigger: SyncTrigger;
   status: SyncRunStatus;
+  operatorType: SyncOperatorType;
   startedAt: string;
   finishedAt?: string;
   durationSeconds?: number;
   userChanges: number;
   departmentChanges: number;
-  operatorFeishuUserId: string;
+  operatorFeishuUserId: string | null;
   requestBatchCount: number;
   successCount: number;
   failedCount: number;
@@ -206,6 +212,33 @@ export interface SyncRun {
   requestId?: string;
   errorMessage?: string;
   auditLogId?: string;
+}
+
+export interface SyncStatusOverview {
+  latestRun: SyncRun | null;
+  latestSuccessfulRun: SyncRun | null;
+  latestFailedRun: SyncRun | null;
+  isRunning: boolean;
+  directoryUserCount: number;
+  directoryDepartmentCount: number;
+  healthStatus: SyncHealthStatus;
+  healthReasons: string[];
+}
+
+export interface SyncPreflightStage {
+  name: SyncPreflightStageName;
+  status: SyncPreflightStageStatus;
+  message?: string;
+}
+
+export interface SyncPreflightResult {
+  status: SyncPreflightStageStatus;
+  checkedAt: string;
+  requestBatchCount: number;
+  stages: SyncPreflightStage[];
+  requestId: string;
+  errorCode?: string;
+  message?: string;
 }
 
 export interface SyncSummary {

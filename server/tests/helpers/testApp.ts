@@ -22,6 +22,18 @@ export async function buildTestApp(
     feishuRedirectUri: options.feishuRedirectUri,
     feishuAuthAdapter: options.feishuAuthAdapter,
     directorySyncAdapter: options.directorySyncAdapter ?? {
+      async preflight() {
+        return {
+          status: 'passed',
+          checkedAt: new Date().toISOString(),
+          requestBatchCount: 0,
+          stages: [
+            { name: 'token', status: 'passed' },
+            { name: 'departments', status: 'passed' },
+            { name: 'users', status: 'passed' },
+          ],
+        };
+      },
       async fetchDirectorySnapshot() {
         return { departments: [], users: [], requestBatchCount: 0 };
       },

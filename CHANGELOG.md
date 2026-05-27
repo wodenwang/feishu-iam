@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.1.16 - 同步运营 Runtime
+
+- 新增 `GET /api/sync/status`，平台管理员可查看最近同步、最近成功/失败、运行中状态、目录投影数量和健康判断。
+- 新增 `POST /api/sync/preflight`，通过专用自建飞书应用预检 tenant token、部门读取和用户读取权限；预检不创建同步 run，也不改写目录投影。
+- `sync_runs` 新增 `operator_type`，scheduled run 使用 `system` actor 且 `operator_feishu_user_id = null`，不伪造飞书用户。
+- 新增可配置 scheduled full sync，默认关闭，通过 `FEISHU_SYNC_SCHEDULE_ENABLED`、`FEISHU_SYNC_SCHEDULE_INTERVAL_MINUTES` 和 `FEISHU_SYNC_SCHEDULE_START_DELAY_SECONDS` 控制。
+- `/sync` 页面接入同步健康状态、权限预检 Drawer、最近定时同步状态和系统任务展示。
+- 新增同步运营 Runtime 的后端、前端、migration、浏览器验证和发布收口证据。
+
 ## v0.1.15 - 飞书通讯录同步 Runtime
 
 - 新增 `sync_runs` 运行时表，记录同步触发方式、状态、操作人、requestId、差异摘要、错误和耗时。

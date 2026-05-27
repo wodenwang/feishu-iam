@@ -67,6 +67,7 @@ export const iamQueryKeys = {
   feishuDepartments: ['iam', 'feishuDepartments'] as const,
   directoryUsers: (params: ListDirectoryUsersParams) => ['iam', 'directoryUsers', params] as const,
   auditLogs: (params: ListAuditLogsParams) => ['iam', 'auditLogs', params] as const,
+  syncStatus: ['iam', 'syncStatus'] as const,
   syncRuns: (params: { page: number; pageSize: number }) => ['iam', 'syncRuns', params] as const,
   latestSyncRun: ['iam', 'latestSyncRun'] as const,
 };
@@ -281,6 +282,13 @@ export function useSyncRuns(params: { page: number; pageSize: number }) {
   });
 }
 
+export function useSyncStatus() {
+  return useQuery({
+    queryKey: iamQueryKeys.syncStatus,
+    queryFn: iamService.getSyncStatus,
+  });
+}
+
 export function useLatestSyncRun() {
   return useQuery({
     queryKey: iamQueryKeys.latestSyncRun,
@@ -294,6 +302,7 @@ export function useStartManualSync() {
   return useMutation({
     mutationFn: iamService.startManualSync,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.syncStatus });
       queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
     },
@@ -306,8 +315,20 @@ export function useRetrySyncRun() {
   return useMutation({
     mutationFn: (syncRunId: string) => iamService.retrySyncRun(syncRunId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: iamQueryKeys.syncStatus });
       queryClient.invalidateQueries({ queryKey: ['iam', 'syncRuns'] });
       queryClient.invalidateQueries({ queryKey: iamQueryKeys.latestSyncRun });
+    },
+  });
+}
+
+export function useRunSyncPreflight() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: iamService.runSyncPreflight,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['iam', 'auditLogs'] });
     },
   });
 }

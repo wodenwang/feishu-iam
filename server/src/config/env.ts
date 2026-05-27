@@ -11,6 +11,10 @@ export interface ServerConfig {
   feishuAppSecret?: string;
   feishuRedirectUri?: string;
   staticAssetsDir?: string;
+  syncScheduleEnabled: boolean;
+  syncScheduleIntervalMinutes: number;
+  syncScheduleStartDelaySeconds: number;
+  syncStaleAfterHours: number;
 }
 
 export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
@@ -54,6 +58,14 @@ export function parseEnv(env: NodeJS.ProcessEnv): ServerConfig {
     feishuAppSecret,
     feishuRedirectUri,
     staticAssetsDir: env.STATIC_ASSETS_DIR ?? (nodeEnv === 'production' ? 'dist' : undefined),
+    syncScheduleEnabled: parseBoolean(env.FEISHU_SYNC_SCHEDULE_ENABLED),
+    syncScheduleIntervalMinutes: parsePositiveInteger(env.FEISHU_SYNC_SCHEDULE_INTERVAL_MINUTES, 1440, 'FEISHU_SYNC_SCHEDULE_INTERVAL_MINUTES'),
+    syncScheduleStartDelaySeconds: parseNonNegativeInteger(
+      env.FEISHU_SYNC_SCHEDULE_START_DELAY_SECONDS,
+      60,
+      'FEISHU_SYNC_SCHEDULE_START_DELAY_SECONDS',
+    ),
+    syncStaleAfterHours: parsePositiveInteger(env.FEISHU_SYNC_STALE_AFTER_HOURS, 24, 'FEISHU_SYNC_STALE_AFTER_HOURS'),
   };
 }
 
@@ -93,4 +105,30 @@ function parsePort(value: string | undefined): number {
     throw new Error('PORT must be an integer between 1 and 65535');
   }
   return port;
+}
+
+function parseBoolean(value: string | undefined): boolean {
+  return value === 'true' || value === '1';
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number, name: string): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function parseNonNegativeInteger(value: string | undefined, fallback: number, name: string): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return parsed;
 }

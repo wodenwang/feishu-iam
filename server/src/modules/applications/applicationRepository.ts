@@ -28,8 +28,19 @@ export async function createApplication(client: DbClient, input: CreateApplicati
     apiSecretHash,
   ]);
   await client.query(
-    'insert into application_oauth_redirect_uris(application_id, redirect_uri) values ($1, $2) on conflict do nothing',
-    [id, 'http://127.0.0.1:4200/oauth/callback'],
+    `
+      insert into application_oauth_redirect_uris(
+        application_id,
+        redirect_uri,
+        status,
+        environment,
+        note,
+        created_by_feishu_user_id
+      )
+      values ($1, $2, 'active', 'local', '默认本地开发回调地址', $3)
+      on conflict do nothing
+    `,
+    [id, 'http://127.0.0.1:4200/oauth/callback', input.createdByFeishuUserId],
   );
 
   return { application: result.rows[0], appSecret, apiSecret };

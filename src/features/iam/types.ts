@@ -23,10 +23,19 @@ export type SyncOperatorType = 'feishu_user' | 'system';
 export type SyncHealthStatus = 'healthy' | 'warning' | 'failed' | 'unknown';
 export type SyncPreflightStageName = 'token' | 'departments' | 'users';
 export type SyncPreflightStageStatus = 'passed' | 'failed';
+export type RedirectUriEnvironment = 'production' | 'staging' | 'local';
+export type RedirectUriStatus = 'active' | 'disabled';
+export type SecretKind = 'app_secret' | 'api_secret';
 export type AuditAction =
   | 'login'
   | 'application.create'
   | 'application.api_call'
+  | 'application.admin.add'
+  | 'application.admin.bind'
+  | 'application.admin.remove'
+  | 'oauth.redirect_uri.create'
+  | 'oauth.redirect_uri.disable'
+  | 'oauth.redirect_uri.enable'
   | 'role.create'
   | 'secret.copy'
   | 'secret.rotate'
@@ -67,6 +76,11 @@ export interface Application {
   ownerName: string;
   permissionGroupCount: number;
   permissionPointCount: number;
+  redirectUriCount?: number;
+  activeRedirectUriCount?: number;
+  adminCount?: number;
+  appSecretRotatedAt?: string;
+  apiSecretRotatedAt?: string;
   lastApiCalledAt?: string;
   agentPrompt: string;
   createdAt: string;
@@ -82,6 +96,52 @@ export interface ApplicationPermissionRegistration {
   permissionName: string;
   status: 'active' | 'disabled';
   updatedAt: string;
+}
+
+export interface ApplicationRedirectUri {
+  applicationId: string;
+  redirectUri: string;
+  environment: RedirectUriEnvironment;
+  status: RedirectUriStatus;
+  note: string;
+  createdByFeishuUserId?: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+  disabledAt?: string;
+}
+
+export interface CreateApplicationRedirectUriInput {
+  redirectUri: string;
+  environment: RedirectUriEnvironment;
+  note?: string;
+}
+
+export interface UpdateApplicationRedirectUriStatusInput {
+  redirectUri: string;
+  status: RedirectUriStatus;
+}
+
+export interface RotateSecretResult {
+  kind: SecretKind;
+  secret: string;
+  rotatedAt: string;
+}
+
+export interface ApplicationAdmin {
+  applicationId: string;
+  feishuUserId: string;
+  name: string;
+  email?: string;
+  status: 'active' | 'disabled' | 'resigned';
+  role: 'primary' | 'application_admin';
+  createdByFeishuUserId?: string;
+  createdByName: string;
+  createdAt: string;
+}
+
+export interface AddApplicationAdminInput {
+  feishuUserId: string;
 }
 
 export interface IamPermissionNode {

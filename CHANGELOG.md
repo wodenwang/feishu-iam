@@ -1,5 +1,14 @@
 # 更新日志
 
+## v0.2.0 - 应用接入生产化
+
+- 新增 OAuth redirect URI 管理：列表、新增、停用、恢复，并在 OAuth authorize 中只允许启用状态的 URI。
+- 新增 `appSecret` / `apiSecret` 轮换 API；旧 secret 立即失效，新 secret 只返回一次，审计日志不保存明文。
+- 新增多应用管理员维护 API 和 Admin Console 页面入口，平台管理员可新增/移除应用管理员，并保护最后 1 位管理员不能被移除。
+- 应用详情页按 v0.2 Pencil 原型升级为概览、接入配置、权限注册、应用管理员和审计记录 Tab，突出接入状态、配置可追溯和只读权限边界。
+- 新增 `scripts/verify-v0.2-application-onboarding.sh`，自动验证 redirect URI、OAuth、secret rotation、Application API HMAC、管理员保护和审计动作。
+- README、第三方 Demo README 和接入文档补充 v0.2 验收路径与真实飞书外部配置说明。
+
 ## v0.1.17 - 接入闭环验收包
 
 - 新增 `scripts/verify-v0.1-access-loop.sh`，用本地 mock Feishu runtime 自动验证 v0.1 接入主链路。

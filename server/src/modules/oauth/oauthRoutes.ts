@@ -433,6 +433,7 @@ async function findAuthorizedRedirect(pool: DbClient, appKey: string, redirectUr
       join application_oauth_redirect_uris r on r.application_id = a.id
       where a.app_key = $1
         and r.redirect_uri = $2
+        and r.status = 'active'
     `,
     [appKey, redirectUri],
   );

@@ -12,9 +12,13 @@ import {
 } from './mockData';
 import type {
   Application,
+  AddApplicationAdminInput,
+  ApplicationAdmin,
   ApplicationPermissionRegistration,
+  ApplicationRedirectUri,
   ApplicationStatus,
   AuditLog,
+  CreateApplicationRedirectUriInput,
   CreateApplicationInput,
   CurrentSession,
   DashboardSummary,
@@ -25,15 +29,20 @@ import type {
   ListRolesRequest,
   PageRequest,
   PageResult,
+  RotateSecretResult,
+  SecretKind,
   SyncPreflightResult,
   SyncRun,
   SyncStatusOverview,
+  UpdateApplicationRedirectUriStatusInput,
   UpdateRoleAuthorizationInput,
   UpsertRoleInput,
 } from './types';
 
 interface MockIamStore {
   applications: Application[];
+  redirectUris: ApplicationRedirectUri[];
+  applicationAdmins: ApplicationAdmin[];
   roles: IamRole[];
   departments: FeishuDepartment[];
   directoryUsers: DirectoryUser[];
@@ -47,6 +56,8 @@ const cloneApplication = (application: Application): Application => ({
   callbackUrls: [...application.callbackUrls],
   allowedOrigins: [...application.allowedOrigins],
 });
+const cloneRedirectUri = (redirectUri: ApplicationRedirectUri): ApplicationRedirectUri => ({ ...redirectUri });
+const cloneApplicationAdmin = (admin: ApplicationAdmin): ApplicationAdmin => ({ ...admin });
 
 const cloneCurrentSession = (session: CurrentSession): CurrentSession => ({
   user: { ...session.user },
@@ -76,15 +87,29 @@ const clonePermissionNode = (node: IamPermissionNode): IamPermissionNode => ({
   children: node.children?.map(clonePermissionNode),
 });
 
-const createMockIamStore = (): MockIamStore => ({
-  applications: applications.map(cloneApplication),
-  roles: iamRoles.map(cloneRole),
-  departments: feishuDepartments.map(cloneDepartment),
-  directoryUsers: directoryUsers.map(cloneDirectoryUser),
-  permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
-  auditLogs: auditLogs.map(cloneAuditLog),
-  syncRuns: syncRuns.map(cloneSyncRun),
-});
+const createMockIamStore = (): MockIamStore => {
+  const clonedApplications = applications.map(cloneApplication);
+  const clonedDirectoryUsers = directoryUsers.map(cloneDirectoryUser);
+
+  const defaultRedirectUris = clonedApplications.flatMap((application) => createDefaultRedirectUris(application));
+  const defaultApplicationAdmins = clonedApplications.map((application) =>
+    createDefaultApplicationAdmin(application, clonedDirectoryUsers),
+  );
+
+  return {
+    applications: clonedApplications.map((application) =>
+      enrichApplicationCounts(application, defaultRedirectUris, defaultApplicationAdmins),
+    ),
+    redirectUris: defaultRedirectUris,
+    applicationAdmins: defaultApplicationAdmins,
+    roles: iamRoles.map(cloneRole),
+    departments: feishuDepartments.map(cloneDepartment),
+    directoryUsers: clonedDirectoryUsers,
+    permissionRegistrations: applicationPermissionRegistrations.map(clonePermissionRegistration),
+    auditLogs: auditLogs.map(cloneAuditLog),
+    syncRuns: syncRuns.map(cloneSyncRun),
+  };
+};
 
 let mockIamStore = createMockIamStore();
 let mockCurrentSession = platformAdminSession;
@@ -163,6 +188,78 @@ const appendRoleAuditLog = (message: string, applicationId?: string) => {
     ...mockIamStore.auditLogs,
   ];
 };
+
+function createDefaultRedirectUris(application: Application): ApplicationRedirectUri[] {
+  return application.callbackUrls.map((redirectUri, index) => ({
+    applicationId: application.id,
+    redirectUri,
+    environment: index === 0 ? 'production' : 'staging',
+    status: 'active',
+    note: index === 0 ? '生产回调地址' : '备用回调地址',
+    createdByFeishuUserId: application.ownerFeishuUserId,
+    createdByName: application.ownerName,
+    createdAt: application.createdAt,
+    updatedAt: application.updatedAt,
+  }));
+}
+
+function createDefaultApplicationAdmin(application: Application, users: DirectoryUser[]): ApplicationAdmin {
+  const user = users.find((item) => item.feishuUserId === application.ownerFeishuUserId);
+  return {
+    applicationId: application.id,
+    feishuUserId: application.ownerFeishuUserId,
+    name: user?.displayName ?? application.ownerName,
+    email: user?.email,
+    status: user?.status ?? 'active',
+    role: 'primary',
+    createdByFeishuUserId: application.ownerFeishuUserId,
+    createdByName: application.ownerName,
+    createdAt: application.createdAt,
+  };
+}
+
+function enrichApplicationCounts(
+  application: Application,
+  redirectUris = mockIamStore.redirectUris,
+  applicationAdmins = mockIamStore.applicationAdmins,
+): Application {
+  return {
+    ...application,
+    callbackUrls: [...application.callbackUrls],
+    allowedOrigins: [...application.allowedOrigins],
+    redirectUriCount: redirectUris.filter((item) => item.applicationId === application.id).length,
+    activeRedirectUriCount: redirectUris.filter((item) => item.applicationId === application.id && item.status === 'active').length,
+    adminCount: applicationAdmins.filter((item) => item.applicationId === application.id).length,
+  };
+}
+
+function appendApplicationAuditLog(input: {
+  action: AuditLog['action'];
+  applicationId: string;
+  message: string;
+  createdAt?: string;
+}) {
+  const now = input.createdAt ?? new Date().toISOString();
+  mockIamStore.auditLogs = [
+    {
+      id: `audit_${input.action.replaceAll('.', '_')}_${Date.now()}`,
+      action: input.action,
+      result: 'success',
+      actorFeishuUserId: mockCurrentSession.user.feishuUserId,
+      applicationId: input.applicationId,
+      message: input.message,
+      requestId: `req_${Date.now()}`,
+      createdAt: now,
+    },
+    ...mockIamStore.auditLogs,
+  ];
+}
+
+function refreshApplicationSummary(applicationId: string, now = new Date().toISOString()) {
+  mockIamStore.applications = mockIamStore.applications.map((application) =>
+    application.id === applicationId ? enrichApplicationCounts({ ...application, updatedAt: now }) : application,
+  );
+}
 
 export function resetMockIamStore() {
   mockIamStore = createMockIamStore();
@@ -257,7 +354,7 @@ export async function listApplications(
     return (!createdAtFrom || createdAt >= createdAtFrom) && (!createdAtTo || createdAt <= createdAtTo);
   });
 
-  return paginate(filtered.map(cloneApplication), request);
+  return paginate(filtered.map((application) => enrichApplicationCounts(application)), request);
 }
 
 export async function listRoles(request: ListRolesRequest): Promise<PageResult<IamRole>> {
@@ -448,7 +545,7 @@ export async function getApplication(applicationId: string): Promise<Application
     throw new Error('application not found');
   }
 
-  return cloneApplication(application);
+  return enrichApplicationCounts(application);
 }
 
 export async function createApplication(input: CreateApplicationInput): Promise<Application> {
@@ -472,6 +569,9 @@ export async function createApplication(input: CreateApplicationInput): Promise<
     ownerName: input.ownerFeishuUserId ? platformAdminSession.user.displayName : mockCurrentSession.user.displayName,
     permissionGroupCount: 0,
     permissionPointCount: 0,
+    redirectUriCount: input.callbackUrls.length,
+    activeRedirectUriCount: input.callbackUrls.length,
+    adminCount: 1,
     agentPrompt: [
       '使用环境变量接入 feishu-iam。',
       'IAM_APP_SECRET=${IAM_APP_SECRET}',
@@ -483,7 +583,12 @@ export async function createApplication(input: CreateApplicationInput): Promise<
   };
 
   mockIamStore.applications = [app, ...mockIamStore.applications];
-  return cloneApplication(app);
+  mockIamStore.redirectUris = [...createDefaultRedirectUris(app), ...mockIamStore.redirectUris];
+  mockIamStore.applicationAdmins = [
+    createDefaultApplicationAdmin(app, mockIamStore.directoryUsers),
+    ...mockIamStore.applicationAdmins,
+  ];
+  return enrichApplicationCounts(app);
 }
 
 export async function batchDisableApplications(applicationIds: string[]): Promise<Application[]> {
@@ -495,47 +600,209 @@ export async function batchDisableApplications(applicationIds: string[]): Promis
     disabledIdSet.has(application.id) ? { ...application, status: 'disabled', updatedAt: now } : application,
   );
 
-  return mockIamStore.applications.filter((application) => disabledIdSet.has(application.id)).map(cloneApplication);
+  return mockIamStore.applications
+    .filter((application) => disabledIdSet.has(application.id))
+    .map((application) => enrichApplicationCounts(application));
 }
 
-export async function rotateApplicationSecret(applicationId: string, secretType: 'appsecret' | 'apiSecret'): Promise<Application> {
+export async function listApplicationRedirectUris(applicationId: string): Promise<ApplicationRedirectUri[]> {
+  await wait();
+
+  return mockIamStore.redirectUris.filter((item) => item.applicationId === applicationId).map(cloneRedirectUri);
+}
+
+export async function createApplicationRedirectUri(
+  applicationId: string,
+  input: CreateApplicationRedirectUriInput,
+): Promise<ApplicationRedirectUri> {
+  await wait();
+
+  const application = mockIamStore.applications.find((item) => item.id === applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+  if (mockIamStore.redirectUris.some((item) => item.applicationId === applicationId && item.redirectUri === input.redirectUri)) {
+    throw new Error('redirect uri already exists');
+  }
+
+  const now = new Date().toISOString();
+  const redirectUri: ApplicationRedirectUri = {
+    applicationId,
+    redirectUri: input.redirectUri,
+    environment: input.environment,
+    status: 'active',
+    note: input.note ?? '',
+    createdByFeishuUserId: mockCurrentSession.user.feishuUserId,
+    createdByName: mockCurrentSession.user.displayName,
+    createdAt: now,
+    updatedAt: now,
+  };
+  mockIamStore.redirectUris = [redirectUri, ...mockIamStore.redirectUris];
+  refreshApplicationSummary(applicationId, now);
+  appendApplicationAuditLog({
+    action: 'oauth.redirect_uri.create',
+    applicationId,
+    message: `新增 OAuth redirect URI ${redirectUri.redirectUri}`,
+    createdAt: now,
+  });
+
+  return cloneRedirectUri(redirectUri);
+}
+
+export async function updateApplicationRedirectUriStatus(
+  applicationId: string,
+  input: UpdateApplicationRedirectUriStatusInput,
+): Promise<ApplicationRedirectUri> {
   await wait();
 
   const now = new Date().toISOString();
-  let rotatedApplication: Application | undefined;
+  let updated: ApplicationRedirectUri | undefined;
+  mockIamStore.redirectUris = mockIamStore.redirectUris.map((item) => {
+    if (item.applicationId !== applicationId || item.redirectUri !== input.redirectUri) {
+      return item;
+    }
+    updated = {
+      ...item,
+      status: input.status,
+      updatedAt: now,
+      disabledAt: input.status === 'disabled' ? now : undefined,
+    };
+    return updated;
+  });
+
+  if (!updated) {
+    throw new Error('redirect uri not found');
+  }
+
+  refreshApplicationSummary(applicationId, now);
+  appendApplicationAuditLog({
+    action: input.status === 'active' ? 'oauth.redirect_uri.enable' : 'oauth.redirect_uri.disable',
+    applicationId,
+    message: `${input.status === 'active' ? '恢复' : '停用'} OAuth redirect URI ${input.redirectUri}`,
+    createdAt: now,
+  });
+
+  return cloneRedirectUri(updated);
+}
+
+export async function rotateApplicationSecret(applicationId: string, kind: SecretKind): Promise<RotateSecretResult> {
+  await wait();
+
+  const now = new Date().toISOString();
+  let applicationFound = false;
   mockIamStore.applications = mockIamStore.applications.map((application) => {
     if (application.id !== applicationId) {
       return application;
     }
 
-    rotatedApplication = {
+    applicationFound = true;
+    return enrichApplicationCounts({
       ...application,
-      appSecretPreview: secretType === 'appsecret' ? 'sec_****_rotated' : application.appSecretPreview,
-      apiSecretPreview: secretType === 'apiSecret' ? 'api_****_rotated' : application.apiSecretPreview,
+      appSecretPreview: kind === 'app_secret' ? 'sec_****_rotated' : application.appSecretPreview,
+      apiSecretPreview: kind === 'api_secret' ? 'api_****_rotated' : application.apiSecretPreview,
+      appSecretRotatedAt: kind === 'app_secret' ? now : application.appSecretRotatedAt,
+      apiSecretRotatedAt: kind === 'api_secret' ? now : application.apiSecretRotatedAt,
       updatedAt: now,
-    };
-    return rotatedApplication;
+    });
   });
 
-  if (!rotatedApplication) {
+  if (!applicationFound) {
     throw new Error('application not found');
   }
 
-  mockIamStore.auditLogs = [
-    {
-      id: `audit_secret_rotate_${Date.now()}`,
-      action: 'secret.rotate',
-      result: 'success',
-      actorFeishuUserId: mockCurrentSession.user.feishuUserId,
-      applicationId,
-      message: secretType === 'appsecret' ? '轮换 appsecret' : '轮换 API secret',
-      requestId: `req_${Date.now()}`,
-      createdAt: now,
-    },
-    ...mockIamStore.auditLogs,
-  ];
+  appendApplicationAuditLog({
+    action: 'secret.rotate',
+    applicationId,
+    message: kind === 'app_secret' ? '轮换 appSecret' : '轮换 API secret',
+    createdAt: now,
+  });
 
-  return cloneApplication(rotatedApplication);
+  return {
+    kind,
+    secret: kind === 'app_secret' ? `sec_mock_${Date.now()}` : `api_sec_mock_${Date.now()}`,
+    rotatedAt: now,
+  };
+}
+
+export async function listApplicationAdmins(applicationId: string): Promise<ApplicationAdmin[]> {
+  await wait();
+
+  return mockIamStore.applicationAdmins.filter((item) => item.applicationId === applicationId).map(cloneApplicationAdmin);
+}
+
+export async function addApplicationAdmin(
+  applicationId: string,
+  input: AddApplicationAdminInput,
+): Promise<ApplicationAdmin> {
+  await wait();
+
+  const application = mockIamStore.applications.find((item) => item.id === applicationId);
+  if (!application) {
+    throw new Error('application not found');
+  }
+
+  const existing = mockIamStore.applicationAdmins.find(
+    (item) => item.applicationId === applicationId && item.feishuUserId === input.feishuUserId,
+  );
+  if (existing) {
+    return cloneApplicationAdmin(existing);
+  }
+
+  const user = mockIamStore.directoryUsers.find((item) => item.feishuUserId === input.feishuUserId);
+  if (!user) {
+    throw new Error('directory user not found');
+  }
+
+  const now = new Date().toISOString();
+  const admin: ApplicationAdmin = {
+    applicationId,
+    feishuUserId: user.feishuUserId,
+    name: user.displayName,
+    email: user.email,
+    status: user.status,
+    role: mockIamStore.applicationAdmins.some((item) => item.applicationId === applicationId) ? 'application_admin' : 'primary',
+    createdByFeishuUserId: mockCurrentSession.user.feishuUserId,
+    createdByName: mockCurrentSession.user.displayName,
+    createdAt: now,
+  };
+  mockIamStore.applicationAdmins = [admin, ...mockIamStore.applicationAdmins];
+  refreshApplicationSummary(applicationId, now);
+  appendApplicationAuditLog({
+    action: 'application.admin.add',
+    applicationId,
+    message: `新增应用管理员 ${admin.name}`,
+    createdAt: now,
+  });
+
+  return cloneApplicationAdmin(admin);
+}
+
+export async function removeApplicationAdmin(applicationId: string, feishuUserId: string): Promise<{ ok: true }> {
+  await wait();
+
+  const admins = mockIamStore.applicationAdmins.filter((item) => item.applicationId === applicationId);
+  if (admins.length <= 1 && admins.some((item) => item.feishuUserId === feishuUserId)) {
+    throw new Error('LAST_APPLICATION_ADMIN');
+  }
+
+  const removed = mockIamStore.applicationAdmins.find(
+    (item) => item.applicationId === applicationId && item.feishuUserId === feishuUserId,
+  );
+  mockIamStore.applicationAdmins = mockIamStore.applicationAdmins.filter(
+    (item) => item.applicationId !== applicationId || item.feishuUserId !== feishuUserId,
+  );
+  const now = new Date().toISOString();
+  refreshApplicationSummary(applicationId, now);
+  if (removed) {
+    appendApplicationAuditLog({
+      action: 'application.admin.remove',
+      applicationId,
+      message: `移除应用管理员 ${removed.name}`,
+      createdAt: now,
+    });
+  }
+
+  return { ok: true };
 }
 
 export async function recordRuntimeSecretCopy(

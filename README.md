@@ -12,11 +12,13 @@
 
 ## 当前能力
 
-当前版本：`v0.1.17`
+当前版本：`v0.2.0`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
-- Runtime API 支持创建应用时绑定一个飞书用户为应用管理员。
+- Runtime API 支持 OAuth redirect URI 新增、停用、恢复和 active authorize 校验。
+- Runtime API 支持 `appSecret` / `apiSecret` 轮换，旧 secret 立即失效，新 secret 只返回一次。
+- Runtime API 支持多应用管理员维护，并保护最后 1 位应用管理员不能被移除。
 - 应用管理员登录后只能查看和管理自己负责的应用、角色授权和本应用审计。
 - 平台管理员可以在 `飞书同步` 页面查看同步健康状态、运行权限预检、触发通讯录 full sync，并查看手动或定时同步历史、差异摘要和失败原因。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
@@ -108,8 +110,8 @@
 
 1. 平台管理员通过飞书登录 Admin Console。
 2. 进入 `应用管理`，创建业务系统应用。
-3. 在应用详情查看 `appKey`、Application API endpoint、权限注册结果和最近调用记录。
-4. 在 `应用接入向导` 复制 Agent Prompt 或运行时环境变量模板。
+3. 在应用详情查看 `appKey`、redirect URI、secret 状态、Application API endpoint、权限注册结果和最近调用记录。
+4. 在 `接入配置` 维护 OAuth redirect URI，并在需要时轮换 `appSecret` / `apiSecret`。
 5. 第三方系统通过 OAuth 登录 IAM，并通过 Application API 注册权限组和权限点。
 6. 平台管理员或应用管理员在 `角色授权` 中把权限点授权给飞书用户或部门。
 7. 第三方系统调用当前用户权限查询接口，根据权限点控制页面和接口。
@@ -125,9 +127,33 @@ npm --prefix examples/thirdparty-demo run dev
 
 Application API 请求使用 HMAC header 鉴权。真实 secret 只应写入运行时环境变量或 secret manager，不应写入代码仓库。
 
+## v0.2 应用接入生产化验收
+
+当前版本提供应用接入生产化自动验收脚本，用来证明 redirect URI 管理、OAuth active URI 校验、secret 轮换、应用管理员保护和配置审计可以串起来：
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam \
+SESSION_SECRET=local-session-secret-at-least-32-bytes \
+FEISHU_AUTH_MODE=mock \
+npm run server:dev
+```
+
+在另一个终端运行：
+
+```bash
+RUNTIME_API_BASE_URL=http://127.0.0.1:4100 \
+bash scripts/verify-v0.2-application-onboarding.sh
+```
+
+脚本会创建临时应用，新增和停用/恢复 redirect URI，验证 disabled URI 不能 authorize，轮换 `appSecret` 和 `apiSecret` 并确认旧 secret 失效，新增/移除应用管理员并验证最后管理员保护，最后检查配置审计动作。脚本不输出一次性 secret、cookie、bearer token、authorization code 或 HMAC signature。
+
+建议在干净数据库中运行该脚本，或使用已由 `ou_v012_verify_admin` 初始化的平台管理员测试库；如果本地库已绑定其他平台管理员，可通过 `VERIFY_PLATFORM_ADMIN_FEISHU_USER_ID=<feishu-user-id>` 指定脚本登录用户。
+
+真实飞书验收仍需要在飞书开放平台手动配置 Admin Console 登录 redirect URI、第三方应用 OAuth redirect URI、通讯录读取权限和部署环境白名单；真实凭证只应写入运行时环境变量或 secret manager，不要写入仓库。
+
 ## v0.1 接入闭环验收
 
-当前版本提供一条本地 mock Feishu 自动验收路径，用来证明 IAM runtime、OAuth、Application API、角色授权、同步预检和审计链路可以串起来：
+保留 v0.1 接入闭环脚本，用来证明 IAM runtime、OAuth、Application API、角色授权、同步预检和审计链路可以串起来：
 
 ```bash
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/feishu_iam \

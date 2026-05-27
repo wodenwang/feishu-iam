@@ -413,6 +413,7 @@ export async function updateRoleAuthorization(input: UpdateRoleAuthorizationInpu
   await httpRequest(`/api/roles/${input.roleId}/authorization`, {
     method: 'PUT',
     body: {
+      permissionGroupCodes: input.permissionGroupKeys ?? [],
       permissionPointCodes: input.permissionKeys,
       departmentIds: input.departmentIds,
       feishuUserIds: input.userIds,

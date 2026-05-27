@@ -57,4 +57,14 @@ describe('LoginPage', () => {
     expect(screen.getByText('无后台访问权限')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重新使用飞书登录' })).toBeInTheDocument();
   });
+
+  it('shows login-required recovery when OAuth starts without an IAM session', () => {
+    render(<LoginPage status="loginRequired" deploymentUrl="https://iam.example.com" environmentName="生产环境" />);
+
+    expect(screen.getByText('需要通过飞书登录')).toBeInTheDocument();
+    expect(screen.getAllByText(/当前浏览器没有有效 IAM 登录态/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: '使用飞书登录' })).toBeInTheDocument();
+    expect(screen.getByText('生产环境')).toBeInTheDocument();
+    expect(screen.getByText('https://iam.example.com')).toBeInTheDocument();
+  });
 });

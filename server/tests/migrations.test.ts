@@ -19,6 +19,7 @@ describe('database migrations', () => {
     expect(isMigrationFile('006_sync_runs.sql')).toBe(true);
     expect(isMigrationFile('007_sync_ops.sql')).toBe(true);
     expect(isMigrationFile('008_application_onboarding.sql')).toBe(true);
+    expect(isMigrationFile('009_role_permission_groups.sql')).toBe(true);
     expect(isMigrationFile('._001_runtime.sql')).toBe(false);
     expect(isMigrationFile('.DS_Store')).toBe(false);
     expect(isMigrationFile('README.sql')).toBe(false);
@@ -44,6 +45,7 @@ describe('database migrations', () => {
       { version: '006_sync_runs' },
       { version: '007_sync_ops' },
       { version: '008_application_onboarding' },
+      { version: '009_role_permission_groups' },
     ]);
   });
 

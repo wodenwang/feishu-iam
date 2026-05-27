@@ -84,6 +84,7 @@ const toTreeData = (nodes: IamPermissionNode[]): DataNode[] =>
 
 const countAdded = (current: string[], previous: string[]) => current.filter((item) => !previous.includes(item)).length;
 const countRemoved = (current: string[], previous: string[]) => previous.filter((item) => !current.includes(item)).length;
+const isPermissionPointKey = (key: string) => key.includes(':');
 
 export function RolesPage() {
   const { message } = App.useApp();
@@ -140,11 +141,17 @@ export function RolesPage() {
     label: `${user.displayName} / ${user.feishuUserId}`,
   }));
   const selectedPermissionKeyStrings = checkedPermissionKeys.map(String);
+  const selectedPermissionGroupKeys = selectedPermissionKeyStrings.filter((key) => !isPermissionPointKey(key));
+  const selectedPermissionPointKeys = selectedPermissionKeyStrings.filter(isPermissionPointKey);
+  const activeRolePermissionGroupKeys = (activeRole?.permissionKeys ?? []).filter((key) => !isPermissionPointKey(key));
+  const activeRolePermissionPointKeys = (activeRole?.permissionKeys ?? []).filter(isPermissionPointKey);
   const selectedDepartmentIdStrings = selectedDepartmentIds.map(String);
   const selectedUserIdStrings = selectedUserIds.map(String);
   const authorizationSummary = {
-    addedPermissions: countAdded(selectedPermissionKeyStrings, activeRole?.permissionKeys ?? []),
-    removedPermissions: countRemoved(selectedPermissionKeyStrings, activeRole?.permissionKeys ?? []),
+    addedPermissionGroups: countAdded(selectedPermissionGroupKeys, activeRolePermissionGroupKeys),
+    removedPermissionGroups: countRemoved(selectedPermissionGroupKeys, activeRolePermissionGroupKeys),
+    addedPermissions: countAdded(selectedPermissionPointKeys, activeRolePermissionPointKeys),
+    removedPermissions: countRemoved(selectedPermissionPointKeys, activeRolePermissionPointKeys),
     addedDepartments: countAdded(selectedDepartmentIdStrings, activeRole?.departmentIds ?? []),
     removedDepartments: countRemoved(selectedDepartmentIdStrings, activeRole?.departmentIds ?? []),
     addedUsers: countAdded(selectedUserIdStrings, activeRole?.userIds ?? []),
@@ -532,7 +539,8 @@ export function RolesPage() {
           try {
             await updateRoleAuthorizationMutation.mutateAsync({
               roleId: activeRole.id,
-              permissionKeys: selectedPermissionKeyStrings,
+              permissionGroupKeys: selectedPermissionGroupKeys,
+              permissionKeys: selectedPermissionPointKeys,
               departmentIds: selectedDepartmentIdStrings,
               userIds: selectedUserIdStrings,
             });
@@ -547,8 +555,10 @@ export function RolesPage() {
         onCancel={() => setSummaryOpen(false)}
       >
         <Space orientation="vertical">
-          <Typography.Text>新增权限：{authorizationSummary.addedPermissions} 个</Typography.Text>
-          <Typography.Text>移除权限：{authorizationSummary.removedPermissions} 个</Typography.Text>
+          <Typography.Text>新增权限组：{authorizationSummary.addedPermissionGroups} 个</Typography.Text>
+          <Typography.Text>移除权限组：{authorizationSummary.removedPermissionGroups} 个</Typography.Text>
+          <Typography.Text>新增权限点：{authorizationSummary.addedPermissions} 个</Typography.Text>
+          <Typography.Text>移除权限点：{authorizationSummary.removedPermissions} 个</Typography.Text>
           <Typography.Text>新增组织：{authorizationSummary.addedDepartments} 个</Typography.Text>
           <Typography.Text>移除组织：{authorizationSummary.removedDepartments} 个</Typography.Text>
           <Typography.Text>新增用户：{authorizationSummary.addedUsers} 个</Typography.Text>

@@ -321,18 +321,29 @@ describe('applications API', () => {
       headers: { cookie },
       payload: { kind: 'runtime_env' },
     });
+    const promptCopy = await app.inject({
+      method: 'POST',
+      url: `/api/applications/${applicationId}/secret-copy-events`,
+      headers: { cookie },
+      payload: { kind: 'agent_prompt' },
+    });
 
     expect(response.statusCode).toBe(200);
+    expect(promptCopy.statusCode).toBe(200);
     const audit = await pool.query(
-      "select action, target_id, metadata::text as metadata from audit_logs where action = 'secret.copy'",
+      "select action, target_id, metadata::text as metadata from audit_logs where action = 'secret.copy' order by id",
     );
+    expect(audit.rows).toHaveLength(2);
     expect(audit.rows[0]).toMatchObject({
       action: 'secret.copy',
       target_id: applicationId,
     });
     expect(audit.rows[0].metadata).toContain('runtime_env');
+    expect(audit.rows[1].metadata).toContain('agent_prompt');
     expect(audit.rows[0].metadata).not.toContain(created.json().appSecret);
     expect(audit.rows[0].metadata).not.toContain(created.json().apiSecret);
+    expect(audit.rows[1].metadata).not.toContain(created.json().appSecret);
+    expect(audit.rows[1].metadata).not.toContain(created.json().apiSecret);
   });
 
   it('manages OAuth redirect URIs and enforces active redirect status during authorize', async () => {

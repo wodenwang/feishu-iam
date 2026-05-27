@@ -17,7 +17,8 @@ function RuntimeLoginPage() {
   const [loading, setLoading] = useState(false);
   const apiMode = getIamApiMode();
   const status = new URLSearchParams(location.search).get('status');
-  const loginStatus = status === 'configMissing' || status === 'authFailed' ? status : 'idle';
+  const loginStatus =
+    status === 'configMissing' || status === 'authFailed' || status === 'loginRequired' ? status : 'idle';
 
   return (
     <LoginPage

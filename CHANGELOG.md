@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.2.1 - 应用接入闭环补缺
+
+- 应用详情 `接入配置` 新增 `复制应用提示词`，面向 Codex / Claude Code 生成第三方项目 `AGENTS.md` / `CLAUDE.md` 接入说明。
+- 应用提示词包含 IAM base URL、OAuth authorize/token endpoint、redirect URI、Application API endpoint、`appKey` 和 HMAC 鉴权规则，但不包含已保存 secret 明文。
+- 角色授权新增 permission group 绑定，权限查询会把角色绑定的权限组展开为组内启用权限点，并与直接权限点绑定去重。
+- 登录页新增 `loginRequired` 未登录恢复状态，优化首次进入、重新登录和无权限等状态的 Admin Console 入口表达。
+- 补充 v0.2.1 后端、前端、版本和本地验证工件。
+
 ## v0.2.0 - 应用接入生产化
 
 - 新增 OAuth redirect URI 管理：列表、新增、停用、恢复，并在 OAuth authorize 中只允许启用状态的 URI。

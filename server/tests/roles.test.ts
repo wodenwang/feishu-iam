@@ -125,6 +125,73 @@ describe('role routes', () => {
     expect(permissionQuery.statusCode).toBe(200);
     expect(permissionQuery.json().permissionCodes).toEqual([]);
   });
+
+  it('authorizes roles by permission group and expands active points during permission query', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_role_group_admin', '权限组管理员');
+    const assigneeCookie = await loginCookie(app, 'ou_role_group_assignee', '权限组授权用户');
+    const application = await createApplication(app, adminCookie, 'v0.2.1 Role Group Demo');
+    await registerPermissions(app, application, [
+      { groupCode: 'crm.customer', groupName: '客户管理', code: 'crm.customer:view', name: '查看客户' },
+      { groupCode: 'crm.customer', groupName: '客户管理', code: 'crm.customer:update', name: '更新客户' },
+      { groupCode: 'crm.contract', groupName: '合同管理', code: 'crm.contract:read', name: '查看合同' },
+    ]);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      headers: { cookie: adminCookie },
+      payload: { appKey: application.app_key, code: 'crm_group_viewer', name: '客户组授权' },
+    });
+    expect(created.statusCode).toBe(200);
+
+    const authorization = await app.inject({
+      method: 'PUT',
+      url: `/api/roles/${created.json().id}/authorization`,
+      headers: { cookie: adminCookie },
+      payload: {
+        permissionGroupCodes: ['crm.customer'],
+        permissionPointCodes: ['crm.contract:read'],
+        feishuUserIds: ['ou_role_group_assignee'],
+        departmentIds: [],
+      },
+    });
+    expect(authorization.statusCode).toBe(200);
+    expect(authorization.json()).toMatchObject({
+      permissionGroupCodes: ['crm.customer'],
+      permissionPointCodes: ['crm.contract:read'],
+    });
+
+    const roles = await app.inject({
+      method: 'GET',
+      url: `/api/roles?appKey=${application.app_key}&keyword=group&page=1&pageSize=20`,
+      headers: { cookie: adminCookie },
+    });
+    expect(roles.statusCode).toBe(200);
+    expect(roles.json().items[0]).toMatchObject({
+      permission_group_count: 2,
+      permission_point_count: 3,
+      permission_keys: ['crm.customer', 'crm.contract:read', 'crm.customer:update', 'crm.customer:view'],
+    });
+
+    const permissionQuery = await queryPermissions(app, application, assigneeCookie);
+    expect(permissionQuery.statusCode).toBe(200);
+    expect(permissionQuery.json().permissionCodes).toEqual(['crm.contract:read', 'crm.customer:update', 'crm.customer:view']);
+
+    await pool.query("update permission_groups set status = 'disabled' where application_id = $1 and code = 'crm.customer'", [
+      application.id,
+    ]);
+    const afterDisable = await queryPermissions(app, application, assigneeCookie);
+    expect(afterDisable.statusCode).toBe(200);
+    expect(afterDisable.json().permissionCodes).toEqual(['crm.contract:read']);
+
+    const audit = await pool.query(
+      "select metadata::jsonb as metadata from audit_logs where action = 'role.authorization.update' order by id desc limit 1",
+    );
+    expect(audit.rows[0].metadata).toMatchObject({
+      permissionGroupCount: 1,
+      permissionPointCount: 1,
+    });
+  });
 });
 
 async function loginAndBindAdmin(app: Awaited<ReturnType<typeof buildTestApp>>, feishuUserId: string, name: string) {

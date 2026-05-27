@@ -65,6 +65,11 @@ const authorizationSchema = {
     required: ['permissionPointCodes', 'feishuUserIds', 'departmentIds'],
     additionalProperties: false,
     properties: {
+      permissionGroupCodes: {
+        type: 'array',
+        maxItems: 200,
+        items: { type: 'string', minLength: 2, maxLength: 100 },
+      },
       permissionPointCodes: {
         type: 'array',
         maxItems: 500,
@@ -99,6 +104,7 @@ interface UpdateRoleBody {
 }
 
 interface AuthorizationBody {
+  permissionGroupCodes?: string[];
   permissionPointCodes: string[];
   feishuUserIds: string[];
   departmentIds: string[];
@@ -172,12 +178,37 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
           from roles r
           join applications a on a.id = r.application_id
           left join lateral (
-            select array_agg(pp.code order by pp.code) as permission_keys,
-                   count(distinct pp.group_id)::int as permission_group_count,
-                   count(pp.id)::int as permission_point_count
-            from role_permission_points rpp
-            join permission_points pp on pp.id = rpp.permission_point_id
-            where rpp.role_id = r.id
+            select array_agg(permission_key order by sort_order, permission_key) as permission_keys,
+                   count(distinct group_id)::int as permission_group_count,
+                   count(distinct point_id)::int as permission_point_count
+            from (
+              select pg.id as group_id,
+                     null::uuid as point_id,
+                     pg.code as permission_key,
+                     0 as sort_order
+              from role_permission_groups rpg
+              join permission_groups pg on pg.id = rpg.permission_group_id
+              where rpg.role_id = r.id
+              union
+              select pp.group_id,
+                     pp.id as point_id,
+                     pp.code as permission_key,
+                     1 as sort_order
+              from role_permission_points rpp
+              join permission_points pp on pp.id = rpp.permission_point_id
+              where rpp.role_id = r.id
+              union
+              select pg.id as group_id,
+                     pp.id as point_id,
+                     pp.code as permission_key,
+                     1 as sort_order
+              from role_permission_groups rpg
+              join permission_groups pg on pg.id = rpg.permission_group_id
+              join permission_points pp on pp.group_id = pg.id
+              where rpg.role_id = r.id
+                and pg.status = 'active'
+                and pp.status = 'active'
+            ) permission_projection
           ) permission_summary on true
           left join lateral (
             select array_agg(rdb.department_id order by rdb.department_id) as department_ids,
@@ -335,6 +366,8 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
   app.put('/api/roles/:id/authorization', { schema: authorizationSchema }, async (request) => {
     const { id } = request.params as { id: string };
     const body = request.body as AuthorizationBody;
+    const permissionGroupCodes = body.permissionGroupCodes ?? [];
+    assertUniqueValues(permissionGroupCodes, 'DUPLICATE_AUTHORIZATION_PERMISSION_GROUP', '授权权限组不能重复');
     assertUniqueValues(body.permissionPointCodes, 'DUPLICATE_AUTHORIZATION_PERMISSION_POINT', '授权权限点不能重复');
     assertUniqueValues(body.feishuUserIds, 'DUPLICATE_AUTHORIZATION_USER', '授权用户不能重复');
     assertUniqueValues(body.departmentIds, 'DUPLICATE_AUTHORIZATION_DEPARTMENT', '授权部门不能重复');
@@ -349,14 +382,22 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
       }
       requireApplicationScope(request.actor, roleRow.application_id, '没有权限管理该应用的角色');
 
+      const permissionGroupIds = await resolvePermissionGroupIds(client, roleRow.application_id, permissionGroupCodes);
       const permissionPointIds = await resolvePermissionPointIds(client, roleRow.application_id, body.permissionPointCodes);
       await assertFeishuUsersExist(client, body.feishuUserIds);
       await assertDepartmentsExist(client, body.departmentIds);
 
+      await client.query('delete from role_permission_groups where role_id = $1', [id]);
       await client.query('delete from role_permission_points where role_id = $1', [id]);
       await client.query('delete from role_user_bindings where role_id = $1', [id]);
       await client.query('delete from role_department_bindings where role_id = $1', [id]);
 
+      for (const permissionGroupId of permissionGroupIds) {
+        await client.query(
+          'insert into role_permission_groups(role_id, permission_group_id) values ($1, $2) on conflict do nothing',
+          [id, permissionGroupId],
+        );
+      }
       for (const permissionPointId of permissionPointIds) {
         await client.query(
           'insert into role_permission_points(role_id, permission_point_id) values ($1, $2) on conflict do nothing',
@@ -383,17 +424,19 @@ export async function registerRoleRoutes(app: FastifyInstance, pool: DbPool): Pr
         targetType: 'role',
         targetId: id,
         result: 'success',
-        metadata: {
-          roleCode: roleRow.code,
-          permissionPointCount: permissionPointIds.length,
-          userCount: body.feishuUserIds.length,
-          departmentCount: body.departmentIds.length,
+          metadata: {
+            roleCode: roleRow.code,
+            permissionGroupCount: permissionGroupIds.length,
+            permissionPointCount: permissionPointIds.length,
+            userCount: body.feishuUserIds.length,
+            departmentCount: body.departmentIds.length,
         },
       });
       await client.query('commit');
 
       return {
         roleId: id,
+        permissionGroupCodes,
         permissionPointCodes: body.permissionPointCodes,
         feishuUserIds: body.feishuUserIds,
         departmentIds: body.departmentIds,
@@ -417,6 +460,26 @@ function normalizePagination(query: { page?: number; pageSize?: number }) {
 async function findApplicationByAppKey(pool: DbPool, appKey: string): Promise<{ id: string; app_key: string } | null> {
   const result = await pool.query('select id, app_key from applications where app_key = $1', [appKey]);
   return result.rows[0] ?? null;
+}
+
+async function resolvePermissionGroupIds(client: DbClient, applicationId: string, codes: string[]): Promise<string[]> {
+  if (codes.length === 0) {
+    return [];
+  }
+  const result = await client.query(
+    `
+      select id, code
+      from permission_groups
+      where application_id = $1
+        and code = any($2::text[])
+    `,
+    [applicationId, codes],
+  );
+  if (result.rowCount !== codes.length) {
+    throw new HttpError(400, 'PERMISSION_GROUP_NOT_FOUND', '授权权限组不存在');
+  }
+  const idByCode = new Map(result.rows.map((row) => [row.code, row.id]));
+  return codes.map((code) => idByCode.get(code) as string);
 }
 
 async function resolvePermissionPointIds(

@@ -12,7 +12,7 @@
 
 ## 当前能力
 
-当前版本：`v0.2.0`
+当前版本：`v0.2.1`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
@@ -24,7 +24,8 @@
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
 - 第三方 Demo 从未登录浏览器发起 OAuth 时，IAM 登录成功后可恢复原始 authorize 请求并回到 Demo callback。
 - Application API 支持 HMAC 鉴权、权限组/权限点注册和当前用户权限查询。
-- 角色授权支持创建、编辑、停用和绑定权限点、飞书用户、飞书部门。
+- 角色授权支持创建、编辑、停用和绑定权限组、权限点、飞书用户、飞书部门。
+- 应用详情可一键复制第三方应用接入提示词，帮助 Codex / Claude Code 在业务系统中维护 `AGENTS.md` / `CLAUDE.md`。
 - `/directory` 支持飞书组织和用户投影的只读浏览。
 - 登录页、Admin Shell、UserMenu、退出登录和核心表格状态已经按 Ant Design 后台模式重构。
 
@@ -181,7 +182,7 @@ bash scripts/verify-v0.1-access-loop.sh
 - 不新增独立 username/password 登录体系。
 - 生产环境禁止 `FEISHU_AUTH_MODE=mock`。
 - 不提交飞书 App Secret、tokens、应用 secret、导出用户列表或同步快照。
-- Agent Prompt 默认只包含 secret 占位符，不包含真实 secret。
+- 应用提示词默认只包含 secret 环境变量名，不包含真实 secret。
 - 创建应用返回的 secret 只显示一次，后续页面只显示占位符或状态。
 
 ## 常用验证命令

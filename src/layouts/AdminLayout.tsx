@@ -1,6 +1,7 @@
-import { Alert, Breadcrumb, Grid, Layout, Menu, Result, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Breadcrumb, Button, Grid, Layout, Menu, Result, Space, Spin, Tooltip, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../components/BrandLogo';
 import { UserMenu } from '../components/UserMenu';
@@ -28,12 +29,13 @@ export function AdminLayout() {
   const apiMode = getIamApiMode();
   const environmentLabel = apiMode === 'http' ? '生产环境' : '本地开发';
   const runtimeLabel = apiMode === 'http' ? 'HTTP runtime' : 'Mock data';
+  const [siderCollapsed, setSiderCollapsed] = useState(() => getViewportWidth() < 1024);
   const defaultAdminPath = apiMode === 'http' ? '/applications' : '/dashboard';
   const isPlatformAdminSession = isPlatformAdmin(session);
   const currentRoute = matchRouteItem(routeItems, location.pathname);
   const selectedMenuKey = getMenuSelectedKey(routeItems, location.pathname);
   const viewportWidth = getViewportWidth();
-  const compactShell = viewportWidth < 1024 || screens.xs === true;
+  const compactShell = siderCollapsed || screens.xs === true;
   const contentPadding = viewportWidth < 1024 ? 16 : 24;
 
   if (sessionQuery.isLoading) {
@@ -131,18 +133,28 @@ export function AdminLayout() {
           }}
         >
           <Space size={12} style={{ flexShrink: 0, minWidth: 0, height: '100%' }}>
-            {compactShell ? <MenuUnfoldOutlined style={{ color: '#475569', fontSize: 18 }} /> : <MenuFoldOutlined style={{ color: '#475569', fontSize: 18 }} />}
+            <Tooltip title={compactShell ? '展开导航' : '收起导航'}>
+              <Button
+                aria-label={compactShell ? '展开侧边导航' : '收起侧边导航'}
+                type="text"
+                icon={
+                  compactShell ? (
+                    <MenuUnfoldOutlined style={{ color: '#475569', fontSize: 18 }} aria-hidden="true" />
+                  ) : (
+                    <MenuFoldOutlined style={{ color: '#475569', fontSize: 18 }} aria-hidden="true" />
+                  )
+                }
+                onClick={() => setSiderCollapsed((current) => !current)}
+                style={{ width: 36, height: 36 }}
+              />
+            </Tooltip>
             {compactShell ? null : <Typography.Text type="secondary">飞书身份与应用访问控制</Typography.Text>}
           </Space>
           <Space size={10} align="center" style={{ minWidth: 0, justifyContent: 'flex-end', overflow: 'hidden', height: '100%' }}>
-            {!compactShell ? (
-              <Tag color={apiMode === 'http' ? 'success' : 'processing'} style={{ marginInlineEnd: 0 }}>
-                {runtimeLabel}
-              </Tag>
-            ) : null}
             <UserMenu
               session={session}
               environmentName={environmentLabel}
+              runtimeName={runtimeLabel}
               compact={compactShell}
               onLogoutSuccess={() => navigate('/login', { replace: true })}
             />

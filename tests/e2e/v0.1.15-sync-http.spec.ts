@@ -23,6 +23,7 @@ test.describe('v0.1.15 Sync HTTP mode', () => {
 
     await page.goto('/sync');
     await expect(page.getByRole('heading', { name: '飞书同步' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /打开用户菜单/ })).toBeVisible();
     await page.getByRole('button', { name: /手动同步/ }).click();
     await expect(page.getByRole('row', { name: /成功/ }).first()).toBeVisible();
     await page.screenshot({ path: `${screenshotDir}/sync-runtime-${testInfo.project.name}.png`, fullPage: true });

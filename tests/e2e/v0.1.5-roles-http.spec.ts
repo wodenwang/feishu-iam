@@ -35,7 +35,7 @@ test.describe('v0.1.5 Roles HTTP mode', () => {
     await page.getByRole('button', { name: /我已保存/ }).click();
 
     await page.goto('/roles');
-    await expect(page.getByText(/HTTP runtime|生产环境/).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /打开用户菜单/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: '角色授权' })).toBeVisible();
 
     await page.getByRole('button', { name: /新建角色/ }).click();

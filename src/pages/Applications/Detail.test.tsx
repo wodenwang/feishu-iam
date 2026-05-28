@@ -160,13 +160,38 @@ describe('ApplicationDetailPage', () => {
     });
     expect(prompt).toContain('AGENTS.md');
     expect(prompt).toContain('CLAUDE.md');
-    expect(prompt).toContain('OAUTH_AUTHORIZE_ENDPOINT');
-    expect(prompt).toContain('APPLICATION_API_BASE');
+    expect(prompt).toContain('请在第三方项目中创建或更新 AGENTS.md 和 CLAUDE.md');
+    expect(prompt).toContain('GET /api/oauth/authorize');
+    expect(prompt).toContain('POST /api/oauth/token');
+    expect(prompt).toContain('PUT /api/application/permission-groups');
+    expect(prompt).toContain('PUT /api/application/permission-points');
+    expect(prompt).toContain('GET /api/application/me/permissions');
+    expect(prompt).toContain('x-fiam-app-key');
+    expect(prompt).toContain(['METHOD', 'PATH', 'NORMALIZED_QUERY', 'TIMESTAMP', 'NONCE', 'BODY_SHA256_HEX'].join('\n'));
     expect(prompt).toContain('HMAC-SHA256');
     expect(prompt).toContain('https://demo.example.com/auth/callback');
-    expect(prompt).toContain('IAM_APP_SECRET=<从 feishu-iam 创建或轮换结果取得，只写入运行时环境>');
+    expect(prompt).toContain('IAM_APP_SECRET=<FEISHU_IAM_APP_SECRET>');
+    expect(prompt).toContain('IAM_API_SECRET=<FEISHU_IAM_API_SECRET>');
     expect(prompt).not.toContain('sec_****_crm');
     expect(prompt).not.toContain('api_****_crm');
+  });
+
+  it('builds one-time prompts with only the provided plaintext secret', () => {
+    const appSecretPrompt = buildApplicationPrompt({
+      application: applications[0],
+      redirectUris: [],
+      oneTimeSecrets: { appSecret: 'sec_v040_once' },
+    });
+    const apiSecretPrompt = buildApplicationPrompt({
+      application: applications[0],
+      redirectUris: [],
+      oneTimeSecrets: { apiSecret: 'api_sec_v040_once' },
+    });
+
+    expect(appSecretPrompt).toContain('IAM_APP_SECRET=sec_v040_once');
+    expect(appSecretPrompt).toContain('IAM_API_SECRET=<FEISHU_IAM_API_SECRET>');
+    expect(apiSecretPrompt).toContain('IAM_APP_SECRET=<FEISHU_IAM_APP_SECRET>');
+    expect(apiSecretPrompt).toContain('IAM_API_SECRET=api_sec_v040_once');
   });
 
   it('shows sanitized access diagnostics and builds a copy package', async () => {

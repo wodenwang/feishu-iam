@@ -12,7 +12,7 @@
 
 ## 当前能力
 
-当前版本：`v0.3.2`
+当前版本：`v0.4.0`
 
 - Admin Console 支持真实飞书 OAuth 登录和首次平台管理员绑定。
 - Runtime API 支持应用创建、应用列表、应用详情、接入配置、权限注册结果和应用审计查看。
@@ -21,6 +21,8 @@
 - Runtime API 支持多应用管理员维护，并保护最后 1 位应用管理员不能被移除。
 - 应用管理员登录后只能查看和管理自己负责的应用、角色授权和本应用审计。
 - 应用详情提供 `接入诊断`，聚合 redirect URI、secret、权限注册、角色授权、目录用户投影和最近 requestId，支持复制脱敏诊断包并记录审计。
+- 应用详情提供 Agent-first 初始化提示词，帮助第三方项目中的 Codex / Claude Code 创建或维护 `AGENTS.md`、`CLAUDE.md`，并按 SOP 完成 IAM 接入。
+- 创建应用或轮换 secret 的一次性结果可以复制包含当次明文 secret 的完整初始化提示词；普通应用详情页提示词只包含 secret 占位符。
 - 飞书事件订阅回调可接收通讯录事件，完成 URL verification、事件去重、状态记录和失败重试。
 - 平台管理员可以在 `飞书同步` 页面查看同步健康状态、运行权限预检、触发通讯录 full sync，并查看手动或定时同步历史、差异摘要和失败原因。
 - 第三方 Demo 支持最小 OAuth Authorization Code 登录、token exchange 和按权限点展示页面。
@@ -126,6 +128,22 @@
 5. 第三方系统通过 OAuth 登录 IAM，并通过 Application API 注册权限组和权限点。
 6. 平台管理员或应用管理员在 `角色授权` 中把权限点授权给飞书用户或部门。
 7. 第三方系统调用当前用户权限查询接口，根据权限点控制页面和接口。
+
+## Agent 初始化接入 SOP
+
+内部第三方项目如果由 Codex / Claude Code 负责开发，优先从应用详情复制 Agent 初始化提示词，而不是让 Agent 自行猜接口。
+
+推荐流程：
+
+1. 平台管理员在 `应用管理` 创建第三方应用，并保存一次性 `appSecret` / `apiSecret`。
+2. 在创建结果或后续 secret 轮换结果中复制 `一次性 Agent 初始化提示词`。该提示词包含当次明文 secret，只能写入第三方项目运行时环境或 secret manager。
+3. 把提示词交给第三方项目中的 Codex / Claude Code。
+4. 第三方 Agent 在自己的项目内创建或更新 `AGENTS.md`、`CLAUDE.md`，写入 IAM 接入边界、OAuth SOP、Application API SOP、HMAC 签名规则、权限命名规范和验收命令。
+5. 第三方项目把 `IAM_BASE_URL`、`IAM_APP_KEY`、`IAM_APP_SECRET`、`IAM_API_SECRET` 写入 `.env`、CI secret 或 secret manager，不提交到 Git。
+6. 第三方项目实现 OAuth 登录、权限注册和当前用户权限查询。
+7. 平台管理员或应用管理员在 `角色授权` 中绑定权限点，并用 `接入诊断` 和审计日志排查 requestId。
+
+非创建或轮换当次场景，可以在应用详情复制普通提示词。普通提示词只包含 `<FEISHU_IAM_APP_SECRET>` / `<FEISHU_IAM_API_SECRET>` 占位符，不提供历史 secret 再次查看能力。
 
 本仓库提供最小 Demo：
 

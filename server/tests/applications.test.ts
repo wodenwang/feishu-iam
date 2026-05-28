@@ -325,25 +325,33 @@ describe('applications API', () => {
       method: 'POST',
       url: `/api/applications/${applicationId}/secret-copy-events`,
       headers: { cookie },
-      payload: { kind: 'agent_prompt' },
+      payload: { kind: 'agent_prompt_placeholder' },
+    });
+    const oneTimePromptCopy = await app.inject({
+      method: 'POST',
+      url: `/api/applications/${applicationId}/secret-copy-events`,
+      headers: { cookie },
+      payload: { kind: 'agent_prompt_onetime_plaintext' },
     });
 
     expect(response.statusCode).toBe(200);
     expect(promptCopy.statusCode).toBe(200);
+    expect(oneTimePromptCopy.statusCode).toBe(200);
     const audit = await pool.query(
-      "select action, target_id, metadata::text as metadata from audit_logs where action = 'secret.copy' order by id",
+      "select action, target_id, metadata from audit_logs where action = 'secret.copy' order by id",
     );
-    expect(audit.rows).toHaveLength(2);
+    expect(audit.rows).toHaveLength(3);
     expect(audit.rows[0]).toMatchObject({
       action: 'secret.copy',
       target_id: applicationId,
     });
-    expect(audit.rows[0].metadata).toContain('runtime_env');
-    expect(audit.rows[1].metadata).toContain('agent_prompt');
-    expect(audit.rows[0].metadata).not.toContain(created.json().appSecret);
-    expect(audit.rows[0].metadata).not.toContain(created.json().apiSecret);
-    expect(audit.rows[1].metadata).not.toContain(created.json().appSecret);
-    expect(audit.rows[1].metadata).not.toContain(created.json().apiSecret);
+    expect(audit.rows[0].metadata).toMatchObject({ kind: 'runtime_env', containsPlaintextSecret: false });
+    expect(audit.rows[1].metadata).toMatchObject({ kind: 'agent_prompt_placeholder', containsPlaintextSecret: false });
+    expect(audit.rows[2].metadata).toMatchObject({ kind: 'agent_prompt_onetime_plaintext', containsPlaintextSecret: true });
+    const serializedAudit = JSON.stringify(audit.rows);
+    expect(serializedAudit).not.toContain(created.json().appSecret);
+    expect(serializedAudit).not.toContain(created.json().apiSecret);
+    expect(serializedAudit).not.toContain('sec_should_not_be_logged_v040');
   });
 
   it('returns sanitized application diagnostics for a healthy access setup', async () => {

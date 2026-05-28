@@ -53,7 +53,6 @@ import { isIamHttpError } from '../../features/iam/httpClient';
 import { isPlatformAdmin } from '../../features/iam/permissions';
 import type {
   ApplicationAdmin,
-  Application,
   ApplicationDiagnosticEvent,
   ApplicationDiagnosticFinding,
   ApplicationDiagnostics,
@@ -68,7 +67,10 @@ import type {
   RotateSecretResult,
   SecretKind,
 } from '../../features/iam/types';
+import { buildApplicationPrompt } from './agentPrompt';
 import { buildApplicationDiagnosticsMarkdown } from './diagnostics';
+
+export { buildApplicationPrompt } from './agentPrompt';
 
 const statusLabels: Record<ApplicationStatus, { text: string; color: string }> = {
   active: { text: '启用', color: 'success' },
@@ -116,65 +118,6 @@ const auditActionOptions: Array<{ label: string; value: AuditAction }> = [
 ];
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
-
-function getIamBaseUrl() {
-  if (typeof window === 'undefined') {
-    return 'https://iam.example.com';
-  }
-  return window.location.origin;
-}
-
-export function buildApplicationPrompt(input: {
-  application: Application;
-  redirectUris: ApplicationRedirectUri[];
-}) {
-  const baseUrl = getIamBaseUrl();
-  const activeRedirectUris = input.redirectUris.filter((item) => item.status === 'active').map((item) => item.redirectUri);
-  const callbackList = activeRedirectUris.length ? activeRedirectUris : ['https://your-app.example.com/auth/callback'];
-
-  return [
-    '你正在把一个第三方业务系统接入 feishu-iam。请在当前第三方项目中创建或维护 AGENTS.md 和 CLAUDE.md，写清楚本项目如何通过 feishu-iam 完成 SSO 登录、权限注册和权限查询。',
-    '',
-    '硬性约束：',
-    '- 只使用 feishu-iam / 飞书 SSO，不新增 username/password、本地超级管理员或绕过 IAM 的权限判断。',
-    '- 不把真实 appSecret、apiSecret、token、飞书应用凭证写入 AGENTS.md、CLAUDE.md、README、测试日志或 Git。',
-    '- secret 只能从运行时环境变量或 secret manager 读取。',
-    '',
-    '当前应用接入信息：',
-    `- IAM_BASE_URL=${baseUrl}`,
-    `- IAM_APP_KEY=${input.application.appKey}`,
-    `- OAUTH_CLIENT_ID=${input.application.appKey}`,
-    `- OAUTH_AUTHORIZE_ENDPOINT=${baseUrl}/api/oauth/authorize`,
-    `- OAUTH_TOKEN_ENDPOINT=${baseUrl}/api/oauth/token`,
-    `- APPLICATION_API_BASE=${baseUrl}/api/application`,
-    `- CALLBACK_URLS=${callbackList.join(', ')}`,
-    '',
-    '运行时环境变量约定：',
-    `- IAM_APP_KEY=${input.application.appKey}`,
-    '- IAM_APP_SECRET=<从 feishu-iam 创建或轮换结果取得，只写入运行时环境>',
-    `- IAM_API_KEY=${input.application.apiKey}`,
-    '- IAM_API_SECRET=<从 feishu-iam 创建或轮换结果取得，只写入运行时环境>',
-    '',
-    'SSO 登录要求：',
-    '- 登录入口跳转到 OAUTH_AUTHORIZE_ENDPOINT，携带 client_id、redirect_uri、state。',
-    '- callback 接收 code 和 state 后调用 OAUTH_TOKEN_ENDPOINT 换取第三方 bearer token。',
-    '- 未登录、授权失败、token exchange 失败、无权限时必须提供可恢复提示和重新登录入口。',
-    '',
-    'Application API HMAC 鉴权要求：',
-    '- 请求头包含 x-fiam-app-key、x-fiam-timestamp、x-fiam-nonce、x-fiam-body-sha256、x-fiam-signature。',
-    '- body hash 使用原始请求体的 SHA-256 hex。',
-    '- signature 使用 IAM_API_SECRET 对 canonical string 做 HMAC-SHA256 hex。',
-    '- canonical string 格式：METHOD、path、排序后的 query、timestamp、nonce、bodyHash，以换行拼接。',
-    '- timestamp 默认 5 分钟容忍窗口，nonce 不能重放。',
-    '',
-    '权限接入要求：',
-    '- 通过 PUT /api/application/permission-groups 注册权限组。',
-    '- 通过 PUT /api/application/permission-points 注册权限点。',
-    '- 当前用户权限查询使用 GET /api/application/me/permissions。',
-    '- 权限点命名采用 domain.resource:action，例如 crm.customer:read。',
-    '- 前端路由、菜单、按钮和后端接口都必须根据权限查询结果做授权判断。',
-  ].join('\n');
-}
 
 async function copyText(value: string) {
   if (!navigator.clipboard?.writeText) {
@@ -468,10 +411,31 @@ export function ApplicationDetailPage() {
     }
     try {
       await copyText(applicationPrompt);
-      await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: id, kind: 'agent_prompt' });
+      await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: id, kind: 'agent_prompt_placeholder' });
       message.success('应用提示词已复制，并记录审计事件');
     } catch {
       message.error('浏览器剪贴板不可用，请手动复制应用提示词。');
+    }
+  };
+
+  const copyOneTimeApplicationPrompt = async () => {
+    if (!application || !secretResult) {
+      return;
+    }
+    const oneTimePrompt = buildApplicationPrompt({
+      application,
+      redirectUris: redirectUrisQuery.data ?? [],
+      oneTimeSecrets:
+        secretResult.kind === 'app_secret'
+          ? { appSecret: secretResult.secret }
+          : { apiSecret: secretResult.secret },
+    });
+    try {
+      await copyText(oneTimePrompt);
+      await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: id, kind: 'agent_prompt_onetime_plaintext' });
+      message.success('一次性 Agent 初始化提示词已复制，并记录审计事件');
+    } catch {
+      message.error('浏览器剪贴板不可用，请手动复制一次性 Agent 初始化提示词。');
     }
   };
 
@@ -771,7 +735,7 @@ export function ApplicationDetailPage() {
             label: '应用管理员',
             children: (
               <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-                {adminError ? <Alert type="error" showIcon message={adminError} /> : null}
+                {adminError ? <Alert type="error" showIcon title={adminError} /> : null}
                 <Card
                   title="应用管理员"
                   extra={
@@ -918,7 +882,7 @@ export function ApplicationDetailPage() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          message="轮换后旧 secret 立即失效，新 secret 仅显示一次。请先确认下游服务可以同步更新。"
+          title="轮换后旧 secret 立即失效，新 secret 仅显示一次。请先确认下游服务可以同步更新。"
         />
         <Form form={rotateForm} layout="vertical" onFinish={submitRotateSecret}>
           <Form.Item
@@ -939,13 +903,24 @@ export function ApplicationDetailPage() {
         onOk={() => setSecretResult(undefined)}
         onCancel={() => setSecretResult(undefined)}
       >
-        <Alert type="warning" showIcon message="关闭后无法再次查看，请立即保存到运行环境变量或密钥管理系统。" />
+        <Alert type="warning" showIcon title="关闭后无法再次查看，请立即保存到运行环境变量或密钥管理系统。" />
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginTop: 12 }}
+          title="此提示词包含本次明文 secret。只允许写入第三方项目运行时环境或 secret manager，不得提交到 Git。"
+        />
         <Typography.Paragraph style={{ marginTop: 16 }}>
           <Typography.Text strong>{secretResult ? secretKindLabels[secretResult.kind] : 'secret'}</Typography.Text>
         </Typography.Paragraph>
         <Typography.Text code copyable>
           {secretResult?.secret}
         </Typography.Text>
+        <div style={{ marginTop: 16 }}>
+          <Button icon={<CopyOutlined />} onClick={copyOneTimeApplicationPrompt} loading={recordRuntimeSecretCopyMutation.isPending}>
+            复制一次性 Agent 初始化提示词
+          </Button>
+        </div>
       </Modal>
     </Space>
   );

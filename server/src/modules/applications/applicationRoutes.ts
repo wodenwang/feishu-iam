@@ -599,7 +599,11 @@ export async function registerApplicationRoutes(app: FastifyInstance, pool: DbPo
       targetType: 'application',
       targetId: application.id,
       result: 'success',
-      metadata: { appKey: application.app_key, kind: body.kind },
+      metadata: {
+        appKey: application.app_key,
+        kind: body.kind,
+        containsPlaintextSecret: body.kind === 'agent_prompt_onetime_plaintext',
+      },
     });
 
     return { ok: true };
@@ -654,13 +658,17 @@ async function assertFeishuUserExists(client: DbClient, feishuUserId: string): P
   }
 }
 
-function isSecretCopyBody(value: unknown): value is { kind: 'runtime_env' | 'agent_prompt' } {
+function isSecretCopyBody(value: unknown): value is {
+  kind: 'runtime_env' | 'agent_prompt_placeholder' | 'agent_prompt_onetime_plaintext';
+} {
   return (
     typeof value === 'object' &&
     value !== null &&
     !Array.isArray(value) &&
     'kind' in value &&
-    (value.kind === 'runtime_env' || value.kind === 'agent_prompt')
+    (value.kind === 'runtime_env' ||
+      value.kind === 'agent_prompt_placeholder' ||
+      value.kind === 'agent_prompt_onetime_plaintext')
   );
 }
 

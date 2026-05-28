@@ -235,11 +235,11 @@ describe('httpApi', () => {
     httpRequestMock.mockResolvedValue({ ok: true });
     const { recordRuntimeSecretCopy } = await import('./httpApi');
 
-    await recordRuntimeSecretCopy('app-id', 'agent_prompt');
+    await recordRuntimeSecretCopy('app-id', 'agent_prompt_onetime_plaintext');
 
     expect(httpRequestMock).toHaveBeenCalledWith('/api/applications/app-id/secret-copy-events', {
       method: 'POST',
-      body: { kind: 'agent_prompt' },
+      body: { kind: 'agent_prompt_onetime_plaintext' },
     });
     expect(JSON.stringify(httpRequestMock.mock.calls[0])).not.toContain('sec_');
     expect(JSON.stringify(httpRequestMock.mock.calls[0])).not.toContain('api_sec_');

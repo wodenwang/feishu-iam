@@ -49,6 +49,14 @@ function renderSyncPage(session: CurrentSession = platformAdminSession) {
   );
 }
 
+function getButtonByText(text: string | RegExp, scope: { getByText: typeof screen.getByText } = screen) {
+  const button = scope.getByText(text).closest('button');
+  if (!button) {
+    throw new Error(`未找到按钮：${String(text)}`);
+  }
+  return button;
+}
+
 describe('SyncPage', () => {
   beforeEach(() => {
     resetMockIamStore();
@@ -146,11 +154,11 @@ describe('SyncPage', () => {
     expect(await screen.findByText('sync_run_202605230035')).toBeInTheDocument();
     expect(screen.getByText('飞书部门列表接口限流，部分批次未完成。')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: /手动同步/ })).toBeDisabled();
+    expect(getButtonByText(/手动同步/)).toBeDisabled();
     const failedRunRow = screen.getByText('sync_run_202605230035').closest('tr');
     expect(failedRunRow).not.toBeNull();
-    expect(within(failedRunRow as HTMLTableRowElement).getByRole('button', { name: '重试同步' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /运行预检/ })).toBeDisabled();
+    expect(getButtonByText('重试同步', within(failedRunRow as HTMLTableRowElement))).toBeDisabled();
+    expect(getButtonByText(/运行预检/)).toBeDisabled();
     expect(screen.getByText('需要 sync:run 权限才能发起同步、预检或重试。')).toBeInTheDocument();
   });
 });

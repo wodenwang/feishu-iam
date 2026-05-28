@@ -11,6 +11,7 @@ import type {
   CreateApplicationInput,
   CreateApplicationRedirectUriInput,
   CreateApplicationResult,
+  SecretCopyKind,
   SecretKind,
   ListRolesRequest,
   RoleStatus,
@@ -297,7 +298,7 @@ export function useRecordRuntimeSecretCopy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: string | { applicationId: string; kind?: 'runtime_env' | 'agent_prompt' }) => {
+    mutationFn: (input: string | { applicationId: string; kind?: SecretCopyKind }) => {
       const applicationId = typeof input === 'string' ? input : input.applicationId;
       const kind = typeof input === 'string' ? 'runtime_env' : input.kind;
       return iamService.recordRuntimeSecretCopy(applicationId, kind);

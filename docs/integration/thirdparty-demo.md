@@ -2,6 +2,8 @@
 
 `v0.2.0` 在既有第三方 Demo 链路上补齐应用接入生产化能力：应用详情页可以维护 OAuth redirect URI，轮换 `appSecret` / `apiSecret`，维护多应用管理员，并通过配置审计追溯变更。Demo 仍基于最小 OAuth Authorization Code runtime 和未登录恢复能力：如果浏览器还没有 IAM 登录态，Demo 发起 authorize 后会先进入 IAM 登录，登录成功后恢复原始 authorize 请求并回到 Demo callback。
 
+`v0.4.0` 新增 Agent-first 初始化提示词。内部第三方项目如果由 Codex / Claude Code 开发，应优先从 `feishu-iam` 应用详情复制初始化提示词，让 Agent 在第三方项目中创建或维护 `AGENTS.md`、`CLAUDE.md`，而不是从 README 手工摘接口。
+
 ## 链路
 
 ```text
@@ -35,11 +37,22 @@ Demo 首页
 - `feishu-iam` 返回的 authorization code 是短期、一次性消费。
 - 过期 authorization code、OAuth bearer session 和 pending request 会被清理。
 - `IAM_APP_SECRET` 和 `IAM_API_SECRET` 不得写入 README、截图、日志或提交记录。
+- 创建应用或轮换 secret 的一次性 Agent 初始化提示词可以包含当次明文 secret，但只允许写入第三方项目 `.env`、CI secret 或 secret manager，不得提交到 Git。
+- 普通应用详情页提示词只包含 secret 占位符，不提供历史 secret 再次查看能力。
 - v0.2 轮换 secret 后旧 secret 立即失效，新 secret 仅显示一次。
 - 停用的 OAuth redirect URI 不能再通过 authorize 校验，恢复后才可重新使用。
 - v0.2.2 的接入诊断只展示脱敏状态、计数、端点和 requestId，不返回 secret、token、authorization code、signature、cookie 或 hash 原文。
 
 ## 本地验收要点
+
+v0.4.0 Agent 初始化接入 SOP：
+
+1. 在 `feishu-iam` 创建应用或轮换 secret。
+2. 复制 `一次性 Agent 初始化提示词`，交给第三方项目中的 Codex / Claude Code。
+3. 要求第三方 Agent 创建或更新 `AGENTS.md`、`CLAUDE.md`，写清 `IAM_BASE_URL`、`IAM_APP_KEY`、`IAM_APP_SECRET`、`IAM_API_SECRET`、OAuth SOP、Application API SOP、HMAC-SHA256 canonical string、权限命名规范和验收命令。
+4. 在第三方项目 `.env` 或 secret manager 中保存 secret，不把明文写入 Git。
+5. 让第三方项目注册权限组和权限点，再到 `feishu-iam` 做角色授权。
+6. 用 OAuth 登录和 `GET /api/application/me/permissions` 验证有权限与无权限两条路径。
 
 v0.2 应用接入生产化自动验收：
 

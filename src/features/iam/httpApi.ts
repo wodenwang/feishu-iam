@@ -42,6 +42,7 @@ import type {
   PageRequest,
   PageResult,
   RotateSecretResult,
+  SecretCopyKind,
   SecretKind,
   SyncPreflightResult,
   SyncEvent,
@@ -375,7 +376,7 @@ export async function removeApplicationAdmin(applicationId: string, feishuUserId
 
 export async function recordRuntimeSecretCopy(
   applicationId: string,
-  kind: 'runtime_env' | 'agent_prompt' = 'runtime_env',
+  kind: SecretCopyKind = 'runtime_env',
 ): Promise<AuditLog> {
   await httpRequest(`/api/applications/${applicationId}/secret-copy-events`, {
     method: 'POST',
@@ -387,7 +388,7 @@ export async function recordRuntimeSecretCopy(
     result: 'success',
     actorFeishuUserId: '-',
     applicationId,
-    message: kind === 'agent_prompt' ? '复制 Agent Prompt' : '复制运行时环境变量',
+    message: kind === 'runtime_env' ? '复制运行时环境变量' : '复制 Agent Prompt',
     requestId: '-',
     createdAt: new Date().toISOString(),
   };

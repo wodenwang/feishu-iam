@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.4.0 - Agent 接入初始化提示词
+
+- 应用详情 `接入配置` 提示词升级为 Agent-first 初始化提示词，面向第三方项目中的 Codex / Claude Code 创建或维护 `AGENTS.md`、`CLAUDE.md`。
+- 提示词补齐 OAuth SOP、Application API SOP、HMAC-SHA256 签名规则、接口路径、权限命名规范、`.env` 配置清单、验收清单和排障指引。
+- 创建应用和轮换 secret 的一次性结果支持复制包含当次明文 secret 的完整 Agent 初始化提示词；普通应用详情页仍只生成 secret 占位符版本。
+- `secret.copy` 审计可区分普通提示词和一次性明文提示词复制，并只记录 kind 与是否包含明文 secret，不写入 prompt 正文或 secret 明文。
+- README 和第三方 Demo 接入文档补充 v0.4.0 Agent 初始化接入 SOP；本版本不新增 SDK/CLI、可解密 secret 存储、OIDC/JWKS/PKCE/refresh token、目录治理或同步 worker。
+
 ## v0.3.2 - 组织同步幂等修复
 
 - 修复飞书组织同步后历史 seed/mock 部门继续污染默认目录树的问题，full sync 成功后会把本次快照外的 active 部门标记为 disabled。

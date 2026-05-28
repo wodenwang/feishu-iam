@@ -163,7 +163,7 @@ export function ApplicationOnboardingPage() {
     try {
       await copyText(agentPrompt);
       if (application) {
-        await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: application.id, kind: 'agent_prompt' });
+        await recordRuntimeSecretCopyMutation.mutateAsync({ applicationId: application.id, kind: 'agent_prompt_placeholder' });
       }
       message.success('Agent Prompt 已复制');
     } catch {

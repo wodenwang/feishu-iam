@@ -27,6 +27,7 @@ export type SyncPreflightStageStatus = 'passed' | 'failed';
 export type RedirectUriEnvironment = 'production' | 'staging' | 'local';
 export type RedirectUriStatus = 'active' | 'disabled';
 export type SecretKind = 'app_secret' | 'api_secret';
+export type SecretCopyKind = 'runtime_env' | 'agent_prompt_placeholder' | 'agent_prompt_onetime_plaintext';
 export type AuditAction =
   | 'login'
   | 'application.create'

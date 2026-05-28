@@ -1,4 +1,4 @@
-import { PlusOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
+import { CopyOutlined, PlusOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -27,8 +27,15 @@ import { StatusTag } from '../../components/StatusTag';
 import { getIamApiMode } from '../../features/iam/apiMode';
 import { isIamHttpError } from '../../features/iam/httpClient';
 import { canCreateApplication, canDisableApplications, getScopedApplicationIds } from '../../features/iam/permissions';
-import { useApplications, useBatchDisableApplications, useCreateApplication, useCurrentSession } from '../../features/iam/queries';
+import {
+  useApplications,
+  useBatchDisableApplications,
+  useCreateApplication,
+  useCurrentSession,
+  useRecordRuntimeSecretCopy,
+} from '../../features/iam/queries';
 import type { Application, ApplicationStatus, CreateApplicationInput, CreateApplicationResult } from '../../features/iam/types';
+import { buildApplicationPrompt } from './agentPrompt';
 
 const { RangePicker } = DatePicker;
 
@@ -54,6 +61,13 @@ interface CreateApplicationFormValues {
 }
 
 const formatDateTime = (value?: string) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-');
+
+async function copyText(value: string) {
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('clipboard unavailable');
+  }
+  await navigator.clipboard.writeText(value);
+}
 
 export function ApplicationsListPage() {
   const { message, modal } = App.useApp();
@@ -81,6 +95,7 @@ export function ApplicationsListPage() {
     pageSize: pagination.pageSize,
   });
   const createApplicationMutation = useCreateApplication();
+  const recordRuntimeSecretCopyMutation = useRecordRuntimeSecretCopy();
   const batchDisableApplicationsMutation = useBatchDisableApplications();
   const canCreate = canCreateApplication(currentSessionQuery.data);
   const canDisable = apiMode === 'mock' && canDisableApplications(currentSessionQuery.data);
@@ -274,6 +289,30 @@ export function ApplicationsListPage() {
     await batchDisableApplicationsMutation.mutateAsync(applicationIds);
     message.success('已停用选中的应用');
     await applicationsQuery.refetch();
+  };
+
+  const copyCreatedApplicationPrompt = async () => {
+    if (!createdSecrets) {
+      return;
+    }
+    const prompt = buildApplicationPrompt({
+      application: createdSecrets.application,
+      redirectUris: [],
+      oneTimeSecrets: {
+        appSecret: createdSecrets.appSecret,
+        apiSecret: createdSecrets.apiSecret,
+      },
+    });
+    try {
+      await copyText(prompt);
+      await recordRuntimeSecretCopyMutation.mutateAsync({
+        applicationId: createdSecrets.application.id,
+        kind: 'agent_prompt_onetime_plaintext',
+      });
+      message.success('一次性 Agent 初始化提示词已复制，并记录审计事件');
+    } catch {
+      message.error('浏览器剪贴板不可用，请手动复制一次性 Agent 初始化提示词。');
+    }
   };
 
   const refreshApplications = async () => {
@@ -519,6 +558,11 @@ export function ApplicationsListPage() {
       >
         <Space orientation="vertical" size={8}>
           <Typography.Text>以下密钥只显示一次，关闭后无法再次查看。</Typography.Text>
+          <Alert
+            type="warning"
+            showIcon
+            title="此提示词包含本次明文 secret。只允许写入第三方项目运行时环境或 secret manager，不得提交到 Git。"
+          />
           {createdSecrets ? (
             <>
               <Typography.Text code copyable>
@@ -527,6 +571,13 @@ export function ApplicationsListPage() {
               <Typography.Text code copyable>
                 {createdSecrets.apiSecret}
               </Typography.Text>
+              <Button
+                icon={<CopyOutlined />}
+                onClick={copyCreatedApplicationPrompt}
+                loading={recordRuntimeSecretCopyMutation.isPending}
+              >
+                复制一次性 Agent 初始化提示词
+              </Button>
             </>
           ) : null}
         </Space>

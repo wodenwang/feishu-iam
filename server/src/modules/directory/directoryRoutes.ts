@@ -26,7 +26,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
           with recursive department_tree as (
             select id, name, parent_id, status, created_at, updated_at, name::text as path
             from directory_departments
-            where parent_id is null
+            where parent_id is null and status = 'active'
             union all
             select child.id,
                    child.name,
@@ -37,6 +37,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
                    (department_tree.path || ' / ' || child.name)::text as path
             from directory_departments child
             join department_tree on department_tree.id = child.parent_id
+            where child.status = 'active'
           )
           select department_tree.id,
                  department_tree.name,
@@ -49,11 +50,12 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
                    with recursive descendants as (
                      select id
                      from directory_departments
-                     where id = department_tree.id
+                     where id = department_tree.id and status = 'active'
                      union all
                      select child.id
                      from directory_departments child
                      join descendants on child.parent_id = descendants.id
+                     where child.status = 'active'
                    )
                    select count(*)::int
                    from directory_users
@@ -65,7 +67,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
         `,
         [pageSize, offset],
       ),
-      pool.query('select count(*)::int as total from directory_departments'),
+      pool.query("select count(*)::int as total from directory_departments where status = 'active'"),
     ]);
 
     return { items: items.rows, page, pageSize, total: total.rows[0].total };
@@ -84,11 +86,12 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
             with recursive selected_departments as (
               select id
               from directory_departments
-              where id = $3
+              where id = $3 and status = 'active'
               union all
               select child.id
               from directory_departments child
               join selected_departments on child.parent_id = selected_departments.id
+              where child.status = 'active'
             )
             select id from selected_departments
           )
@@ -100,11 +103,12 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
             with recursive selected_departments as (
               select id
               from directory_departments
-              where id = $1
+              where id = $1 and status = 'active'
               union all
               select child.id
               from directory_departments child
               join selected_departments on child.parent_id = selected_departments.id
+              where child.status = 'active'
             )
             select id from selected_departments
           )
@@ -119,7 +123,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
           with recursive department_tree as (
             select id, name, parent_id, name::text as path
             from directory_departments
-            where parent_id is null
+            where parent_id is null and status = 'active'
             union all
             select child.id,
                    child.name,
@@ -127,6 +131,7 @@ export async function registerDirectoryRoutes(app: FastifyInstance, pool: DbPool
                    (department_tree.path || ' / ' || child.name)::text as path
             from directory_departments child
             join department_tree on department_tree.id = child.parent_id
+            where child.status = 'active'
           )
           select u.feishu_user_id,
                  u.name,

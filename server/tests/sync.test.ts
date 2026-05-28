@@ -138,6 +138,94 @@ describe('sync routes', () => {
     ]);
   });
 
+  it('hides stale seed departments after real Feishu full sync', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_sync_admin_027', '同步管理员二十七');
+    adapter.snapshot = {
+      departments: [{ id: 'od_it_real_027', name: 'it部', parentId: null }],
+      users: [
+        {
+          feishuUserId: 'ou_it_real_027',
+          name: '真实 IT 用户',
+          departmentId: 'od_it_real_027',
+          status: 'active',
+        },
+      ],
+      requestBatchCount: 2,
+    };
+
+    const response = await app.inject({ method: 'POST', url: '/api/sync/runs', headers: { cookie: adminCookie } });
+    const departments = await app.inject({ method: 'GET', url: '/api/directory/departments?page=1&pageSize=100', headers: { cookie: adminCookie } });
+    const status = await app.inject({ method: 'GET', url: '/api/sync/status', headers: { cookie: adminCookie } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'succeeded',
+      diff_summary: { createdDepartments: 1, updatedDepartments: 2 },
+    });
+    expect(departments.statusCode).toBe(200);
+    expect(departments.json()).toMatchObject({ total: 1 });
+    expect(departments.json().items).toEqual([
+      expect.objectContaining({ id: 'od_it_real_027', name: 'it部', status: 'active', path: 'it部' }),
+    ]);
+    expect(status.statusCode).toBe(200);
+    expect(status.json()).toMatchObject({ directoryDepartmentCount: 1 });
+
+    const allDepartments = await pool.query('select id, name, status from directory_departments order by id');
+    expect(allDepartments.rows).toEqual([
+      { id: 'dept_it', name: 'IT 部', status: 'disabled' },
+      { id: 'dept_sales', name: '销售部', status: 'disabled' },
+      { id: 'od_it_real_027', name: 'it部', status: 'active' },
+    ]);
+  });
+
+  it('keeps active department count stable across repeated full syncs', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_sync_admin_idempotent_027', '幂等同步管理员');
+    adapter.snapshot = {
+      departments: [{ id: 'od_idempotent_it_027', name: 'it部', parentId: null }],
+      users: [{ feishuUserId: 'ou_idempotent_it_027', name: '幂等用户', departmentId: 'od_idempotent_it_027', status: 'active' }],
+      requestBatchCount: 2,
+    };
+
+    const first = await app.inject({ method: 'POST', url: '/api/sync/runs', headers: { cookie: adminCookie } });
+    const second = await app.inject({ method: 'POST', url: '/api/sync/runs', headers: { cookie: adminCookie } });
+    const activeDepartments = await pool.query("select id, name, status from directory_departments where status = 'active' order by id");
+
+    expect(first.statusCode).toBe(200);
+    expect(second.statusCode).toBe(200);
+    expect(second.json()).toMatchObject({
+      status: 'succeeded',
+      diff_summary: { createdDepartments: 0, updatedDepartments: 0 },
+    });
+    expect(activeDepartments.rows).toEqual([{ id: 'od_idempotent_it_027', name: 'it部', status: 'active' }]);
+  });
+
+  it('keeps legal same-name departments under different parents', async () => {
+    const adminCookie = await loginAndBindAdmin(app, 'ou_sync_admin_same_name_027', '同名部门同步管理员');
+    adapter.snapshot = {
+      departments: [
+        { id: 'od_root_a_027', name: '研发中心', parentId: null },
+        { id: 'od_root_b_027', name: '运营中心', parentId: null },
+        { id: 'od_it_a_027', name: 'it部', parentId: 'od_root_a_027' },
+        { id: 'od_it_b_027', name: 'it部', parentId: 'od_root_b_027' },
+      ],
+      users: [],
+      requestBatchCount: 1,
+    };
+
+    const response = await app.inject({ method: 'POST', url: '/api/sync/runs', headers: { cookie: adminCookie } });
+    const departments = await app.inject({ method: 'GET', url: '/api/directory/departments?page=1&pageSize=100', headers: { cookie: adminCookie } });
+
+    expect(response.statusCode).toBe(200);
+    expect(departments.statusCode).toBe(200);
+    expect(departments.json()).toMatchObject({ total: 4 });
+    expect(departments.json().items).toEqual([
+      expect.objectContaining({ id: 'od_root_a_027', path: '研发中心' }),
+      expect.objectContaining({ id: 'od_it_a_027', path: '研发中心 / it部' }),
+      expect.objectContaining({ id: 'od_root_b_027', path: '运营中心' }),
+      expect.objectContaining({ id: 'od_it_b_027', path: '运营中心 / it部' }),
+    ]);
+  });
+
   it('rejects non-platform admins from viewing or triggering sync', async () => {
     const userCookie = await loginCookie(app, 'ou_sync_user_forbidden', '普通用户');
 

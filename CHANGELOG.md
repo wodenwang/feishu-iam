@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.3.2 - 组织同步幂等修复
+
+- 修复飞书组织同步后历史 seed/mock 部门继续污染默认目录树的问题，full sync 成功后会把本次快照外的 active 部门标记为 disabled。
+- `/api/directory/departments` 和 `/api/directory/users` 的部门树、部门筛选和用户路径只使用 active 部门，避免重复“it部”等历史投影继续展示。
+- 保持飞书部门唯一标识优先的 upsert 语义，不按名称合并部门；同名但不同父级的合法部门仍会保留并通过路径区分。
+- 补充组织同步幂等回归测试，覆盖历史 seed 隐藏、连续同步稳定和合法同名部门。
+- 版本元数据统一到 `v0.3.2`；本版本不新增目录编辑、目录治理、事件同步 worker、OIDC/JWKS/PKCE/refresh token、SDK/CLI 或本地账号体系。
+
 ## v0.3.1 - Admin Shell 外框与顶部栏修复
 
 - 修复顶部栏侧边导航收缩按钮不可用的问题，collapsed 状态现在由组件交互驱动，菜单、Logo 和内容区宽度会同步更新。

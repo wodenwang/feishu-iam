@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { App as AntdApp } from 'antd';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { App as AntdApp, Modal } from 'antd';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rejectNextApplicationsList, resetMockIamStore, setMockCurrentSession } from '../../features/iam/mockApi';
 import { platformAdminSession } from '../../features/iam/mockData';
 import type { CurrentSession } from '../../features/iam/types';
@@ -78,6 +78,13 @@ describe('ApplicationsListPage', () => {
     resetMockIamStore();
   });
 
+  afterEach(() => {
+    Modal.destroyAll();
+    vi.clearAllMocks();
+    cleanup();
+    document.querySelectorAll('.ant-modal-root, .ant-message, .ant-popover').forEach((element) => element.remove());
+  });
+
   it('shows application management search, toolbar, and demo application row', async () => {
     renderApplicationsList();
 
@@ -95,6 +102,18 @@ describe('ApplicationsListPage', () => {
     expect(within(row).getByText('查看')).toBeInTheDocument();
     expect(within(row).getByText('接入配置')).toBeInTheDocument();
     expect(within(row).getAllByText('停用').length).toBeGreaterThan(0);
+  });
+
+  it('navigates to application detail and onboarding from row actions', async () => {
+    const user = userEvent.setup();
+    renderApplicationsList();
+
+    const row = await findDemoCrmRow();
+    await user.click(within(row).getByRole('button', { name: '查看' }));
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/app_demo_crm'));
+
+    await user.click(within(row).getByRole('button', { name: '接入配置' }));
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/onboarding'));
   });
 
   it('keeps create application in the page header before search and table regions', async () => {
@@ -170,17 +189,6 @@ describe('ApplicationsListPage', () => {
     await waitFor(() => {
       expect(within(row).getAllByText('停用').length).toBeGreaterThan(1);
     });
-  });
-
-  it('navigates to application detail and onboarding from row actions', async () => {
-    renderApplicationsList();
-
-    const row = await findDemoCrmRow();
-    fireEvent.click(within(row).getByRole('button', { name: '查看' }));
-    expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/app_demo_crm');
-
-    fireEvent.click(within(row).getByRole('button', { name: '接入配置' }));
-    expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/onboarding');
   });
 
   it('shows refresh feedback after refetching applications', async () => {
@@ -298,5 +306,9 @@ describe('ApplicationsListPage', () => {
     await waitFor(() => expect(submitButton).toHaveClass('ant-btn-loading'));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '创建应用' })).not.toBeInTheDocument());
     expect(await screen.findByText('采购系统')).toBeInTheDocument();
+
+    const successModal = await screen.findByRole('dialog', { name: '应用已创建' });
+    await user.click(within(successModal).getByRole('button', { name: /查看详情/ }));
+    await waitFor(() => expect(screen.getByTestId('location-path')).toHaveTextContent('/applications/app_purchase_system'));
   });
 });

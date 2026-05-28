@@ -86,7 +86,7 @@ export async function getSyncStatus(pool: DbPool): Promise<RuntimeSyncStatus> {
     pool.query("select * from sync_runs where status = 'failed' order by started_at desc limit 1"),
     pool.query("select id from sync_runs where status = 'running' limit 1"),
     pool.query('select count(*)::int as total from directory_users'),
-    pool.query('select count(*)::int as total from directory_departments'),
+    pool.query("select count(*)::int as total from directory_departments where status = 'active'"),
   ]);
 
   const statusInput = {
@@ -238,6 +238,7 @@ async function applyDirectorySnapshot(pool: DbPool, snapshot: DirectorySyncSnaps
     for (const department of snapshot.departments) {
       await upsertDepartment(client, department, diff);
     }
+    diff.updatedDepartments += await disableDepartmentsOutsideSnapshot(client, departmentIds);
 
     const validUsers = snapshot.users.filter((user) => user.feishuUserId && user.name);
     diff.failedUsers += snapshot.users.length - validUsers.length;
@@ -294,6 +295,19 @@ async function upsertDepartment(client: DbClient, department: DirectoryDepartmen
     `,
     [department.id, department.name, department.parentId, department.status ?? 'active'],
   );
+}
+
+async function disableDepartmentsOutsideSnapshot(client: DbClient, departmentIds: Set<string>): Promise<number> {
+  const result = await client.query(
+    `
+      update directory_departments
+      set status = 'disabled', updated_at = now()
+      where status = 'active'
+        and not (id = any($1::text[]))
+    `,
+    [[...departmentIds]],
+  );
+  return result.rowCount ?? 0;
 }
 
 async function upsertUser(

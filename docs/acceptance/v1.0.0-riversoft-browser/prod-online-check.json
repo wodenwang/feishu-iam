@@ -1,0 +1,65 @@
+{
+  "base": "https://feishu-iam.riversoft.com.cn",
+  "checkedAt": "2026-06-06T15:01:52.656Z",
+  "logoAsset": {
+    "ok": true,
+    "status": 200,
+    "contentType": "image/png"
+  },
+  "results": [
+    {
+      "name": "prod-admin-entry-1440",
+      "path": "/admin",
+      "width": 1440,
+      "height": 900,
+      "title": "Feishu IAM 管理后台",
+      "hasUnifiedProblem": true,
+      "hasRequestId": true,
+      "hasOldBrand": false,
+      "hasSensitiveText": false,
+      "bodyTextSample": "Feishu IAM\n\n需要登录 Feishu IAM 管理后台\n\n当前浏览器没有有效管理员会话，请使用飞书登录后继续。\n\n错误码\nADMIN_SESSION_REQUIRED\nrequest id\n3d80c9d7-d94c-4e63-9619-b5b05869b675\n复制 request id\n发生时间\n2026/6/6 23:01:50\n页面路径\n/admin\n飞书登录",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "requestFailures": []
+    },
+    {
+      "name": "prod-app-detail-768",
+      "path": "/admin/applications/crm?from=/admin/applications&tab=development",
+      "width": 768,
+      "height": 900,
+      "title": "Feishu IAM 管理后台",
+      "hasUnifiedProblem": true,
+      "hasRequestId": true,
+      "hasOldBrand": false,
+      "hasSensitiveText": false,
+      "bodyTextSample": "Feishu IAM\n\n需要登录 Feishu IAM 管理后台\n\n当前浏览器没有有效管理员会话，请使用飞书登录后继续。\n\n错误码\nADMIN_SESSION_REQUIRED\nrequest id\nc84171b3-a0c4-4845-96e4-ff756c089b9b\n复制 request id\n发生时间\n2026/6/6 23:01:51\n页面路径\n/admin/applications/crm?from=/admin/applications&tab=development\n飞书登录",
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "requestFailures": []
+    },
+    {
+      "name": "prod-trace-entry-390",
+      "path": "/admin/system/audit?tab=trace&requestId=req_prod_v100_check",
+      "width": 390,
+      "height": 844,
+      "title": "Feishu IAM 管理后台",
+      "hasUnifiedProblem": true,
+      "hasRequestId": true,
+      "hasOldBrand": false,
+      "hasSensitiveText": false,
+      "bodyTextSample": "Feishu IAM\n\n需要登录 Feishu IAM 管理后台\n\n当前浏览器没有有效管理员会话，请使用飞书登录后继续。\n\n错误码\nADMIN_SESSION_REQUIRED\nrequest id\n764028e5-e3d4-46d1-8651-a1671707eecd\n复制 request id\n发生时间\n2026/6/6 23:01:51\n页面路径\n/admin/system/audit?tab=trace&requestId=req_prod_v100_check\n飞书登录",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "requestFailures": []
+    }
+  ]
+}

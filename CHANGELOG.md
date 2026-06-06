@@ -30,6 +30,12 @@
 - 已通过按钮治理检查：`pnpm --filter @feishu-iam/admin-web test:buttons`。
 - 已通过响应式浏览器验证：`ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 390、768、1280、1440 视口和关键后台路由，结果 `failures: []`。
 - 已通过 390px Playwright 移动导航定点复测：点击移动 Sheet 内 `应用管理` 后跳转到 `/admin/applications`，Sheet 自动关闭，页面无横向溢出。
+- 已合并 GitHub PR `#1`，merge commit 为 `a8aca2e156656af581eb1bb1dfb3a05989a526bf`。
+- 已完成 amd64 离线镜像构建和远端停机部署：线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，旧 `v0.4.0` 部署目录已备份为 `/home/bpmt/feishu-iam-v0.4.0-backup-20260606-225509`。
+- 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.0 / a8aca2e`。
+- 已完成线上数据边界核查：只有“王文哲”具备 `platform_admin`；第三方应用、client、回调地址和 IAM 业务角色计数均为 0。
+- 已完成线上浏览器检查：未登录后台入口、应用详情深链和 390px 追踪入口均展示统一问题提示页、可复制 request id、无旧品牌和敏感文本；Riversoft logo 静态资源返回 `image/png`。
+- 内网 HTTP Registry 多架构 push 在 HTTPS 探测阶段返回 `EOF`，本次未形成可公开拉取的 `v1.0.0` manifest digest；后续恢复 registry insecure push 后应补发多架构 manifest。
 - 验收材料见 [v1.0.0 Riversoft UI 与管理员初始化验收清单](docs/acceptance/v1.0.0-riversoft-ui-init.md) 和 [v1.0.0 浏览器证据](docs/acceptance/v1.0.0-riversoft-browser/)。
 
 ## v0.16.2 - 根组织、详情按钮与 request id 精简

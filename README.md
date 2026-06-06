@@ -180,7 +180,13 @@ dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0
 dockerhub.it.tangtring.com:80/ai/feishu-iam:latest
 ```
 
-`v1.0.0` 多架构 manifest digest 将在 `gstack /ship` 完成镜像发布后写入本节。
+`v1.0.0` 已完成 amd64 离线镜像构建和远端停机部署，线上运行镜像为：
+
+```text
+dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0
+```
+
+本次内网 HTTP Registry 推送在 HTTPS 探测阶段返回 `EOF`，尚未形成可公开拉取的多架构 manifest digest；线上采用 amd64 离线 tar、`FEISHU_IAM_PULL_POLICY=never` 完成部署。后续若恢复 registry insecure push 能力，应补发 `v1.0.0` 多架构 manifest 并回填 digest。
 
 `v0.16.2` 多架构 manifest digest：
 
@@ -279,6 +285,8 @@ docker pull --platform linux/amd64 dockerhub.it.tangtring.com:80/ai/feishu-iam:v
 docker pull --platform linux/arm64 dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0
 ```
 
+注意：`v1.0.0` 当前线上证据来自 amd64 离线 tar 部署；上面的 registry 拉取命令需要在补发多架构 manifest 后再作为发布验证使用。
+
 发布多架构镜像的标准命令：
 
 ```bash
@@ -341,7 +349,7 @@ docker buildx build \
 | `v0.16.0`    | 已发布         | GitLab issue `#27/#28/#29/#30/#31` 生产追踪与接入排障版本：统一问题提示页、追踪聚合接口、OAuth/userinfo/权限查询事件补齐、操作审计追踪 Tab、应用详情跳转和接入排障文档。                      | `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.0`，多架构 digest `sha256:e4c469ce15223d05d7d241adb48325a54b8da8828c0e9d10d30f4228d5f1e43d`；已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，`/version` 返回 `0.16.0 / v0.16.0`。 | [v0.16.0 规格](docs/superpowers/specs/2026-05-29-feishu-iam-v0.16.0-audit-traceability-discovery.md)、[v0.16.0 实施计划](docs/superpowers/plans/2026-05-29-feishu-iam-v0.16.0-audit-traceability.md)、[接入排障指南](docs/oauth-troubleshooting.md)                                      |
 | `v0.16.1`    | 已发布         | GitLab issue `#35/#26/#32/#33/#34` 追踪闭环、组织用户选择器和按钮轻治理补丁：后台认证/授权失败写入可按 request id 查询的安全事件；追踪页本地提取 request id；角色已选组织/用户展示名称、头像/图标、类型、路径和 orphaned 状态；按钮保持不换行和可访问标签。 | `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.1`，多架构 digest `sha256:c382b674a9581c7066ae92e0114b3abcf46c026772f360bf4c27b524ce9cfe52`；已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，`/version` 返回 `0.16.1 / v0.16.1`。 | [v0.16.1 实施计划](docs/superpowers/plans/2026-05-29-feishu-iam-v0.16.1-trace-selector-buttons.md)、[v0.16.1 Pencil 原型说明](design/v0.16.1-org-user-selector-prototype.md)、[v0.16.1 原型截图](design/exports/v0.16.1-org-user-selector/) |
 | `v0.16.2`    | 已发布         | GitLab issue `#36/#37/#38` 小补丁：组织用户选择器顶层只加载根级组织，兼容飞书根父节点 `0`；应用清单详情操作统一为可访问图标按钮；追踪页和问题提示页只保留 request id 复制与输入，不再复制或粘贴整段问题信息。 | `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.2`，多架构 digest `sha256:09cef06e3adfbbde7cf60124ef4e23b347b27184f0393cce11bd77e242eef5c5`；已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，`/version` 返回 `0.16.2 / v0.16.2`。 | [v0.16.2 实施计划](docs/superpowers/plans/2026-05-29-feishu-iam-v0.16.2-patch.md)、[v0.16.2 工程评审](docs/superpowers/reviews/2026-05-29-feishu-iam-v0.16.2-eng-review.md) |
-| `v1.0.0`     | 收口中         | Riversoft 正式版后台 UI 翻新：通过 shadcn/ui + tweakcn + Tailwind CSS variables 收敛主题 token，升级 AppShell、DataTable、StatusBadge、PageState、FormDialog、DetailSheet、Confirm/Danger Zone 和 Trace/Error Page；数据初始化只确保“王文哲”具备 `platform_admin`。 | 目标镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0`；多架构 digest 将在 `gstack /ship` 完成镜像发布后写入。 | [v1.0.0 Pencil 原型说明](design/v1.0.0-riversoft-admin-prototype.md)、[v1.0.0 原型截图](design/exports/v1.0.0-riversoft-admin-prototype/)、[v1.0.0 验收清单](docs/acceptance/v1.0.0-riversoft-ui-init.md) |
+| `v1.0.0`     | 已发布         | Riversoft 正式版后台 UI 翻新：通过 shadcn/ui + tweakcn + Tailwind CSS variables 收敛主题 token，升级 AppShell、DataTable、StatusBadge、PageState、FormDialog、DetailSheet、Confirm/Danger Zone 和 Trace/Error Page；数据初始化只确保“王文哲”具备 `platform_admin`。 | 已在 `bpmt@120.24.236.92:/home/bpmt/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机部署，`/ready` 返回 ready，`/version` 返回 `1.0.0`；内网 HTTP Registry 多架构 push 尚未补发 digest。 | [v1.0.0 Pencil 原型说明](design/v1.0.0-riversoft-admin-prototype.md)、[v1.0.0 原型截图](design/exports/v1.0.0-riversoft-admin-prototype/)、[v1.0.0 验收清单](docs/acceptance/v1.0.0-riversoft-ui-init.md)、[v1.0.0 线上浏览器证据](docs/acceptance/v1.0.0-riversoft-browser/prod-online-check.json) |
 
 版本提交要求：
 

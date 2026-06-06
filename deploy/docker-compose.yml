@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-feishu_iam}
+      POSTGRES_USER: ${POSTGRES_USER:-feishu_iam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - ${POSTGRES_DATA_DIR:?POSTGRES_DATA_DIR is required}:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-feishu_iam} -d $${POSTGRES_DB:-feishu_iam}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    image: ${FEISHU_IAM_IMAGE:-dockerhub.it.tangtring.com:80/ai/feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v0.16.2}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: ${CONTAINER_WEB_PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      FEISHU_IAM_PUBLIC_URL: ${FEISHU_IAM_PUBLIC_URL:-http://localhost:${HOST_WEB_PORT:-8000}}
+      ADMIN_WEB_BASE_URL: ${ADMIN_WEB_BASE_URL:-${FEISHU_IAM_PUBLIC_URL:-http://localhost:${HOST_WEB_PORT:-8000}}}
+      PLATFORM_ADMIN_TOKEN: ${PLATFORM_ADMIN_TOKEN:-}
+      CLIENT_SECRET_ENCRYPTION_KEY: ${CLIENT_SECRET_ENCRYPTION_KEY:?CLIENT_SECRET_ENCRYPTION_KEY is required}
+      FEISHU_APP_ID: ${FEISHU_APP_ID:-}
+      FEISHU_APP_SECRET: ${FEISHU_APP_SECRET:-}
+      FEISHU_OAUTH_REDIRECT_URI: ${FEISHU_OAUTH_REDIRECT_URI:-}
+      FEISHU_ADMIN_OAUTH_REDIRECT_URI: ${FEISHU_ADMIN_OAUTH_REDIRECT_URI:-}
+      INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID: ${INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID:-}
+      APP_VERSION: ${APP_VERSION:-0.16.2}
+      GIT_COMMIT: ${GIT_COMMIT:-local}
+    ports:
+      - "${HOST_WEB_PORT:-8000}:${CONTAINER_WEB_PORT:-3000}"
+    volumes:
+      - ${FEISHU_IAM_CONFIG_DIR:?FEISHU_IAM_CONFIG_DIR is required}:/app/config
+      - ${FEISHU_IAM_LOG_DIR:?FEISHU_IAM_LOG_DIR is required}:/app/logs

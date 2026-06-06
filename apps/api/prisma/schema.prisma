@@ -1,0 +1,537 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("system_settings")
+}
+
+model SchemaVersion {
+  version     String   @id
+  description String
+  appliedAt   DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@map("schema_versions")
+}
+
+model FeishuDepartment {
+  departmentId       String                 @id @map("department_id")
+  openDepartmentId   String?                @unique @map("open_department_id")
+  parentDepartmentId String?                @map("parent_department_id")
+  name               String
+  i18nName           Json?                  @map("i18n_name")
+  leaderUserId       String?                @map("leader_user_id")
+  order              String?
+  status             Json                   @default("{}")
+  rawPayload         Json                   @map("raw_payload")
+  lastSyncedAt       DateTime               @map("last_synced_at") @db.Timestamptz(6)
+  isDeleted          Boolean                @default(false) @map("is_deleted")
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userDepartments    FeishuUserDepartment[]
+
+  @@index([parentDepartmentId])
+  @@index([isDeleted])
+  @@map("feishu_departments")
+}
+
+model FeishuUser {
+  userId             String                   @id @map("user_id")
+  openId             String?                  @unique @map("open_id")
+  unionId            String?                  @unique @map("union_id")
+  name               String
+  enName             String?                  @map("en_name")
+  email              String?
+  mobile             String?
+  mobileVisible      Boolean?                 @map("mobile_visible")
+  avatar             Json?
+  employeeNo         String?                  @map("employee_no")
+  employeeType       Int?                     @map("employee_type")
+  jobTitle           String?                  @map("job_title")
+  leaderUserId       String?                  @map("leader_user_id")
+  status             Json                     @default("{}")
+  rawPayload         Json                     @map("raw_payload")
+  lastSyncedAt       DateTime                 @map("last_synced_at") @db.Timestamptz(6)
+  isActive           Boolean                  @default(false) @map("is_active")
+  isDeleted          Boolean                  @default(false) @map("is_deleted")
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userDepartments    FeishuUserDepartment[]
+  authorizationCodes OauthAuthorizationCode[]
+  accessTokens       OauthAccessToken[]
+  adminUsers         AdminUser[]
+
+  @@index([isActive])
+  @@index([isDeleted])
+  @@map("feishu_users")
+}
+
+model FeishuUserDepartment {
+  userId          String           @map("user_id")
+  departmentId    String           @map("department_id")
+  isPrimary       Boolean          @default(false) @map("is_primary")
+  userOrder       Int?             @map("user_order")
+  departmentOrder Int?             @map("department_order")
+  lastSyncedAt    DateTime         @map("last_synced_at") @db.Timestamptz(6)
+  isDeleted       Boolean          @default(false) @map("is_deleted")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            FeishuUser       @relation(fields: [userId], references: [userId])
+  department      FeishuDepartment @relation(fields: [departmentId], references: [departmentId])
+
+  @@id([userId, departmentId])
+  @@index([departmentId])
+  @@index([isDeleted])
+  @@map("feishu_user_departments")
+}
+
+model FeishuSyncRun {
+  id                     String    @id
+  triggeredBy            String    @map("triggered_by")
+  triggerSource          String    @map("trigger_source")
+  status                 String
+  startedAt              DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt             DateTime? @map("finished_at") @db.Timestamptz(6)
+  departmentCreatedCount Int       @default(0) @map("department_created_count")
+  departmentUpdatedCount Int       @default(0) @map("department_updated_count")
+  departmentDeletedCount Int       @default(0) @map("department_deleted_count")
+  userCreatedCount       Int       @default(0) @map("user_created_count")
+  userUpdatedCount       Int       @default(0) @map("user_updated_count")
+  userDeletedCount       Int       @default(0) @map("user_deleted_count")
+  relationCreatedCount   Int       @default(0) @map("relation_created_count")
+  relationUpdatedCount   Int       @default(0) @map("relation_updated_count")
+  relationDeletedCount   Int       @default(0) @map("relation_deleted_count")
+  errorCode              String?   @map("error_code")
+  errorMessage           String?   @map("error_message")
+  errorDetail            Json?     @map("error_detail")
+  requestId              String?   @map("request_id")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([startedAt(sort: Desc)])
+  @@index([status])
+  @@index([requestId])
+  @@map("feishu_sync_runs")
+}
+
+model Application {
+  id                      String                           @id
+  appKey                  String                           @unique @map("app_key")
+  name                    String
+  description             String?
+  ownerUserId             String?                          @map("owner_user_id")
+  status                  String                           @default("active")
+  createdAt               DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  permissionGroups        PermissionGroup[]
+  permissionPoints        PermissionPoint[]
+  iamRoles                IamRole[]
+  auditLogs               AuditLog[]
+  permissionGroupPoints   PermissionGroupPoint[]
+  iamRolePermissionGroups IamRolePermissionGroup[]
+  iamRolePermissionPoints IamRolePermissionPoint[]
+  environments            ApplicationEnvironment[]
+  redirectUris            ApplicationRedirectUri[]
+  clients                 ApplicationClient[]
+  developerCredentials    ApplicationDeveloperCredential[]
+  authorizationCodes      OauthAuthorizationCode[]
+  accessTokens            OauthAccessToken[]
+  securityEvents          SecurityEvent[]
+  adminApplicationScopes  AdminApplicationScope[]
+
+  @@map("applications")
+}
+
+model ApplicationEnvironment {
+  id                 String                   @id
+  applicationId      String                   @map("application_id")
+  environmentKey     String                   @map("environment_key")
+  name               String
+  status             String                   @default("active")
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application        Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  redirectUris       ApplicationRedirectUri[]
+  clients            ApplicationClient[]
+  authorizationCodes OauthAuthorizationCode[]
+  accessTokens       OauthAccessToken[]
+
+  @@unique([applicationId, environmentKey])
+  @@unique([applicationId, id])
+  @@index([applicationId])
+  @@map("application_environments")
+}
+
+model ApplicationRedirectUri {
+  id                  String                  @id
+  applicationId       String                  @map("application_id")
+  environmentId       String?                 @map("environment_id")
+  sourceEnvironmentId String?                 @map("source_environment_id")
+  redirectUri         String                  @map("redirect_uri")
+  status              String                  @default("active")
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application         Application             @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  environment         ApplicationEnvironment? @relation(fields: [applicationId, environmentId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([applicationId, redirectUri])
+  @@index([applicationId])
+  @@index([status])
+  @@map("application_redirect_uris")
+}
+
+model ApplicationClient {
+  id                     String                   @id
+  applicationId          String                   @map("application_id")
+  environmentId          String?                  @map("environment_id")
+  sourceEnvironmentId    String?                  @map("source_environment_id")
+  clientId               String                   @unique @map("client_id")
+  clientSecretHash       String                   @map("client_secret_hash")
+  clientSecretCiphertext String?                  @map("client_secret_ciphertext")
+  clientSecretIv         String?                  @map("client_secret_iv")
+  clientSecretAuthTag    String?                  @map("client_secret_auth_tag")
+  clientSecretAlgorithm  String?                  @map("client_secret_algorithm")
+  name                   String
+  status                 String                   @default("active")
+  isPrimary              Boolean                  @default(false) @map("is_primary")
+  revokedAt              DateTime?                @map("revoked_at") @db.Timestamptz(6)
+  lastUsedAt             DateTime?                @map("last_used_at") @db.Timestamptz(6)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application            Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  environment            ApplicationEnvironment?  @relation(fields: [applicationId, environmentId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  loginStates            OauthLoginState[]
+  authorizationCodes     OauthAuthorizationCode[]
+  accessTokens           OauthAccessToken[]
+
+  @@unique([applicationId, clientId])
+  @@unique([applicationId, environmentId, clientId])
+  @@index([applicationId])
+  @@index([status])
+  @@map("application_clients")
+}
+
+model ApplicationDeveloperCredential {
+  id            String      @id
+  applicationId String      @map("application_id")
+  tokenHash     String      @unique @map("token_hash")
+  name          String
+  status        String      @default("active")
+  lastUsedAt    DateTime?   @map("last_used_at") @db.Timestamptz(6)
+  rotatedAt     DateTime?   @map("rotated_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([applicationId])
+  @@index([status])
+  @@map("application_developer_credentials")
+}
+
+model OauthLoginState {
+  id             String            @id
+  stateHash      String            @unique @map("state_hash")
+  clientId       String            @map("client_id")
+  redirectUri    String            @map("redirect_uri")
+  requestedScope String            @map("requested_scope")
+  externalState  String            @map("external_state")
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(6)
+  consumedAt     DateTime?         @map("consumed_at") @db.Timestamptz(6)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  client         ApplicationClient @relation(fields: [clientId], references: [clientId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([expiresAt])
+  @@map("oauth_login_states")
+}
+
+model OauthAuthorizationCode {
+  id            String                  @id
+  codeHash      String                  @unique @map("code_hash")
+  applicationId String                  @map("application_id")
+  environmentId String?                 @map("environment_id")
+  clientId      String                  @map("client_id")
+  redirectUri   String                  @map("redirect_uri")
+  feishuUserId  String                  @map("feishu_user_id")
+  scope         String
+  state         String
+  expiresAt     DateTime                @map("expires_at") @db.Timestamptz(6)
+  usedAt        DateTime?               @map("used_at") @db.Timestamptz(6)
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  application   Application             @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  environment   ApplicationEnvironment? @relation(fields: [applicationId, environmentId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  client        ApplicationClient?      @relation(fields: [applicationId, environmentId, clientId], references: [applicationId, environmentId, clientId], onDelete: Restrict, onUpdate: Cascade)
+  feishuUser    FeishuUser              @relation(fields: [feishuUserId], references: [userId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("oauth_authorization_codes")
+}
+
+model OauthAccessToken {
+  id            String                  @id
+  tokenHash     String                  @unique @map("token_hash")
+  applicationId String                  @map("application_id")
+  environmentId String?                 @map("environment_id")
+  clientId      String                  @map("client_id")
+  feishuUserId  String                  @map("feishu_user_id")
+  scope         String
+  expiresAt     DateTime                @map("expires_at") @db.Timestamptz(6)
+  revokedAt     DateTime?               @map("revoked_at") @db.Timestamptz(6)
+  lastUsedAt    DateTime?               @map("last_used_at") @db.Timestamptz(6)
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  application   Application             @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  environment   ApplicationEnvironment? @relation(fields: [applicationId, environmentId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  client        ApplicationClient?      @relation(fields: [applicationId, environmentId, clientId], references: [applicationId, environmentId, clientId], onDelete: Restrict, onUpdate: Cascade)
+  feishuUser    FeishuUser              @relation(fields: [feishuUserId], references: [userId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([clientId])
+  @@index([feishuUserId])
+  @@index([expiresAt])
+  @@map("oauth_access_tokens")
+}
+
+model SecurityEvent {
+  id            String       @id
+  eventType     String       @map("event_type")
+  applicationId String?      @map("application_id")
+  clientId      String?      @map("client_id")
+  feishuUserId  String?      @map("feishu_user_id")
+  result        String
+  reasonCode    String?      @map("reason_code")
+  summary       String
+  ip            String?
+  userAgent     String?      @map("user_agent")
+  requestId     String?      @map("request_id")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([eventType])
+  @@index([requestId])
+  @@index([applicationId, createdAt(sort: Desc)])
+  @@index([clientId, createdAt(sort: Desc)])
+  @@index([feishuUserId, createdAt(sort: Desc)])
+  @@map("security_events")
+}
+
+model PermissionGroup {
+  id                   String                   @id
+  applicationId        String                   @map("application_id")
+  key                  String
+  name                 String
+  description          String?
+  status               String                   @default("active")
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application          Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionPoints     PermissionGroupPoint[]
+  rolePermissionGroups IamRolePermissionGroup[]
+
+  @@unique([applicationId, key])
+  @@unique([applicationId, id])
+  @@index([applicationId])
+  @@map("permission_groups")
+}
+
+model PermissionPoint {
+  id                   String                   @id
+  applicationId        String                   @map("application_id")
+  key                  String
+  name                 String
+  description          String?
+  status               String                   @default("active")
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application          Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionGroups     PermissionGroupPoint[]
+  rolePermissionPoints IamRolePermissionPoint[]
+
+  @@unique([applicationId, key])
+  @@unique([applicationId, id])
+  @@index([applicationId])
+  @@map("permission_points")
+}
+
+model PermissionGroupPoint {
+  applicationId     String          @map("application_id")
+  permissionGroupId String          @map("permission_group_id")
+  permissionPointId String          @map("permission_point_id")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionGroup   PermissionGroup @relation(fields: [applicationId, permissionGroupId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  permissionPoint   PermissionPoint @relation(fields: [applicationId, permissionPointId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([permissionGroupId, permissionPointId])
+  @@index([applicationId])
+  @@index([permissionPointId])
+  @@map("permission_group_points")
+}
+
+model IamRole {
+  id               String                   @id
+  applicationId    String                   @map("application_id")
+  key              String
+  name             String
+  description      String?
+  status           String                   @default("active")
+  createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  application      Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  subjects         IamRoleSubject[]
+  permissionGroups IamRolePermissionGroup[]
+  permissionPoints IamRolePermissionPoint[]
+
+  @@unique([applicationId, key])
+  @@unique([applicationId, id])
+  @@index([applicationId])
+  @@map("iam_roles")
+}
+
+model IamRoleSubject {
+  id          String   @id
+  iamRoleId   String   @map("iam_role_id")
+  subjectType String   @map("subject_type")
+  subjectId   String   @map("subject_id")
+  isOrphaned  Boolean  @default(false) @map("is_orphaned")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  iamRole     IamRole  @relation(fields: [iamRoleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([iamRoleId, subjectType, subjectId])
+  @@index([subjectType, subjectId])
+  @@map("iam_role_subjects")
+}
+
+model IamRolePermissionGroup {
+  applicationId     String          @map("application_id")
+  iamRoleId         String          @map("iam_role_id")
+  permissionGroupId String          @map("permission_group_id")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  iamRole           IamRole         @relation(fields: [applicationId, iamRoleId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  permissionGroup   PermissionGroup @relation(fields: [applicationId, permissionGroupId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([iamRoleId, permissionGroupId])
+  @@index([applicationId])
+  @@index([permissionGroupId])
+  @@map("iam_role_permission_groups")
+}
+
+model IamRolePermissionPoint {
+  applicationId     String          @map("application_id")
+  iamRoleId         String          @map("iam_role_id")
+  permissionPointId String          @map("permission_point_id")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  iamRole           IamRole         @relation(fields: [applicationId, iamRoleId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  permissionPoint   PermissionPoint @relation(fields: [applicationId, permissionPointId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([iamRoleId, permissionPointId])
+  @@index([applicationId])
+  @@index([permissionPointId])
+  @@map("iam_role_permission_points")
+}
+
+model AuditLog {
+  id            String       @id
+  actorType     String       @map("actor_type")
+  actorId       String       @map("actor_id")
+  source        String
+  applicationId String?      @map("application_id")
+  resourceType  String       @map("resource_type")
+  resourceId    String       @map("resource_id")
+  action        String
+  before        Json?
+  after         Json?
+  result        String
+  ip            String?
+  userAgent     String?      @map("user_agent")
+  requestId     String       @map("request_id")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([applicationId, createdAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@index([requestId])
+  @@map("audit_logs")
+}
+
+model AdminUser {
+  id                String                  @id
+  feishuUserId      String                  @unique @map("feishu_user_id")
+  displayName       String                  @map("display_name")
+  status            String                  @default("active")
+  lastLoginAt       DateTime?               @map("last_login_at") @db.Timestamptz(6)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  feishuUser        FeishuUser              @relation(fields: [feishuUserId], references: [userId], onDelete: Restrict, onUpdate: Cascade)
+  roles             AdminUserRole[]
+  applicationScopes AdminApplicationScope[]
+  sessions          AdminSession[]
+
+  @@index([status])
+  @@map("admin_users")
+}
+
+model AdminRole {
+  id          String          @id
+  roleKey     String          @unique @map("role_key")
+  name        String
+  description String?
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users       AdminUserRole[]
+
+  @@map("admin_roles")
+}
+
+model AdminUserRole {
+  adminUserId String    @map("admin_user_id")
+  adminRoleId String    @map("admin_role_id")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  adminRole   AdminRole @relation(fields: [adminRoleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([adminUserId, adminRoleId])
+  @@index([adminRoleId])
+  @@map("admin_user_roles")
+}
+
+model AdminApplicationScope {
+  adminUserId   String      @map("admin_user_id")
+  applicationId String      @map("application_id")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminUser     AdminUser   @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([adminUserId, applicationId])
+  @@index([applicationId])
+  @@map("admin_application_scopes")
+}
+
+model AdminSession {
+  id          String    @id
+  sessionHash String    @unique @map("session_hash")
+  adminUserId String    @map("admin_user_id")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  ip          String?
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([adminUserId])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}

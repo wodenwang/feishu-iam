@@ -1,0 +1,1949 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "id": "f66",
+      "type": "frame",
+      "name": "01 桌面展开态 当前操作审计",
+      "x": 0,
+      "y": 0,
+      "layout": "horizontal",
+      "width": 1440,
+      "height": 900,
+      "fill": "#F6F8FA",
+      "clip": true,
+      "children": [
+        {
+          "id": "s67",
+          "type": "frame",
+          "name": "左侧导航",
+          "layout": "vertical",
+          "width": 280,
+          "height": "fill_container",
+          "fill": "#0F2733",
+          "padding": 16,
+          "gap": 12,
+          "children": [
+            {
+              "id": "brand68",
+              "type": "frame",
+              "name": "品牌区",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 56,
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "logo69",
+                  "type": "rectangle",
+                  "name": "品牌标识",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "#00B99C",
+                  "cornerRadius": 8
+                },
+                {
+                  "id": "t70",
+                  "type": "text",
+                  "name": "品牌文字",
+                  "content": "Base IAM",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700",
+                  "fill": "#FFFFFF",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                }
+              ]
+            },
+            {
+              "id": "nav71",
+              "type": "frame",
+              "name": "主菜单",
+              "layout": "vertical",
+              "width": "fill_container",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "n72",
+                  "type": "frame",
+                  "name": "导航项 工作台",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i73",
+                      "type": "icon_font",
+                      "name": "图标 工作台",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "layout-dashboard",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t74",
+                      "type": "text",
+                      "name": "文字 工作台",
+                      "content": "工作台",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n75",
+                  "type": "frame",
+                  "name": "导航项 应用管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i76",
+                      "type": "icon_font",
+                      "name": "图标 应用管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "app-window",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t77",
+                      "type": "text",
+                      "name": "文字 应用管理",
+                      "content": "应用管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n78",
+                  "type": "frame",
+                  "name": "导航项 权限管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i79",
+                      "type": "icon_font",
+                      "name": "图标 权限管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "shield-check",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t80",
+                      "type": "text",
+                      "name": "文字 权限管理",
+                      "content": "权限管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n81",
+                  "type": "frame",
+                  "name": "导航项 系统管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#183847",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i82",
+                      "type": "icon_font",
+                      "name": "图标 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "settings",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "id": "t83",
+                      "type": "text",
+                      "name": "文字 系统管理",
+                      "content": "系统管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#FFFFFF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "i84",
+                      "type": "icon_font",
+                      "name": "展开状态 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "chevron-down",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "id": "grp85",
+                  "type": "frame",
+                  "name": "系统管理二级菜单",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "gap": 3,
+                  "padding": [
+                    2,
+                    0,
+                    2,
+                    22
+                  ],
+                  "stroke": {
+                    "thickness": {
+                      "left": 1
+                    },
+                    "fill": "#345563"
+                  },
+                  "children": [
+                    {
+                      "id": "c86",
+                      "type": "frame",
+                      "name": "二级导航 飞书同步",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r87",
+                          "type": "rectangle",
+                          "name": "二级层级线 飞书同步",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t88",
+                          "type": "text",
+                          "name": "二级文字 飞书同步",
+                          "content": "飞书同步",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c89",
+                      "type": "frame",
+                      "name": "二级导航 管理员授权",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r90",
+                          "type": "rectangle",
+                          "name": "二级层级线 管理员授权",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t91",
+                          "type": "text",
+                          "name": "二级文字 管理员授权",
+                          "content": "管理员授权",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c92",
+                      "type": "frame",
+                      "name": "二级导航 操作审计",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#DFFCF5",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r93",
+                          "type": "rectangle",
+                          "name": "二级层级线 操作审计",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#00B99C",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t94",
+                          "type": "text",
+                          "name": "二级文字 操作审计",
+                          "content": "操作审计",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "fill": "#075E54",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c95",
+                      "type": "frame",
+                      "name": "二级导航 系统信息",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r96",
+                          "type": "rectangle",
+                          "name": "二级层级线 系统信息",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t97",
+                          "type": "text",
+                          "name": "二级文字 系统信息",
+                          "content": "系统信息",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "m98",
+          "type": "frame",
+          "name": "内容区",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#F6F8FA",
+          "children": [
+            {
+              "id": "top99",
+              "type": "frame",
+              "name": "顶部栏",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 64,
+              "padding": [
+                0,
+                28
+              ],
+              "alignItems": "center",
+              "justifyContent": "space_between",
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D8E0E8"
+              },
+              "children": [
+                {
+                  "id": "t100",
+                  "type": "text",
+                  "name": "当前用户",
+                  "content": "平台管理员 / 王文哲",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                }
+              ]
+            },
+            {
+              "id": "b101",
+              "type": "frame",
+              "name": "页面主体",
+              "layout": "vertical",
+              "width": "fill_container",
+              "height": "fill_container",
+              "padding": 32,
+              "gap": 18,
+              "children": [
+                {
+                  "id": "t102",
+                  "type": "text",
+                  "name": "面包屑",
+                  "content": "后台 / 系统管理 / 操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                },
+                {
+                  "id": "t103",
+                  "type": "text",
+                  "name": "标题",
+                  "content": "操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700",
+                  "fill": "#111827",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "t104",
+                  "type": "text",
+                  "name": "说明",
+                  "content": "集中查询审计、安全事件和同步记录。",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "400",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "card105",
+                  "type": "frame",
+                  "name": "示例工作区",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "height": 360,
+                  "fill": "#FFFFFF",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#D8E0E8"
+                  },
+                  "cornerRadius": 8,
+                  "padding": 20,
+                  "gap": 14,
+                  "children": [
+                    {
+                      "id": "t106",
+                      "type": "text",
+                      "name": "工作区标题",
+                      "content": "当前页面内容保持不变，导航层级成为主修复点",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#111827",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "v107",
+                      "type": "frame",
+                      "name": "验证点 系统管理父级保持展开并高亮上下文",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i108",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t109",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "系统管理父级保持展开并高亮上下文",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v110",
+                      "type": "frame",
+                      "name": "验证点 当前二级菜单使用 aria-current=page",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i111",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t112",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "当前二级菜单使用 aria-current=page",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v113",
+                      "type": "frame",
+                      "name": "验证点 刷新深链后菜单状态仍可恢复",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i114",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t115",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "刷新深链后菜单状态仍可恢复",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "f116",
+      "type": "frame",
+      "name": "02 桌面展开态 系统管理折叠",
+      "x": 1520,
+      "y": 0,
+      "layout": "horizontal",
+      "width": 1440,
+      "height": 900,
+      "fill": "#F6F8FA",
+      "clip": true,
+      "children": [
+        {
+          "id": "s117",
+          "type": "frame",
+          "name": "左侧导航",
+          "layout": "vertical",
+          "width": 280,
+          "height": "fill_container",
+          "fill": "#0F2733",
+          "padding": 16,
+          "gap": 12,
+          "children": [
+            {
+              "id": "brand118",
+              "type": "frame",
+              "name": "品牌区",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 56,
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "logo119",
+                  "type": "rectangle",
+                  "name": "品牌标识",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "#00B99C",
+                  "cornerRadius": 8
+                },
+                {
+                  "id": "t120",
+                  "type": "text",
+                  "name": "品牌文字",
+                  "content": "Base IAM",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700",
+                  "fill": "#FFFFFF",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                }
+              ]
+            },
+            {
+              "id": "nav121",
+              "type": "frame",
+              "name": "主菜单",
+              "layout": "vertical",
+              "width": "fill_container",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "n122",
+                  "type": "frame",
+                  "name": "导航项 工作台",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i123",
+                      "type": "icon_font",
+                      "name": "图标 工作台",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "layout-dashboard",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t124",
+                      "type": "text",
+                      "name": "文字 工作台",
+                      "content": "工作台",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n125",
+                  "type": "frame",
+                  "name": "导航项 应用管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i126",
+                      "type": "icon_font",
+                      "name": "图标 应用管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "app-window",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t127",
+                      "type": "text",
+                      "name": "文字 应用管理",
+                      "content": "应用管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n128",
+                  "type": "frame",
+                  "name": "导航项 权限管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i129",
+                      "type": "icon_font",
+                      "name": "图标 权限管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "shield-check",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t130",
+                      "type": "text",
+                      "name": "文字 权限管理",
+                      "content": "权限管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n131",
+                  "type": "frame",
+                  "name": "导航项 系统管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#183847",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i132",
+                      "type": "icon_font",
+                      "name": "图标 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "settings",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "id": "t133",
+                      "type": "text",
+                      "name": "文字 系统管理",
+                      "content": "系统管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#FFFFFF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "i134",
+                      "type": "icon_font",
+                      "name": "展开状态 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "chevron-right",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "id": "t135",
+                  "type": "text",
+                  "name": "折叠提示",
+                  "content": "二级菜单已收起，父级仍保留当前上下文",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "400",
+                  "fill": "#B9CDD6",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "m136",
+          "type": "frame",
+          "name": "内容区",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#F6F8FA",
+          "children": [
+            {
+              "id": "top137",
+              "type": "frame",
+              "name": "顶部栏",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 64,
+              "padding": [
+                0,
+                28
+              ],
+              "alignItems": "center",
+              "justifyContent": "space_between",
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D8E0E8"
+              },
+              "children": [
+                {
+                  "id": "t138",
+                  "type": "text",
+                  "name": "当前用户",
+                  "content": "平台管理员 / 王文哲",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                }
+              ]
+            },
+            {
+              "id": "b139",
+              "type": "frame",
+              "name": "页面主体",
+              "layout": "vertical",
+              "width": "fill_container",
+              "height": "fill_container",
+              "padding": 32,
+              "gap": 18,
+              "children": [
+                {
+                  "id": "t140",
+                  "type": "text",
+                  "name": "面包屑",
+                  "content": "后台 / 系统管理 / 操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                },
+                {
+                  "id": "t141",
+                  "type": "text",
+                  "name": "标题",
+                  "content": "操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700",
+                  "fill": "#111827",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "t142",
+                  "type": "text",
+                  "name": "说明",
+                  "content": "集中查询审计、安全事件和同步记录。",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "400",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "card143",
+                  "type": "frame",
+                  "name": "示例工作区",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "height": 360,
+                  "fill": "#FFFFFF",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#D8E0E8"
+                  },
+                  "cornerRadius": 8,
+                  "padding": 20,
+                  "gap": 14,
+                  "children": [
+                    {
+                      "id": "t144",
+                      "type": "text",
+                      "name": "工作区标题",
+                      "content": "当前页面内容保持不变，导航层级成为主修复点",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#111827",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "v145",
+                      "type": "frame",
+                      "name": "验证点 系统管理父级保持展开并高亮上下文",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i146",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t147",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "系统管理父级保持展开并高亮上下文",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v148",
+                      "type": "frame",
+                      "name": "验证点 当前二级菜单使用 aria-current=page",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i149",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t150",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "当前二级菜单使用 aria-current=page",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v151",
+                      "type": "frame",
+                      "name": "验证点 刷新深链后菜单状态仍可恢复",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i152",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t153",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "刷新深链后菜单状态仍可恢复",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "f1",
+      "type": "frame",
+      "name": "03 桌面收缩态 系统管理上下文",
+      "x": 0,
+      "y": 980,
+      "layout": "horizontal",
+      "width": 1440,
+      "height": 900,
+      "fill": "#F6F8FA",
+      "clip": true,
+      "children": [
+        {
+          "id": "cs2",
+          "type": "frame",
+          "name": "收缩左侧导航",
+          "layout": "vertical",
+          "width": 84,
+          "height": "fill_container",
+          "fill": "#0F2733",
+          "padding": 14,
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "logo3",
+              "type": "rectangle",
+              "name": "品牌图标",
+              "width": 40,
+              "height": 40,
+              "fill": "#00B99C",
+              "cornerRadius": 8
+            },
+            {
+              "id": "ci4",
+              "type": "frame",
+              "name": "图标导航 工作台",
+              "layout": "vertical",
+              "width": 52,
+              "height": 52,
+              "alignItems": "center",
+              "justifyContent": "center",
+              "fill": "#0F2733",
+              "cornerRadius": 8,
+              "children": [
+                {
+                  "id": "i5",
+                  "type": "icon_font",
+                  "name": "图标 工作台",
+                  "iconFontFamily": "lucide",
+                  "iconFontName": "layout-dashboard",
+                  "width": 18,
+                  "height": 18,
+                  "fill": "#B9CDD6"
+                }
+              ]
+            },
+            {
+              "id": "ci6",
+              "type": "frame",
+              "name": "图标导航 应用管理",
+              "layout": "vertical",
+              "width": 52,
+              "height": 52,
+              "alignItems": "center",
+              "justifyContent": "center",
+              "fill": "#0F2733",
+              "cornerRadius": 8,
+              "children": [
+                {
+                  "id": "i7",
+                  "type": "icon_font",
+                  "name": "图标 应用管理",
+                  "iconFontFamily": "lucide",
+                  "iconFontName": "app-window",
+                  "width": 18,
+                  "height": 18,
+                  "fill": "#B9CDD6"
+                }
+              ]
+            },
+            {
+              "id": "ci8",
+              "type": "frame",
+              "name": "图标导航 权限管理",
+              "layout": "vertical",
+              "width": 52,
+              "height": 52,
+              "alignItems": "center",
+              "justifyContent": "center",
+              "fill": "#0F2733",
+              "cornerRadius": 8,
+              "children": [
+                {
+                  "id": "i9",
+                  "type": "icon_font",
+                  "name": "图标 权限管理",
+                  "iconFontFamily": "lucide",
+                  "iconFontName": "shield-check",
+                  "width": 18,
+                  "height": 18,
+                  "fill": "#B9CDD6"
+                }
+              ]
+            },
+            {
+              "id": "ci10",
+              "type": "frame",
+              "name": "图标导航 系统管理",
+              "layout": "vertical",
+              "width": 52,
+              "height": 52,
+              "alignItems": "center",
+              "justifyContent": "center",
+              "fill": "#183847",
+              "cornerRadius": 8,
+              "children": [
+                {
+                  "id": "i11",
+                  "type": "icon_font",
+                  "name": "图标 系统管理",
+                  "iconFontFamily": "lucide",
+                  "iconFontName": "settings",
+                  "width": 18,
+                  "height": 18,
+                  "fill": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "id": "tip12",
+              "type": "frame",
+              "name": "系统管理 tooltip",
+              "layout": "vertical",
+              "width": 210,
+              "padding": 12,
+              "gap": 8,
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": 1,
+                "fill": "#D8E0E8"
+              },
+              "cornerRadius": 8,
+              "layoutPosition": "absolute",
+              "x": 78,
+              "y": 196,
+              "children": [
+                {
+                  "id": "t13",
+                  "type": "text",
+                  "name": "tooltip 标题",
+                  "content": "系统管理",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "700",
+                  "fill": "#111827",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "t14",
+                  "type": "text",
+                  "name": "tooltip 子项",
+                  "content": "飞书同步 / 管理员授权 / 操作审计 / 系统信息",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "400",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "m15",
+          "type": "frame",
+          "name": "内容区",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#F6F8FA",
+          "children": [
+            {
+              "id": "top16",
+              "type": "frame",
+              "name": "顶部栏",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 64,
+              "padding": [
+                0,
+                28
+              ],
+              "alignItems": "center",
+              "justifyContent": "space_between",
+              "fill": "#FFFFFF",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D8E0E8"
+              },
+              "children": [
+                {
+                  "id": "t17",
+                  "type": "text",
+                  "name": "当前用户",
+                  "content": "平台管理员 / 王文哲",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                }
+              ]
+            },
+            {
+              "id": "b18",
+              "type": "frame",
+              "name": "页面主体",
+              "layout": "vertical",
+              "width": "fill_container",
+              "height": "fill_container",
+              "padding": 32,
+              "gap": 18,
+              "children": [
+                {
+                  "id": "t19",
+                  "type": "text",
+                  "name": "面包屑",
+                  "content": "后台 / 系统管理 / 操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "400",
+                  "fill": "#64748B"
+                },
+                {
+                  "id": "t20",
+                  "type": "text",
+                  "name": "标题",
+                  "content": "操作审计",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "700",
+                  "fill": "#111827",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "t21",
+                  "type": "text",
+                  "name": "说明",
+                  "content": "收缩态下系统管理图标保持 active，并提示二级入口。",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "400",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "card22",
+                  "type": "frame",
+                  "name": "示例工作区",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "height": 360,
+                  "fill": "#FFFFFF",
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#D8E0E8"
+                  },
+                  "cornerRadius": 8,
+                  "padding": 20,
+                  "gap": 14,
+                  "children": [
+                    {
+                      "id": "t23",
+                      "type": "text",
+                      "name": "工作区标题",
+                      "content": "当前页面内容保持不变，导航层级成为主修复点",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#111827",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "v24",
+                      "type": "frame",
+                      "name": "验证点 系统管理父级保持展开并高亮上下文",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i25",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t26",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "系统管理父级保持展开并高亮上下文",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v27",
+                      "type": "frame",
+                      "name": "验证点 当前二级菜单使用 aria-current=page",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i28",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t29",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "当前二级菜单使用 aria-current=page",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "v30",
+                      "type": "frame",
+                      "name": "验证点 刷新深链后菜单状态仍可恢复",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 34,
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "i31",
+                          "type": "icon_font",
+                          "name": "检查图标",
+                          "iconFontFamily": "lucide",
+                          "iconFontName": "check",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "#00B99C"
+                        },
+                        {
+                          "id": "t32",
+                          "type": "text",
+                          "name": "验证文字",
+                          "content": "刷新深链后菜单状态仍可恢复",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "400",
+                          "fill": "#111827",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "f33",
+      "type": "frame",
+      "name": "04 390px 移动端导航 Sheet",
+      "x": 1520,
+      "y": 980,
+      "layout": "horizontal",
+      "width": 390,
+      "height": 844,
+      "fill": "#F6F8FA",
+      "clip": true,
+      "children": [
+        {
+          "id": "ms34",
+          "type": "frame",
+          "name": "移动端主菜单 Sheet",
+          "layout": "vertical",
+          "width": 312,
+          "height": "fill_container",
+          "fill": "#0F2733",
+          "padding": 16,
+          "gap": 12,
+          "children": [
+            {
+              "id": "mh35",
+              "type": "frame",
+              "name": "Sheet 标题区",
+              "layout": "horizontal",
+              "width": "fill_container",
+              "height": 50,
+              "alignItems": "center",
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "id": "t36",
+                  "type": "text",
+                  "name": "Sheet 标题",
+                  "content": "主菜单",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                  "fill": "#FFFFFF",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container"
+                },
+                {
+                  "id": "i37",
+                  "type": "icon_font",
+                  "name": "关闭图标",
+                  "iconFontFamily": "lucide",
+                  "iconFontName": "x",
+                  "width": 18,
+                  "height": 18,
+                  "fill": "#B9CDD6"
+                }
+              ]
+            },
+            {
+              "id": "mn38",
+              "type": "frame",
+              "name": "移动端导航列表",
+              "layout": "vertical",
+              "width": "fill_container",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "n39",
+                  "type": "frame",
+                  "name": "导航项 工作台",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i40",
+                      "type": "icon_font",
+                      "name": "图标 工作台",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "layout-dashboard",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t41",
+                      "type": "text",
+                      "name": "文字 工作台",
+                      "content": "工作台",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n42",
+                  "type": "frame",
+                  "name": "导航项 应用管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i43",
+                      "type": "icon_font",
+                      "name": "图标 应用管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "app-window",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t44",
+                      "type": "text",
+                      "name": "文字 应用管理",
+                      "content": "应用管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n45",
+                  "type": "frame",
+                  "name": "导航项 权限管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#0F2733",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i46",
+                      "type": "icon_font",
+                      "name": "图标 权限管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "shield-check",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#B9CDD6"
+                    },
+                    {
+                      "id": "t47",
+                      "type": "text",
+                      "name": "文字 权限管理",
+                      "content": "权限管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#D9E7EC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    }
+                  ]
+                },
+                {
+                  "id": "n48",
+                  "type": "frame",
+                  "name": "导航项 系统管理",
+                  "layout": "horizontal",
+                  "width": "fill_container",
+                  "height": 40,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "gap": 10,
+                  "alignItems": "center",
+                  "fill": "#183847",
+                  "cornerRadius": 6,
+                  "children": [
+                    {
+                      "id": "i49",
+                      "type": "icon_font",
+                      "name": "图标 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "settings",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "id": "t50",
+                      "type": "text",
+                      "name": "文字 系统管理",
+                      "content": "系统管理",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "fill": "#FFFFFF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container"
+                    },
+                    {
+                      "id": "i51",
+                      "type": "icon_font",
+                      "name": "展开状态 系统管理",
+                      "iconFontFamily": "lucide",
+                      "iconFontName": "chevron-down",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "id": "mg52",
+                  "type": "frame",
+                  "name": "移动端系统管理二级菜单",
+                  "layout": "vertical",
+                  "width": "fill_container",
+                  "gap": 3,
+                  "padding": [
+                    2,
+                    0,
+                    2,
+                    22
+                  ],
+                  "stroke": {
+                    "thickness": {
+                      "left": 1
+                    },
+                    "fill": "#345563"
+                  },
+                  "children": [
+                    {
+                      "id": "c53",
+                      "type": "frame",
+                      "name": "二级导航 飞书同步",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r54",
+                          "type": "rectangle",
+                          "name": "二级层级线 飞书同步",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t55",
+                          "type": "text",
+                          "name": "二级文字 飞书同步",
+                          "content": "飞书同步",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c56",
+                      "type": "frame",
+                      "name": "二级导航 管理员授权",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r57",
+                          "type": "rectangle",
+                          "name": "二级层级线 管理员授权",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t58",
+                          "type": "text",
+                          "name": "二级文字 管理员授权",
+                          "content": "管理员授权",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c59",
+                      "type": "frame",
+                      "name": "二级导航 操作审计",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#DFFCF5",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r60",
+                          "type": "rectangle",
+                          "name": "二级层级线 操作审计",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#00B99C",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t61",
+                          "type": "text",
+                          "name": "二级文字 操作审计",
+                          "content": "操作审计",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600",
+                          "fill": "#075E54",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "c62",
+                      "type": "frame",
+                      "name": "二级导航 系统信息",
+                      "layout": "horizontal",
+                      "width": "fill_container",
+                      "height": 36,
+                      "padding": [
+                        0,
+                        12
+                      ],
+                      "gap": 8,
+                      "alignItems": "center",
+                      "fill": "#0F2733",
+                      "cornerRadius": 6,
+                      "children": [
+                        {
+                          "id": "r63",
+                          "type": "rectangle",
+                          "name": "二级层级线 系统信息",
+                          "width": 2,
+                          "height": 18,
+                          "fill": "#345563",
+                          "cornerRadius": 1
+                        },
+                        {
+                          "id": "t64",
+                          "type": "text",
+                          "name": "二级文字 系统信息",
+                          "content": "系统信息",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "500",
+                          "fill": "#C9D9DF",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mask65",
+          "type": "frame",
+          "name": "遮罩后的页面",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#EEF2F6",
+          "opacity": 0.45,
+          "padding": 20,
+          "gap": 12
+        }
+      ]
+    }
+  ]
+}

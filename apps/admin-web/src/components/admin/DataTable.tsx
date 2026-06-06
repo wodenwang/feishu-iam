@@ -111,7 +111,7 @@ export function DataTable<T>({
   }
 
   const tableClassName = [
-    "overflow-x-auto rounded-md border bg-background",
+    "overflow-x-auto rounded-md border bg-card shadow-sm",
     className,
   ]
     .filter(Boolean)
@@ -121,7 +121,7 @@ export function DataTable<T>({
     <div className={tableClassName}>
       <Table aria-label={ariaLabel} className="w-full table-fixed">
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/60 hover:bg-muted/60">
             {columns.map((column) => (
               <TableHead
                 key={column.key}
@@ -135,7 +135,7 @@ export function DataTable<T>({
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={getRowKey(row)}>
+            <TableRow key={getRowKey(row)} className="hover:bg-accent/45">
               {columns.map((column) => (
                 <TableCell
                   key={column.key}

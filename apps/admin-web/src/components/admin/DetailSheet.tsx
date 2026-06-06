@@ -104,7 +104,7 @@ export function DetailSheet({
     }
     return (
       <section className="grid gap-5">
-        <header className="rounded-md border bg-background px-6 py-5">
+        <header className="rounded-md border bg-card px-6 py-5 shadow-sm">
           <div className="min-w-0 space-y-1">
             <h2 className="text-lg font-semibold">{title}</h2>
             {description ? (
@@ -112,7 +112,7 @@ export function DetailSheet({
             ) : null}
           </div>
         </header>
-        <div className="min-w-0 rounded-md border bg-background px-6 py-5">
+        <div className="min-w-0 rounded-md border bg-card px-6 py-5 shadow-sm">
           {children}
         </div>
       </section>

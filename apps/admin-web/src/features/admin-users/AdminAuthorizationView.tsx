@@ -313,7 +313,7 @@ export function AdminAuthorizationView({ admin }: AdminAuthorizationViewProps) {
             </FilterBar>
 
             {successMessage ? (
-              <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <div role="status" className="rounded-md border border-[hsl(var(--status-success))]/30 bg-[hsl(var(--status-success))]/10 px-4 py-3 text-sm text-foreground">
                 {successMessage}
               </div>
             ) : null}

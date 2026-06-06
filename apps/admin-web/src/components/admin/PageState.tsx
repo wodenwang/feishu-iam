@@ -34,7 +34,7 @@ export function PageState({ type, title, description }: PageStateProps) {
 
   return (
     <section
-      className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border bg-muted/20 p-6 text-center"
+      className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border bg-card p-6 text-center shadow-sm"
       role={role}
       aria-live={type === 'loading' ? 'polite' : undefined}
     >
@@ -42,6 +42,7 @@ export function PageState({ type, title, description }: PageStateProps) {
         <div className="flex w-full max-w-sm flex-col gap-3" aria-hidden="true">
           <Skeleton className="mx-auto h-5 w-32" />
           <Skeleton className="mx-auto h-4 w-56" />
+          <Skeleton className="mx-auto h-4 w-40" />
         </div>
       ) : null}
       <div className="text-sm font-medium text-foreground">{title ?? state.title}</div>

@@ -1,5 +1,37 @@
 # 变更日志
 
+## v1.0.0 - Riversoft 正式版 UI 翻新与平台管理员初始化
+
+`v1.0.0` 是内部正式版发布收口版本，范围限定为前端 UI 翻新和 IAM 管理权限初始化。本版本不改变 UX 流程、信息架构、路由、表单流程、数据契约、CRUD 行为、权限逻辑或业务逻辑。
+
+### 调整
+
+- 管理后台视觉切换为 Riversoft 正式版主题，Riversoft token 集中落到 shadcn/ui + tweakcn + Tailwind CSS variables，避免页面内散落品牌色硬编码。
+- 项目级组件完成正式版质感升级，覆盖 AppShell、DataTable、StatusBadge、PageState、FormDialog、DetailSheet、Confirm/Danger Zone、统一问题提示页和追踪页。
+- 工作台、应用管理/应用详情、统一问题提示/追踪页作为第一个 vertical slice 的证明页面，覆盖 1440、768、390 响应式表现。
+- Logo、favicon 和 Sidebar 品牌区已替换为 Riversoft 完整圆形图形，移除旧品牌误导。
+- 390px 移动端 Sheet 导航点击真实导航入口后会自动关闭菜单，保持路由、导航项和权限逻辑不变。
+
+### 数据初始化
+
+- 新增 `migrations/V1_0_0__platform_admin_initialization.sql`，通过 `INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID` 幂等确保“王文哲”拥有 `platform_admin`。
+- 初始化迁移只写入 `admin_users`、`admin_user_roles`、`audit_logs` 和 `schema_versions`。
+- 不初始化第三方应用权限、demo client、回调地址、权限点、权限组或业务角色，也不撤销其他管理员。
+
+### 安全与边界
+
+- 应用详情页不展示 `sk-` 形态、飞书 `app_secret`、数据库密码、生产导出数据或真实 secret、token、cookie。
+- 凭证相关 UI 保留既有查看/轮换流程，只使用“凭证”安全表达，不改变后端接口或 CRUD 行为。
+- 统一问题提示页和追踪页继续围绕 request id 排障主旅程，不恢复整段问题信息复制、粘贴或本地提取。
+
+### 验收
+
+- 已通过完整检查：`pnpm check`，API 41 个测试文件 460 个测试通过，Admin Web 15 个测试文件 156 个测试通过。
+- 已通过按钮治理检查：`pnpm --filter @feishu-iam/admin-web test:buttons`。
+- 已通过响应式浏览器验证：`ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 390、768、1280、1440 视口和关键后台路由，结果 `failures: []`。
+- 已通过 390px Playwright 移动导航定点复测：点击移动 Sheet 内 `应用管理` 后跳转到 `/admin/applications`，Sheet 自动关闭，页面无横向溢出。
+- 验收材料见 [v1.0.0 Riversoft UI 与管理员初始化验收清单](docs/acceptance/v1.0.0-riversoft-ui-init.md) 和 [v1.0.0 浏览器证据](docs/acceptance/v1.0.0-riversoft-browser/)。
+
 ## v0.16.2 - 根组织、详情按钮与 request id 精简
 
 `v0.16.2` 是 `v0.16.1` 后的小补丁版本，范围锁定 GitLab issue `#36/#37/#38`。本版本不新增 DDL，不扩大 SSO 协议面，不改变管理员 session 机制，不记录敏感凭证，也不做全站 UI 重构。

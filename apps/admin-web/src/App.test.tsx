@@ -205,7 +205,7 @@ describe("管理后台骨架", () => {
 
     await screen.findByText("张三 · 平台管理员");
     expect(
-      screen.getAllByText("唐群内部身份与权限控制台").length,
+      screen.getAllByText("Riversoft 内部身份与权限控制台").length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Feishu IAM").length).toBeGreaterThan(0);
     expect(screen.getByText("张三 · 平台管理员")).toBeInTheDocument();
@@ -348,10 +348,10 @@ describe("管理后台骨架", () => {
 
     render(<App />);
 
-    expect(await screen.findByLabelText("Feishu IAM 标识")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Riversoft 标识")).toBeInTheDocument();
     expect(screen.getAllByText("Feishu IAM").length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText("唐群内部身份与权限控制台").length,
+      screen.getAllByText("Riversoft 内部身份与权限控制台").length,
     ).toBeGreaterThan(0);
   });
 

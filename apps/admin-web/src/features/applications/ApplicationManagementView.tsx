@@ -596,7 +596,13 @@ function IntegrationSummaryCell({ application }: { application: Application }) {
   const ready = missing.length === 0;
   return (
     <div className="grid gap-1 text-sm">
-      <span className={ready ? "text-emerald-700" : "text-amber-700"}>
+      <span
+        className={
+          ready
+            ? "text-[hsl(var(--status-success))]"
+            : "text-[hsl(var(--status-warning))]"
+        }
+      >
         {ready ? "接入配置完整" : `缺少 ${missing.join("、")}`}
       </span>
       <span className="text-xs text-muted-foreground">

@@ -544,19 +544,19 @@ function AdminApp() {
 
 function Brand() {
   return (
-    <div className="flex min-w-0 items-center gap-3" aria-label="Feishu IAM 品牌">
+    <div className="flex min-w-0 items-center gap-3" aria-label="Riversoft Feishu IAM 品牌">
       <img
         className="h-10 w-10 shrink-0 rounded-md"
         src={logoUrl}
-        alt="Feishu IAM 标识"
-        aria-label="Feishu IAM 标识"
+        alt="Riversoft 标识"
+        aria-label="Riversoft 标识"
       />
       <div className="min-w-0">
         <strong className="block truncate text-sm font-semibold leading-5">
           Feishu IAM
         </strong>
         <span className="block truncate text-xs text-muted-foreground">
-          唐群内部身份与权限控制台
+          Riversoft 内部身份与权限控制台
         </span>
       </div>
     </div>

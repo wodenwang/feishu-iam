@@ -159,7 +159,7 @@ export function PermissionSubjectBindingDialog(props: {
                   <span className="min-w-0">
                     <strong>{formatSubjectType(subject.type)}</strong>
                     <code className="ml-2 break-all text-xs text-muted-foreground">{subject.id}</code>
-                    {subject.isOrphaned ? <span className="ml-2 rounded bg-amber-100 px-2 py-1 text-xs text-amber-800">orphaned</span> : null}
+                    {subject.isOrphaned ? <span className="ml-2 rounded bg-[hsl(var(--status-warning))]/10 px-2 py-1 text-xs text-foreground">orphaned</span> : null}
                   </span>
                   <Button size="sm" type="button" variant="ghost" onClick={() => { removeSubject(subject); }}>
                     移除

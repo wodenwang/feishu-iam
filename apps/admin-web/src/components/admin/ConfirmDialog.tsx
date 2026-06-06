@@ -30,7 +30,10 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent aria-busy={pending}>
+      <AlertDialogContent
+        aria-busy={pending}
+        className={danger ? "border-destructive/40" : undefined}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

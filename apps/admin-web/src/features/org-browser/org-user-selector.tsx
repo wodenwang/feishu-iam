@@ -185,7 +185,7 @@ function SubjectGroup(props: {
                       {subject.subjectKindLabel ?? subjectKindLabel(subject)}
                     </span>
                     {subject.isOrphaned ? (
-                      <span className="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900">
+                      <span className="rounded-md border border-[hsl(var(--status-warning))]/35 bg-[hsl(var(--status-warning))]/10 px-1.5 py-0.5 text-xs text-foreground">
                         已失效或未同步
                       </span>
                     ) : null}

@@ -137,7 +137,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
       {role ? (
         <div className="grid gap-4">
           {props.readOnly ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+            <div className="rounded-md border border-[hsl(var(--status-warning))]/35 bg-[hsl(var(--status-warning))]/10 px-3 py-2 text-sm text-foreground" role="status">
               {props.readOnlyReason ?? "当前角色授权为只读状态，不能保存变更。"}
             </div>
           ) : null}

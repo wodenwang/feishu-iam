@@ -14,6 +14,89 @@
 
 本文件只描述 UI/UX 与设计系统规则。领域、安全、后端、Agent 行为等规则仍以 `AGENTS.md` 为准。
 
+## Riversoft 品牌配色补充决策
+
+本节是基于用户提供的公司 logo 素材形成的品牌配色覆盖规则。素材来源：
+
+- Riversoft logo：`https://www.riversoft.com.cn/images/logo-2.png`
+
+本次只重新定义 UI 配色方向，不改变当前系统前端布局风格、组件结构、信息密度、导航形态、表格优先级、抽屉/详情页交互和 shadcn/ui + tweakcn 的实现基线。后续实现时应优先替换集中式 CSS variables / Tailwind token，不要在页面组件里局部硬编码颜色。
+
+### Logo 色彩提取
+
+对 logo 非透明、非白色像素进行本地取样后，主要色彩特征如下：
+
+| 色彩角色 | 代表色 | HSL 近似值 | 用途判断 |
+|---|---|---|---|
+| 品牌深色文字 | `#231C16` | `28 23% 11%` | 默认文字、深色标题、深色侧栏文字基准。 |
+| 品牌主蓝 | `#0E76BD` | `204 86% 40%` | 主操作、选中态、链接、focus ring。 |
+| 品牌亮蓝 | `#1C8CCA` / `#26A4D8` | `201 76% 45%` / `198 70% 50%` | hover、图表、轻量强调，不做大面积背景。 |
+| 品牌柠檬绿 | `#A6C511` / `#D8E000` | `70 84% 42%` / `62 100% 44%` | 辅助强调、成功趋势、图表色、徽标点缀；不作为主按钮和大面积底色。 |
+
+### 主题决策
+
+- 主题家族继续采用 shadcn/ui + tweakcn 的 modern minimal / neutral admin 方向。
+- 品牌主色从旧的深青绿方向调整为 Riversoft 蓝色系：`#0E76BD` 为 primary，`#1C8CCA` 和 `#26A4D8` 作为 hover / chart / info 辅助。
+- 品牌柠檬绿饱和度高，后台长时间使用时只作为小面积辅助强调，例如图表、趋势、状态附属点、空状态插画细节或成功类辅助信息；不用于主按钮、整块导航背景、整页背景或表格 hover。
+- 页面主体继续保持中性浅灰蓝背景、白色内容面板、清晰浅边框和中等信息密度，不复制官网或 logo 的营销式视觉。
+- Sidebar 可以使用深蓝黑而不是纯黑：保持专业、稳定，并与主蓝形成品牌一致性。
+- 状态色仍保留语义边界：危险操作使用红色，警告使用琥珀色，成功使用低饱和绿色；不要用 Riversoft 柠檬绿替代所有成功状态。
+
+### 推荐 CSS Variables
+
+后续若实施主题落地，优先在 `apps/admin-web/src/index.css` 的 `:root` 中集中替换为以下 token。数值保持 shadcn/ui / Tailwind `hsl(var(--token))` 格式：
+
+```css
+:root {
+  --background: 210 25% 98%;
+  --foreground: 28 23% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 28 23% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 28 23% 11%;
+
+  --primary: 204 86% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 204 35% 94%;
+  --secondary-foreground: 205 45% 22%;
+  --muted: 210 25% 95%;
+  --muted-foreground: 210 12% 42%;
+  --accent: 199 72% 94%;
+  --accent-foreground: 204 86% 28%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 207 24% 86%;
+  --input: 207 24% 86%;
+  --ring: 204 86% 40%;
+
+  --chart-1: 204 86% 40%;
+  --chart-2: 70 84% 42%;
+  --chart-3: 198 70% 50%;
+  --chart-4: 160 56% 38%;
+  --chart-5: 36 84% 55%;
+
+  --sidebar: 205 48% 16%;
+  --sidebar-foreground: 210 30% 96%;
+  --sidebar-accent: 204 86% 28%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 205 34% 24%;
+
+  --radius: 0.5rem;
+}
+```
+
+### 配色使用规则
+
+- Primary button、当前导航项、主要链接和 focus ring 使用 Riversoft 主蓝。
+- Sidebar 背景使用深蓝黑，选中/hover 使用深一档或主蓝一档，文字保持高对比浅色。
+- 页面背景保持非常浅的冷灰蓝，内容卡片和表格 surface 仍以白色为主。
+- 表格 hover、筛选区 hover、DropdownMenu active、Tabs active 等轻量交互使用低饱和浅蓝 `accent`，不要使用高饱和柠檬绿。
+- 柠檬绿只用于图表第二色、趋势上升、局部徽标点缀或非关键小面积提示；同一屏内使用面积应明显小于主蓝。
+- 任何正文、按钮文字、表格文字和状态标签必须满足 WCAG AA：正文至少 4.5:1，大字和 UI 组件至少 3:1。
+- 不使用品牌蓝/绿做大面积渐变、hero、装饰色块、漂浮背景或营销式 banner。
+
 ## v0.10.0 Feishu IAM 决策覆盖
 
 `v0.10.0` 是管理后台前端运行时重建版本。此前 `v0.9.1` 沉淀的 shadcn/ui + tweakcn neutral admin 设计基线继续有效，但本轮不再只停留在设计基线或第一切片，而是要让 `apps/admin-web` 真实运行在 Tailwind、shadcn/ui、tweakcn token、react-router 和项目级 wrapper 上。
@@ -72,7 +155,7 @@ v0.10.0 的设计与工程输入以以下文件为准：
 - 新建 `design/admin-console-v0.9.1.pen`，作为 v0.9.1 独立原型源，不直接覆盖旧 `design/admin-console.pen`。
 - 重做信息架构和交互原型，不要求沿用旧版“清单 -> 详情抽屉”的全部细节，但必须保持后台系统的可扫描性和操作闭环。
 - 前端实现从项目拥有的 shadcn/ui 组件代码出发，建立 `AppShell`、`PageHeader`、`DataTable`、`FilterBar`、`DetailSheet`、`FormDialog`、`ConfirmDialog`、`SecretRevealPanel` 等项目级 wrapper。
-- 主题以 Feishu IAM 既有深青绿品牌为 primary/sidebar/accent 的来源，但页面主体保持 neutral admin，不复制旧深色顶部栏的厚重感。
+- 历史主题曾以 Feishu IAM 深青绿为 primary/sidebar/accent 来源；在 Riversoft 品牌配色补充决策生效后，后续主题更新以 Riversoft 主蓝为 primary 来源，但页面主体仍保持 neutral admin，不复制旧深色顶部栏的厚重感。
 - 不混用 Ant Design、MUI、Chakra、Arco、Element Plus 或 Bootstrap。若后续必须保留旧页面过渡，需写迁移隔离策略，不能在同一新页面混用组件体系。
 
 v0.9.1 的核心页面范围：

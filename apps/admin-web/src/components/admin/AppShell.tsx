@@ -50,6 +50,7 @@ export function AppShell(props: AppShellProps) {
     }
     return readStoredCollapsed(storageKey, props.defaultCollapsed ?? false);
   });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const collapsed = props.collapsed ?? internalCollapsed;
   const desktopNavId = useId();
 
@@ -121,7 +122,7 @@ export function AppShell(props: AppShellProps) {
 
         <div className="flex min-h-screen min-w-0 flex-col lg:h-dvh lg:min-h-0">
           <header className="sticky top-0 z-30 flex min-h-16 min-w-0 shrink-0 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur lg:px-6">
-            <Sheet>
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
                 <Button
                   className="lg:hidden"
@@ -145,6 +146,9 @@ export function AppShell(props: AppShellProps) {
                   items={props.navItems}
                   className="p-3"
                   tone="surface"
+                  onNavigate={() => {
+                    setMobileNavOpen(false);
+                  }}
                 />
               </SheetContent>
             </Sheet>
@@ -195,6 +199,7 @@ function PrimaryNav(props: {
   className?: string;
   collapsed?: boolean;
   id?: string;
+  onNavigate?: () => void;
   tone?: "sidebar" | "surface";
 }) {
   const generatedId = useId();
@@ -324,6 +329,7 @@ function PrimaryNav(props: {
               props.collapsed && "justify-center px-2",
             )}
             key={item.href}
+            onClick={props.onNavigate}
             title={props.collapsed ? item.label : undefined}
             to={item.href}
           >
@@ -373,6 +379,7 @@ function PrimaryNav(props: {
                           child.active && activeLinkClass,
                         )}
                         key={child.href}
+                        onClick={props.onNavigate}
                         to={child.href}
                       >
                         {child.icon ? (

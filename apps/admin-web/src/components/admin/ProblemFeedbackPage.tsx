@@ -31,7 +31,7 @@ export function ProblemFeedbackPage(props: ProblemFeedbackPageProps) {
     >
       <section className="grid w-full max-w-2xl gap-5 rounded-md border bg-background p-5 shadow-sm sm:p-7">
         <div className="flex items-start gap-3">
-          <div className="rounded-md bg-amber-100 p-2 text-amber-700" aria-hidden="true">
+          <div className="rounded-md bg-[hsl(var(--status-warning))]/15 p-2 text-[hsl(var(--status-warning))]" aria-hidden="true">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="min-w-0">

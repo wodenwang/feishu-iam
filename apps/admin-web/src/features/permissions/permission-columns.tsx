@@ -149,7 +149,7 @@ function SubjectSummary({ subjects }: { subjects: IamRoleSubject[] }) {
     <div className="flex flex-wrap gap-1.5 text-xs">
       <span className="rounded bg-muted px-2 py-1">用户 {userCount}</span>
       <span className="rounded bg-muted px-2 py-1">部门 {departmentCount}</span>
-      {orphanedCount > 0 ? <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">失效 {orphanedCount}</span> : null}
+      {orphanedCount > 0 ? <span className="rounded bg-[hsl(var(--status-warning))]/10 px-2 py-1 text-foreground">失效 {orphanedCount}</span> : null}
     </div>
   );
 }

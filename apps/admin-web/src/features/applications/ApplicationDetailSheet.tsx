@@ -770,7 +770,7 @@ export function ApplicationDetailSheet({
                               }}
                             >
                               <Eye aria-hidden="true" size={16} />
-                              查看 secret
+                              查看凭证
                             </Button>
                             <Button
                               disabled={secretPending}
@@ -781,7 +781,7 @@ export function ApplicationDetailSheet({
                               }}
                             >
                               <RotateCw aria-hidden="true" size={16} />
-                              轮换 secret
+                              轮换凭证
                             </Button>
                           </div>
                           {secretError ? (
@@ -791,8 +791,8 @@ export function ApplicationDetailSheet({
                             <SecretRevealPanel
                               label={
                                 secretResult.action === "rotate"
-                                  ? "client_secret 已轮换"
-                                  : "client_secret 查看结果"
+                                  ? "OAuth 凭证已轮换"
+                                  : "OAuth 凭证查看结果"
                               }
                               value={secretResult.clientSecret}
                             />
@@ -843,8 +843,7 @@ export function ApplicationDetailSheet({
                         <div className="grid gap-3">
                           <Notice>
                             当前仅提供安全版提示词，不包含
-                            client_secret、developer token、cookie
-                            或平台凭证。完整提示词只允许在创建或轮换凭证时一次性生成。
+                            敏感凭证或平台凭证。完整提示词只允许在创建或轮换凭证时一次性生成。
                           </Notice>
                           <Textarea
                             aria-label="Codex 接入提示词"
@@ -865,7 +864,7 @@ export function ApplicationDetailSheet({
                               复制安全版提示词
                             </Button>
                             {promptCopyState === "copied" ? (
-                              <span className="text-sm text-emerald-700">
+                              <span className="text-sm text-[hsl(var(--status-success))]">
                                 已复制
                               </span>
                             ) : null}
@@ -1342,7 +1341,7 @@ function Field(props: { children: ReactNode; label: string }) {
 
 function Notice(props: { children: ReactNode }) {
   return (
-    <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+    <p className="rounded-md border border-[hsl(var(--status-warning))]/35 bg-[hsl(var(--status-warning))]/10 p-3 text-sm text-foreground">
       {props.children}
     </p>
   );
@@ -1434,13 +1433,13 @@ const secretActionCopy: Record<
   { title: string; description: string }
 > = {
   view: {
-    title: "确认查看 client secret",
+    title: "确认查看 OAuth 凭证",
     description:
-      "查看后会在当前页面临时展示明文 client_secret，请避免在共享屏幕或不可信环境操作。",
+      "查看后会在当前页面临时展示明文凭证，请避免在共享屏幕或不可信环境操作。",
   },
   rotate: {
-    title: "确认轮换 client secret",
+    title: "确认轮换 OAuth 凭证",
     description:
-      "轮换后旧 secret 将失效，第三方应用需要更新配置后才能继续完成 token 换取。",
+      "轮换后旧凭证将失效，第三方应用需要更新配置后才能继续完成授权换取。",
   },
 };

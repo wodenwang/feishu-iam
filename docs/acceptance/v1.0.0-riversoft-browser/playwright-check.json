@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-06-06T13:37:14.532Z",
+  "baseUrl": "http://localhost:5173",
+  "results": [
+    {
+      "name": "workbench-1440",
+      "url": "http://localhost:5173/admin/workspace",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/wenzhewang/workspace/dev_project/feishu-iam/docs/acceptance/v1.0.0-riversoft-browser/workbench-1440.png",
+      "layout": {
+        "viewportWidth": 1440,
+        "scrollWidth": 1440,
+        "navVisible": true,
+        "menuButtonVisible": false
+      },
+      "failures": []
+    },
+    {
+      "name": "app-detail-768",
+      "url": "http://localhost:5173/admin/applications/crm?from=/admin/applications&tab=development",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "screenshot": "/Users/wenzhewang/workspace/dev_project/feishu-iam/docs/acceptance/v1.0.0-riversoft-browser/app-detail-768.png",
+      "layout": {
+        "viewportWidth": 768,
+        "scrollWidth": 768,
+        "navVisible": false,
+        "menuButtonVisible": true
+      },
+      "failures": []
+    },
+    {
+      "name": "trace-390",
+      "url": "http://localhost:5173/admin/system/audit?tab=trace&requestId=req_0123456789abcdef0123456789abcdef_long&applicationId=app-1&clientId=client_crm",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "/Users/wenzhewang/workspace/dev_project/feishu-iam/docs/acceptance/v1.0.0-riversoft-browser/trace-390.png",
+      "layout": {
+        "viewportWidth": 390,
+        "scrollWidth": 390,
+        "navVisible": false,
+        "menuButtonVisible": true
+      },
+      "failures": []
+    }
+  ]
+}

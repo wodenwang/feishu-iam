@@ -153,7 +153,7 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1
 - 保留 `/api/auth/feishu/callback` 兼容入口，推荐生产配置继续使用 `/oauth/feishu/callback`。
 - 部署前必须确认 `FEISHU_OAUTH_REDIRECT_URI=https://feishu-iam.riversoft.com.cn/oauth/feishu/callback`。
 - GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1`。
-- canary 已完成；错误页 768px 横向溢出作为后续修复登记在 GitHub issue `#4`。
+- canary 已完成；错误页 768px 横向溢出登记在 GitHub issue `#4`，OAuth 错误页整段问题信息复制登记在 GitHub issue `#5`。
 
 #### v1.0.0
 

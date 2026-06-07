@@ -31,7 +31,7 @@
 - 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:48eafa7036ce86e4eef7c2f1fa93f0c00f162283d4af0fc450b3bc244a1d7832`，线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.1`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260607-102448`。
 - 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.1 / 96c261b`。
 - 已完成线上回调验证：`/oauth/feishu/callback?code=dummy&state=dummy` 和 `/api/auth/feishu/callback?code=dummy&state=dummy` 均返回 Feishu IAM 统一 HTML 错误页，不再返回框架默认 `Cannot GET ...`。
-- 已完成 `my-harness-canary` 快速检查，报告保存在 `.gstack/canary-reports/v1.0.1-2026-06-07T02-27-56-377Z/report.json`。canary 确认 OAuth 错误页在 768px 视口存在 5px 横向溢出，已登记 GitHub issue `#4`；首页未登录态 401 console 判定为 canary 噪声，不作为本次发布阻塞。
+- 已完成 `my-harness-canary` 快速检查，报告保存在 `.gstack/canary-reports/v1.0.1-2026-06-07T02-27-56-377Z/report.json`。canary 确认 OAuth 错误页在 768px 视口存在 5px 横向溢出，已登记 GitHub issue `#4`；最终回调复核确认 OAuth 错误页仍保留整段问题信息复制，已登记 GitHub issue `#5`；首页未登录态 401 console 判定为 canary 噪声，不作为本次发布阻塞。
 - 真实飞书账号交互登录未在本会话执行；本版本发布验收聚焦 GitHub issue `#2` 的内部飞书回调 404 修复和统一错误页兼容路径。
 
 ## v1.0.0 - Riversoft 正式版 UI 翻新与平台管理员初始化

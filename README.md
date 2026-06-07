@@ -131,14 +131,14 @@ GitHub Release：
 https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1
 ```
 
-`v1.0.1` 是 `v1.0.0` 之后的第三方 SSO 内部飞书回调兼容补丁。当前线上版本应通过以下检查：
+`v1.0.1` 是 `v1.0.0` 之后的第三方 SSO 内部飞书回调兼容补丁。当前线上版本已通过以下检查：
 
 - `/ready` 返回 ready。
 - `/version` 返回 `1.0.1`。
 - 后台未登录统一问题提示页可展示 request id 和飞书登录入口。
 - `/admin/auth/login` 可进入飞书登录跳转。
 - `/oauth/feishu/callback` 和兼容旧路径 `/api/auth/feishu/callback` 都返回 Feishu IAM 业务错误页或业务跳转，不再返回框架默认 `Cannot GET ...`。
-- 第三方 Demo 可完成 `authorize -> Feishu callback -> third-party callback -> token -> userinfo`。
+- 本次发布已验证内部飞书回调兼容路径；完整第三方 Demo 真实登录仍需要使用可登录飞书账号执行人工验收。
 - Riversoft Logo、favicon 和 Sidebar 品牌区一致。
 - 应用详情未登录深链不暴露 secret、token、cookie、飞书 `app_secret`、数据库密码或生产导出数据。
 - “王文哲”已获得 IAM 平台管理员权限。
@@ -152,6 +152,8 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1
 - 修复 GitHub issue `#2`：内部 Feishu OAuth 回调地址配置与实际路由不一致时，第三方 SSO 登录不再落到 `Cannot GET /api/auth/feishu/callback`。
 - 保留 `/api/auth/feishu/callback` 兼容入口，推荐生产配置继续使用 `/oauth/feishu/callback`。
 - 部署前必须确认 `FEISHU_OAUTH_REDIRECT_URI=https://feishu-iam.riversoft.com.cn/oauth/feishu/callback`。
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1`。
+- canary 已完成；错误页 768px 横向溢出作为后续修复登记在 GitHub issue `#4`。
 
 #### v1.0.0
 
@@ -196,6 +198,7 @@ ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:res
 - [v1.0.0 线上部署归档](docs/codex-sessions/2026-06-06-2305-v1.0.0-riversoft-land-deploy.md)
 - [v1.0.0 canary 观察归档](docs/codex-sessions/2026-06-06-2320-v1.0.0-riversoft-canary.md)
 - [v1.0.0 checkpoint 归档](docs/codex-sessions/2026-06-06-2334-v1.0.0-riversoft-checkpoint.md)
+- [v1.0.1 OAuth 回调补丁发布与 canary 归档](docs/codex-sessions/2026-06-07-1031-v1.0.1-oauth-callback-release-canary.md)
 
 ### 3.2 架构、接入与排障
 

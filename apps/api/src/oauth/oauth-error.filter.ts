@@ -59,7 +59,7 @@ function toStableOauthError(exception: OauthDomainError | FeishuClientError): {
 }
 
 function shouldRenderHtmlError(path: string): boolean {
-  return path === '/oauth/authorize' || path === '/oauth/feishu/callback';
+  return path === '/oauth/authorize' || path === '/oauth/feishu/callback' || path === '/api/auth/feishu/callback';
 }
 
 function renderHtmlError(message: string, requestId: string | undefined): string {

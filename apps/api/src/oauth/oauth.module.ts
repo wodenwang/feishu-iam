@@ -5,6 +5,7 @@ import { PlatformTokenGuard } from '../platform/platform-token.guard';
 import { PrismaModule } from '../prisma/prisma.module';
 import { OauthConfigController } from './oauth-config.controller';
 import { OauthConfigService } from './oauth-config.service';
+import { LegacyOauthCallbackController } from './legacy-oauth-callback.controller';
 import { OauthController } from './oauth.controller';
 import { OauthService } from './oauth.service';
 import { AppPermissionsController } from './app-permissions.controller';
@@ -21,7 +22,13 @@ const TEST_CLIENT_SECRET_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef';
 
 @Module({
   imports: [PrismaModule, PermissionModule, FeishuModule],
-  controllers: [OauthConfigController, OauthController, AppPermissionsController, DeveloperPermissionController],
+  controllers: [
+    OauthConfigController,
+    OauthController,
+    LegacyOauthCallbackController,
+    AppPermissionsController,
+    DeveloperPermissionController
+  ],
   providers: [
     PlatformTokenGuard,
     AppTokenGuard,

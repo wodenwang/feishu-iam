@@ -41,6 +41,7 @@ const LOGIN_STATE_TTL_MS = 10 * 60 * 1000;
 const AUTHORIZATION_CODE_TTL_MS = 5 * 60 * 1000;
 const ACCESS_TOKEN_TTL_SECONDS = 7200;
 const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_SECONDS * 1000;
+const SUPPORTED_FEISHU_OAUTH_CALLBACK_PATHS = ['/oauth/feishu/callback', '/api/auth/feishu/callback'] as const;
 
 type RequiredTokenInput = {
   grantType: string;
@@ -390,14 +391,7 @@ export class OauthService {
       throw new OauthDomainError('OAUTH_REDIRECT_URI_UNTRUSTED', 'redirect_uri 未登记或已禁用', 400);
     }
 
-    const feishuRedirectUri = process.env.FEISHU_OAUTH_REDIRECT_URI;
-    if (!feishuRedirectUri) {
-      throw new OauthDomainError(
-        'OAUTH_FEISHU_REDIRECT_URI_MISSING',
-        'Feishu IAM 飞书 OAuth 回调地址未配置',
-        500
-      );
-    }
+    const feishuRedirectUri = normalizeFeishuRedirectUri(process.env.FEISHU_OAUTH_REDIRECT_URI);
 
     const requestedScope = normalizeScope(input.scope);
     const internalState = createOauthSecret('bils');
@@ -465,7 +459,10 @@ export class OauthService {
     }
     this.assertActiveClientContext(loginState.client);
 
-    const identity = await this.feishuClient.exchangeOAuthCode(input.code);
+    const identity = await this.feishuClient.exchangeOAuthCode(
+      input.code,
+      normalizeFeishuRedirectUri(process.env.FEISHU_OAUTH_REDIRECT_URI)
+    );
     const feishuUser = await this.findFeishuUserByOAuthIdentity(identity);
     if (!feishuUser || !feishuUser.isActive || feishuUser.isDeleted) {
       throw new OauthDomainError('OAUTH_USER_NOT_ACTIVE', '当前飞书用户不可登录', 403);
@@ -644,6 +641,40 @@ function normalizeScope(scope: string | undefined): string {
   }
 
   return ALLOWED_SCOPES.filter((item) => requestedSet.has(item)).join(' ');
+}
+
+function normalizeFeishuRedirectUri(rawRedirectUri: string | undefined): string {
+  if (!rawRedirectUri) {
+    throw new OauthDomainError(
+      'OAUTH_FEISHU_REDIRECT_URI_MISSING',
+      'Feishu IAM 飞书 OAuth 回调地址未配置',
+      500
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(rawRedirectUri);
+  } catch {
+    throw new OauthDomainError(
+      'OAUTH_FEISHU_REDIRECT_URI_INVALID',
+      'Feishu IAM 飞书 OAuth 回调地址格式无效',
+      500
+    );
+  }
+
+  const supportedPath = SUPPORTED_FEISHU_OAUTH_CALLBACK_PATHS.includes(
+    parsed.pathname as (typeof SUPPORTED_FEISHU_OAUTH_CALLBACK_PATHS)[number]
+  );
+  if (!supportedPath) {
+    throw new OauthDomainError(
+      'OAUTH_FEISHU_REDIRECT_URI_UNSUPPORTED',
+      'Feishu IAM 飞书 OAuth 回调地址未指向当前服务支持的回调路由',
+      500
+    );
+  }
+
+  return rawRedirectUri;
 }
 
 function normalizeTokenInput(input: TokenInput): RequiredTokenInput {

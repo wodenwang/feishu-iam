@@ -122,6 +122,21 @@ describe('OauthErrorFilter', () => {
     expect(html).not.toMatch(/client_secret|Authorization|access_token/i);
   });
 
+  it('returns stable HTML for legacy Feishu callback browser path', () => {
+    const filter = new OauthErrorFilter();
+    const { host, status, response, send } = makeHost('req-legacy-callback', '/api/auth/feishu/callback');
+
+    filter.catch(new OauthDomainError('OAUTH_LOGIN_STATE_INVALID', '登录状态已失效，请重新发起登录', 400), host);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(response.type).toHaveBeenCalledWith('html');
+    const html = send.mock.calls[0]?.[0] ?? '';
+    expect(html).toContain('Feishu IAM 问题提示');
+    expect(html).toContain('无法完成登录');
+    expect(html).toContain('登录状态已失效，请重新发起登录');
+    expect(html).toContain('req-legacy-callback');
+  });
+
   it('rejects invalid non-error HTTP status', () => {
     expect(() => {
       new OauthDomainError('BAD_STATUS', '非法状态', 200);

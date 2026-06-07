@@ -618,6 +618,55 @@ describe('OAuth 浏览器授权端点', () => {
       }) as unknown
     );
   });
+
+  it('legacy feishu callback 兼容旧配置路径并复用 OAuth 回调处理', async () => {
+    oauthService.handleFeishuCallback.mockResolvedValue({
+      redirectTo: 'https://finance.example.com/callback?code=biac_legacy&state=third-party-state'
+    });
+
+    const httpServer = app.getHttpServer() as SupertestApp;
+    await request(httpServer)
+      .get('/api/auth/feishu/callback')
+      .query({
+        code: 'feishu-code',
+        state: 'bils_legacy'
+      })
+      .expect(302)
+      .expect('Location', 'https://finance.example.com/callback?code=biac_legacy&state=third-party-state');
+
+    expect(oauthService.handleFeishuCallback).toHaveBeenCalledWith(
+      {
+        code: 'feishu-code',
+        state: 'bils_legacy'
+      },
+      expect.objectContaining({
+        requestId: expect.any(String) as unknown
+      }) as unknown
+    );
+  });
+
+  it('legacy feishu callback 失败时渲染统一 HTML 错误页', async () => {
+    oauthService.handleFeishuCallback.mockRejectedValue(
+      new OauthDomainError('OAUTH_LOGIN_STATE_INVALID', '登录状态已失效，请重新发起登录', 400)
+    );
+
+    const httpServer = app.getHttpServer() as SupertestApp;
+    await request(httpServer)
+      .get('/api/auth/feishu/callback')
+      .set('x-request-id', 'req-legacy-feishu-callback')
+      .query({
+        code: 'feishu-code',
+        state: 'bad-state'
+      })
+      .expect(400)
+      .expect('Content-Type', /html/)
+      .expect((response) => {
+        expect(response.text).toContain('无法完成登录');
+        expect(response.text).toContain('登录状态已失效，请重新发起登录');
+        expect(response.text).toContain('req-legacy-feishu-callback');
+        expect(response.text).not.toMatch(/client_secret|Authorization|access_token/i);
+      });
+  });
 });
 
 describe('OAuth 无环境运行时端到端流程', () => {
@@ -744,6 +793,11 @@ describe('OAuth 无环境运行时端到端流程', () => {
     const code = callbackUrl.searchParams.get('code');
     expect(code).toBeTruthy();
     expect(callbackUrl.searchParams.get('state')).toBe('state-no-env');
+    const exchangeOAuthCodeCalls = (feishuClient.exchangeOAuthCode as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+    expect(exchangeOAuthCodeCalls).toContainEqual([
+      'feishu-code-no-env',
+      'https://iam.example.com/oauth/feishu/callback'
+    ]);
 
     const token = await request(httpServer)
       .post('/oauth/token')

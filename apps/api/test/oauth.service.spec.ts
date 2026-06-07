@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FeishuClient } from '../src/feishu/feishu-client';
 import { FeishuClientError } from '../src/feishu/feishu.types';
 import { OauthService } from '../src/oauth/oauth.service';
@@ -161,6 +161,21 @@ function mockActiveClient(prisma: PrismaMock) {
 }
 
 describe('OauthService', () => {
+  let originalFeishuRedirectUri: string | undefined;
+
+  beforeEach(() => {
+    originalFeishuRedirectUri = process.env.FEISHU_OAUTH_REDIRECT_URI;
+    process.env.FEISHU_OAUTH_REDIRECT_URI = 'https://iam.example.com/oauth/feishu/callback';
+  });
+
+  afterEach(() => {
+    if (originalFeishuRedirectUri === undefined) {
+      delete process.env.FEISHU_OAUTH_REDIRECT_URI;
+    } else {
+      process.env.FEISHU_OAUTH_REDIRECT_URI = originalFeishuRedirectUri;
+    }
+  });
+
   it('startAuthorization 校验 client 和 redirect_uri 后创建哈希登录 state 并跳转飞书', async () => {
     const originalRedirectUri = process.env.FEISHU_OAUTH_REDIRECT_URI;
     process.env.FEISHU_OAUTH_REDIRECT_URI = 'https://iam.example.com/oauth/feishu/callback';
@@ -203,6 +218,58 @@ describe('OauthService', () => {
     } else {
       process.env.FEISHU_OAUTH_REDIRECT_URI = originalRedirectUri;
     }
+  });
+
+  it('startAuthorization 兼容旧飞书回调路径配置但仍使用内部回调地址跳转飞书', async () => {
+    process.env.FEISHU_OAUTH_REDIRECT_URI = 'https://iam.example.com/api/auth/feishu/callback';
+    const prisma = makePrisma();
+    mockActiveClient(prisma);
+    prisma.oauthLoginState.create.mockResolvedValue({});
+
+    const result = await makeService(prisma).startAuthorization(
+      {
+        responseType: 'code',
+        clientId: 'bic_finance_dev',
+        redirectUri: 'https://finance.example.com/callback',
+        state: 'third-party-state'
+      },
+      auditContext
+    );
+
+    const redirectUrl = new URL(result.redirectTo);
+    expect(redirectUrl.searchParams.get('redirect_uri')).toBe('https://iam.example.com/api/auth/feishu/callback');
+    expect(prisma.oauthLoginState.create).toHaveBeenCalled();
+  });
+
+  it('startAuthorization 拒绝不受支持的内部飞书回调路径并写入稳定失败事件', async () => {
+    process.env.FEISHU_OAUTH_REDIRECT_URI = 'https://iam.example.com/api/auth/feishu/callback-old';
+    const prisma = makePrisma();
+    const securityEvents = makeSecurityEvents();
+    mockActiveClient(prisma);
+
+    await expect(
+      makeService(prisma, makeFeishuClient(), securityEvents).startAuthorization(
+        {
+          responseType: 'code',
+          clientId: 'bic_finance_dev',
+          redirectUri: 'https://finance.example.com/callback',
+          state: 'third-party-state'
+        },
+        auditContext
+      )
+    ).rejects.toMatchObject({
+      code: 'OAUTH_FEISHU_REDIRECT_URI_UNSUPPORTED',
+      status: 500
+    });
+    expect(prisma.oauthLoginState.create).not.toHaveBeenCalled();
+    expect(securityEvents.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'oauth_authorize',
+        result: 'failed',
+        reasonCode: 'OAUTH_FEISHU_REDIRECT_URI_UNSUPPORTED',
+        requestId: 'req-oauth'
+      }) as unknown
+    );
   });
 
   it('startAuthorization 使用应用级 active redirect_uri，不要求匹配 client 环境', async () => {
@@ -452,6 +519,7 @@ describe('OauthService', () => {
 
   it('handleFeishuCallback 消费 state、创建哈希授权码并带原始 state 回跳第三方', async () => {
     const prisma = makePrisma();
+    const feishuClient = makeFeishuClient();
     const internalState = 'bils_internal_state';
     let storedCodeHash = '';
     prisma.oauthLoginState.findUnique.mockResolvedValue({
@@ -488,7 +556,7 @@ describe('OauthService', () => {
     });
     prisma.oauthLoginState.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await makeService(prisma).handleFeishuCallback(
+    const result = await makeService(prisma, feishuClient).handleFeishuCallback(
       {
         code: 'feishu-code',
         state: internalState
@@ -503,6 +571,11 @@ describe('OauthService', () => {
     expect(callbackUrl.searchParams.get('state')).toBe('third-party-state');
     expect(storedCodeHash).toBe(hashOauthSecret(authorizationCode));
     expect(storedCodeHash).not.toContain(authorizationCode);
+    const exchangeOAuthCodeCalls = (feishuClient.exchangeOAuthCode as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+    expect(exchangeOAuthCodeCalls).toContainEqual([
+      'feishu-code',
+      'https://iam.example.com/oauth/feishu/callback'
+    ]);
     expect(prisma.oauthLoginState.updateMany).toHaveBeenCalledWith({
       where: {
         stateHash: hashOauthSecret(internalState),

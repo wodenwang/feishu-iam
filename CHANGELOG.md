@@ -1,5 +1,33 @@
 # 变更日志
 
+## v1.0.1 - 第三方 SSO 内部飞书回调兼容补丁
+
+`v1.0.1` 是 `v1.0.0` 后的小补丁版本，范围锁定 GitHub issue `#2`。本版本不新增 DDL，不扩大 OAuth/OIDC 协议面，不改变第三方应用 `redirect_uri` 精确匹配规则，不记录敏感凭证。
+
+### 修复
+
+- 新增旧路径兼容入口 `/api/auth/feishu/callback`，复用现有 `/oauth/feishu/callback` 的 OAuth 回调处理，避免旧 `FEISHU_OAUTH_REDIRECT_URI` 配置直接落到框架默认 `Cannot GET ...`。
+- OAuth 错误页渲染覆盖旧回调路径，回调 state 无效、缺少 code 或飞书登录失败时继续展示统一 HTML 问题提示页和 request id。
+- 发起第三方 SSO 授权和飞书 code exchange 时统一校验 `FEISHU_OAUTH_REDIRECT_URI`，只允许 `/oauth/feishu/callback` 和兼容旧路径 `/api/auth/feishu/callback`，配置漂移时返回稳定 OAuth 错误。
+- 部署模板、install 默认版本、README、AGENTS 和版本号同步到 `1.0.1`。
+
+### 安全与边界
+
+- 第三方应用回调地址仍只读取 `application_redirect_uris` 并保持精确匹配；不会把第三方 Demo 回调地址误用为 Feishu IAM 内部飞书平台回调地址。
+- 兼容旧路径只解决内部飞书平台回调配置漂移，不新增完整 OIDC、refresh token、SAML、ABAC、资源级权限或 deny 规则。
+- 错误页、测试和文档不记录 secret、token、cookie、authorization code、token hash、state hash、飞书 `app_secret` 或原始飞书 payload。
+
+### 本地验收
+
+- 已通过定向 OAuth 检查：`pnpm --filter @feishu-iam/api test -- --run test/oauth.service.spec.ts test/oauth-error.filter.spec.ts test/oauth.controller.e2e-spec.ts`，3 个测试文件 55 个用例通过。
+- 已通过 API 类型检查和 lint：`pnpm --filter @feishu-iam/api typecheck`、`pnpm --filter @feishu-iam/api lint`。
+- 已通过完整检查：`pnpm check`，API 41 个测试文件 465 个测试通过，Admin Web 15 个测试文件 156 个测试通过。
+- 已通过生产构建：`pnpm build`，前端构建仅保留既有 Vite chunk size warning。
+
+### 线上验收
+
+- 待发布后补齐：GitHub Release、线上 `/ready`、`/version`、`/oauth/feishu/callback`、`/api/auth/feishu/callback`、第三方 Demo SSO 和 my-harness canary 证据。
+
 ## v1.0.0 - Riversoft 正式版 UI 翻新与平台管理员初始化
 
 `v1.0.0` 是内部正式版发布收口版本，范围限定为前端 UI 翻新和 IAM 管理权限初始化。本版本不改变 UX 流程、信息架构、路由、表单流程、数据契约、CRUD 行为、权限逻辑或业务逻辑。

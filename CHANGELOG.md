@@ -28,7 +28,12 @@
 
 ### 线上验收
 
-- 待发布、部署和 canary 完成后补充镜像、升级备份、`/ready`、`/version`、公开 OAuth 错误页和移动端后台复核结果。
+- 已创建 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.2`。
+- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:9409b3df6fecb6bbe593b10ed4215563c6eec59272dd6460f9fa8f398a6ea408`，线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.2`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260613-162956`。
+- 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.2 / 20dc324`。
+- 已完成线上 OAuth 错误页验证：`/oauth/authorize`、`/oauth/feishu/callback?code=dummy&state=dummy` 和 `/api/auth/feishu/callback?code=dummy&state=dummy` 均返回 Feishu IAM 统一 HTML 错误页，只复制 `request id`，不包含 `复制问题信息` 或 `data-feedback`。
+- 已完成 `my-harness-canary` 快速检查，报告保存在 `.gstack/canary-reports/v1.0.2-2026-06-13T08-33-09-169Z/report.json`，状态为 `HEALTHY`，发现数为 0。
+- v1.0.1 canary 遗留 GitHub issue `#4` 和 `#5` 已在 v1.0.2 复核通过后关闭。
 
 ## v1.0.1 - 第三方 SSO 内部飞书回调兼容补丁
 

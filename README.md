@@ -131,7 +131,7 @@ GitHub Release：
 https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.2
 ```
 
-`v1.0.2` 是 `v1.0.1` 之后的前端 UI/UX P0 收口补丁。当前版本需要通过以下检查：
+`v1.0.2` 是 `v1.0.1` 之后的前端 UI/UX P0 收口补丁。当前版本已通过以下检查：
 
 - `/ready` 返回 ready。
 - `/version` 返回 `1.0.2`。

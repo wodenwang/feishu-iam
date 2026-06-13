@@ -18,12 +18,12 @@ import { DataTable } from "../../components/admin/DataTable";
 import { DetailSheet } from "../../components/admin/DetailSheet";
 import { FilterBar } from "../../components/admin/FilterBar";
 import { PageHeader } from "../../components/admin/PageHeader";
+import { ResponsiveTabsList } from "../../components/admin/ResponsiveTabsList";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
   Tabs,
   TabsContent,
-  TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
 import {
@@ -35,7 +35,7 @@ import type {
   RecordSearchState,
   RecordTab,
 } from "../../routes/admin-url-state";
-import { createRecordColumns } from "./record-columns";
+import { createRecordColumns, formatResult } from "./record-columns";
 import type { RecordRow } from "./record-mappers";
 import {
   formatDateTime,
@@ -251,15 +251,13 @@ export function RecordQueryView({
             });
           }}
         >
-          <div className="max-w-full overflow-x-auto pb-1">
-            <TabsList aria-label="操作审计标签" className="w-max justify-start">
-              {tabItems.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <ResponsiveTabsList aria-label="操作审计标签">
+            {tabItems.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </ResponsiveTabsList>
 
           {tabItems.map((tab) => (
             <TabsContent key={tab.value} value={tab.value}>
@@ -376,6 +374,46 @@ export function RecordQueryView({
                     }
                     getRowKey={(row) => `${row.kind}:${row.id}`}
                     loading={state.status === "loading"}
+                    mobileCard={{
+                      title: (row) => row.action,
+                      description: (row) => row.target,
+                      fields: [
+                        {
+                          label: "结果",
+                          render: (row) => formatResult(row.result),
+                        },
+                        {
+                          label: "操作者",
+                          render: (row) => row.actor,
+                        },
+                        {
+                          label: "request id",
+                          render: (row) =>
+                            row.requestId
+                              ? `request id: ${row.requestId}`
+                              : "-",
+                        },
+                        {
+                          label: "时间",
+                          render: (row) => formatDateTime(row.createdAt),
+                        },
+                      ],
+                      actions: (row) => (
+                        <Button
+                          aria-label={`查看 ${currentTab.detailLabel} ${row.id}`}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            updateSearch({
+                              sheet: `${row.kind === "security" && search.tab === "tokens" ? "token" : row.kind}:${row.id}`,
+                            });
+                          }}
+                        >
+                          查看详情
+                        </Button>
+                      ),
+                    }}
                     rows={search.tab === tab.value ? rows : []}
                   />
                 )}

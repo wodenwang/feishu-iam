@@ -23,7 +23,11 @@ import {
 } from "../../routes/admin-url-state";
 import type { PermissionSearchState } from "../../routes/admin-url-state";
 import { PermissionRoleDetailSheet } from "./PermissionRoleDetailSheet";
-import { createPermissionRoleColumns } from "./permission-columns";
+import {
+  createPermissionRoleColumns,
+  formatDateTime,
+  readBoundPermissionGroupIds,
+} from "./permission-columns";
 import type { PermissionRoleRowAction } from "./permission-columns";
 import { formatRoleStatus } from "./permission-form";
 
@@ -273,6 +277,46 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
             forbidden={permissionState.status === "failed" && permissionState.forbidden ? "当前管理员无权查看 IAM 角色授权。" : false}
             getRowKey={(role) => role.id}
             loading={applicationsState.status === "loading" || permissionState.status === "loading"}
+            mobileCard={{
+              title: (role) => role.name,
+              description: (role) => (
+                <code className="break-all rounded bg-muted px-2 py-1 text-xs">
+                  {role.key}
+                </code>
+              ),
+              fields: [
+                {
+                  label: "状态",
+                  render: (role) => (
+                    <StatusBadge
+                      tone={role.status === "active" ? "success" : "muted"}
+                    >
+                      {formatRoleStatus(role.status)}
+                    </StatusBadge>
+                  ),
+                },
+                {
+                  label: "权限组",
+                  render: (role) =>
+                    `${String(readBoundPermissionGroupIds(role).length)} 个`,
+                },
+                {
+                  label: "更新时间",
+                  render: (role) => formatDateTime(role.updatedAt),
+                },
+              ],
+              actions: (role) => (
+                <Button
+                  aria-label={`查看 ${role.key} 详情`}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={() => { handleRowAction({ type: "detail", role }); }}
+                >
+                  查看详情
+                </Button>
+              ),
+            }}
             rows={pagedRoles}
           />
 

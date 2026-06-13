@@ -36,6 +36,7 @@ import type { AdminUserRowAction } from "./admin-user-columns";
 import { createAdminUserColumns } from "./admin-user-columns";
 import {
   formatAdminRoleLabel,
+  formatAdminStatus,
   formatApplicationScopes,
   hasAdminUserFormErrors,
   isReadonlyAdminUser,
@@ -326,6 +327,79 @@ export function AdminAuthorizationView({ admin }: AdminAuthorizationViewProps) {
               forbidden={state.status === "failed" && state.forbidden ? "当前管理员无权管理管理员授权" : false}
               getRowKey={(adminUser) => adminUser.id}
               loading={state.status === "loading"}
+              mobileCard={{
+                title: (adminUser) =>
+                  adminUser.displayName || "未命名管理员",
+                description: (adminUser) => (
+                  <code className="break-all rounded bg-muted px-2 py-1 text-xs">
+                    飞书 user_id: {adminUser.feishuUserId}
+                  </code>
+                ),
+                fields: [
+                  {
+                    label: "角色",
+                    render: (adminUser) =>
+                      formatAdminRoleLabel(adminUser.roles),
+                  },
+                  {
+                    label: "状态",
+                    render: (adminUser) =>
+                      formatAdminStatus(adminUser.status),
+                  },
+                  {
+                    label: "应用范围",
+                    render: (adminUser) =>
+                      formatApplicationScopes(adminUser.applicationScopes),
+                  },
+                ],
+                actions: (adminUser) => {
+                  const readonly = isReadonlyAdminUser(adminUser);
+                  const statusAction = adminUser.status === "disabled" ? "enable" : "disable";
+
+                  return (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          handleRowAction({ type: "detail", adminUser });
+                        }}
+                      >
+                        详情
+                      </Button>
+                      {readonly ? (
+                        <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          历史角色只读
+                        </span>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              handleRowAction({ type: "edit", adminUser });
+                            }}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            size="sm"
+                            type="button"
+                            variant={statusAction === "disable" ? "destructive" : "secondary"}
+                            onClick={() => {
+                              handleRowAction({ type: statusAction, adminUser });
+                            }}
+                          >
+                            {statusAction === "disable" ? "停用" : "启用"}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                },
+              }}
               rows={filteredUsers}
             />
           </form>

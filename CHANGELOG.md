@@ -1,5 +1,35 @@
 # 变更日志
 
+## v1.0.2 - UI/UX P0 收口补丁
+
+`v1.0.2` 是 `v1.0.1` 后的前端 UI/UX P0 补丁版本，范围锁定移动端资源列表、窄屏 Tabs 和 OAuth 公开错误页复制边界。本版本不新增 DDL，不改变 OAuth 协议、管理员 session、权限模型、审计语义或第三方应用接入契约。
+
+### 修复
+
+- 管理后台 `DataTable` 支持移动端资源卡片，应用管理、权限管理、管理员授权和操作审计在 390px 下不再把长 key、request id 或 Feishu user id 压缩成逐字竖排。
+- 管理员授权移动端卡片保留详情、编辑、启用/停用入口，历史只读角色展示稳定只读提示。
+- 新增 `ResponsiveTabsList`，操作审计、应用详情和角色详情多 Tab 页面在窄屏下由 Tab 列表内部滚动，不再撑破页面。
+- 角色详情 `权限组绑定` Tab 补充 `min-w-0` 与长文本换行约束，修复 390px 下 485px 页面级横向溢出。
+- OAuth 公开 HTML 错误页移除整段反馈文本和 `data-feedback`，只展示并复制 `request id`。
+
+### 安全与边界
+
+- 错误页、测试和文档不要求终端用户复制 token、cookie、authorization、授权码、token hash、state hash、飞书 `app_secret` 或 raw payload。
+- 移动端卡片只复用已有脱敏字段和已有行操作，不新增后端接口，不绕过后端权限校验。
+- 不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限、deny 规则或数据范围权限。
+
+### 本地验收
+
+- 已通过定向前端检查：`pnpm --filter @feishu-iam/admin-web test -- src/components/admin/DataTable.test.tsx src/components/admin/ResponsiveTabsList.test.tsx src/features/applications/ApplicationManagementView.test.tsx src/features/permissions/PermissionManagementView.test.tsx src/features/admin-users/AdminAuthorizationView.test.tsx src/features/records/RecordQueryView.test.tsx`，6 个测试文件 48 个用例通过。
+- 已通过 OAuth 错误页定向检查：`pnpm --filter @feishu-iam/api test -- test/oauth-error.filter.spec.ts`，7 个用例通过。
+- 已通过响应式浏览器验证：`ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 13 条后台路由的 390、768、1280、1440 视口，结果 `failures: []`。
+- 已通过完整检查：`pnpm check`，API 41 个测试文件 465 个测试通过，Admin Web 17 个测试文件 160 个测试通过。
+- 已通过生产构建：`pnpm build`，前端构建仅保留既有 Vite chunk size warning。
+
+### 线上验收
+
+- 待发布、部署和 canary 完成后补充镜像、升级备份、`/ready`、`/version`、公开 OAuth 错误页和移动端后台复核结果。
+
 ## v1.0.1 - 第三方 SSO 内部飞书回调兼容补丁
 
 `v1.0.1` 是 `v1.0.0` 后的小补丁版本，范围锁定 GitHub issue `#2`。本版本不新增 DDL，不扩大 OAuth/OIDC 协议面，不改变第三方应用 `redirect_uri` 精确匹配规则，不记录敏感凭证。

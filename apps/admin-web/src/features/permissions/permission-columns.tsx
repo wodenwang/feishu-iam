@@ -166,7 +166,7 @@ export function hasRoleBindingDetails(role: IamRole): boolean {
   return Array.isArray(role.permissionGroupIds) && Array.isArray(role.subjects);
 }
 
-function formatDateTime(value?: string | null): string {
+export function formatDateTime(value?: string | null): string {
   if (!value) {
     return "尚未记录";
   }

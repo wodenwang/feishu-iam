@@ -1,6 +1,6 @@
 {
   "name": "feishu-iam",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "企业内部身份与权限管理中台",
   "packageManager": "pnpm@9.15.4",

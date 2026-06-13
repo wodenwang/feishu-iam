@@ -110,7 +110,7 @@ function statusTone(
   return "muted";
 }
 
-function formatResult(result: string): string {
+export function formatResult(result: string): string {
   if (result === "running" || result === "success" || result === "failed") {
     return formatRunStatus(result);
   }

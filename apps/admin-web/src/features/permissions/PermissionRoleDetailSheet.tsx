@@ -11,10 +11,11 @@ import type { IamRole, IamRoleSubject, PermissionGroup, PermissionPoint } from "
 import { ConfirmDialog } from "../../components/admin/ConfirmDialog";
 import { DetailSheet } from "../../components/admin/DetailSheet";
 import type { DetailSheetProps } from "../../components/admin/DetailSheet";
+import { ResponsiveTabsList } from "../../components/admin/ResponsiveTabsList";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "../../components/ui/tabs";
 import { OrgUserSelector } from "../org-browser/org-user-selector";
 import { readBoundPermissionGroupIds } from "./permission-columns";
 import { formatRoleStatus } from "./permission-form";
@@ -147,16 +148,16 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
             </div>
           ) : null}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="h-auto flex-wrap justify-start">
+          <Tabs className="min-w-0" value={activeTab} onValueChange={setActiveTab}>
+            <ResponsiveTabsList aria-label="角色详情标签">
               <TabsTrigger value="overview">总览</TabsTrigger>
               <TabsTrigger value="subjects">组织与用户绑定</TabsTrigger>
               <TabsTrigger value="groups">权限组绑定</TabsTrigger>
               <TabsTrigger value="base">基础信息</TabsTrigger>
               <TabsTrigger value="audit">操作说明</TabsTrigger>
-            </TabsList>
+            </ResponsiveTabsList>
 
-            <TabsContent value="overview">
+            <TabsContent className="min-w-0" value="overview">
               <OverviewTab
                 groupCount={readBoundPermissionGroupIds(role).length}
                 groupsById={permissionGroupsById}
@@ -164,7 +165,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
               />
             </TabsContent>
 
-            <TabsContent value="subjects">
+            <TabsContent className="min-w-0" value="subjects">
               <OrgUserSelector
                 disabled={props.readOnly}
                 error={saveIntent === "subjects" ? error : undefined}
@@ -188,7 +189,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
               />
             </TabsContent>
 
-            <TabsContent value="groups">
+            <TabsContent className="min-w-0" value="groups">
               <GroupsTab
                 disabled={props.readOnly || pending}
                 filteredGroups={filteredGroups}
@@ -207,11 +208,11 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
               />
             </TabsContent>
 
-            <TabsContent value="base">
+            <TabsContent className="min-w-0" value="base">
               <BaseInfoTab role={role} />
             </TabsContent>
 
-            <TabsContent value="audit">
+            <TabsContent className="min-w-0" value="audit">
               <AuditTab />
             </TabsContent>
           </Tabs>
@@ -329,8 +330,8 @@ function GroupsTab(props: {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="grid gap-3 rounded-md border bg-background p-4" aria-label="可选权限组">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid min-w-0 gap-3 rounded-md border bg-background p-4" aria-label="可选权限组">
         <div>
           <h3 className="text-base font-semibold">可选权限组</h3>
           <p className="text-sm text-muted-foreground">只绑定当前应用的权限组，不暴露权限点 CRUD。</p>
@@ -350,7 +351,7 @@ function GroupsTab(props: {
             <p className="px-2 py-10 text-center text-sm text-muted-foreground">暂无可绑定权限组</p>
           ) : (
             props.filteredGroups.map((group) => (
-              <label className="flex items-start gap-3 rounded-md border bg-background p-3 text-sm" key={group.id}>
+              <label className="flex min-w-0 items-start gap-3 rounded-md border bg-background p-3 text-sm" key={group.id}>
                 <input
                   className="mt-1"
                   checked={props.selectedGroupIds.includes(group.id)}
@@ -389,7 +390,7 @@ function GroupsTab(props: {
           )}
         </div>
       </section>
-      <section className="grid content-start gap-3 rounded-md border bg-background p-4" aria-label="绑定结果预览">
+      <section className="grid min-w-0 content-start gap-3 rounded-md border bg-background p-4" aria-label="绑定结果预览">
         <h3 className="text-base font-semibold">绑定结果预览</h3>
         <DiffNote text={`新增 ${String(props.groupDiff.added.length)} 个，移除 ${String(props.groupDiff.removed.length)} 个。`} />
         <p className="text-sm text-muted-foreground">
@@ -400,7 +401,7 @@ function GroupsTab(props: {
             保存权限组绑定
           </Button>
         </div>
-        <div className="grid gap-3 border-t pt-3" aria-label="最终权限点">
+        <div className="grid min-w-0 gap-3 border-t pt-3" aria-label="最终权限点">
           <div>
             <h4 className="text-sm font-semibold">最终权限点</h4>
             <p className="text-xs text-muted-foreground">
@@ -469,11 +470,11 @@ function EffectivePermissionPointList({ permissionPoints }: { permissionPoints: 
     );
   }
   return (
-    <div className="grid max-h-[360px] gap-2 overflow-y-auto rounded-md border p-2" aria-label="最终权限点清单">
+    <div className="grid min-w-0 max-h-[360px] gap-2 overflow-y-auto rounded-md border p-2" aria-label="最终权限点清单">
       {permissionPoints.map((point) => (
-        <article className="grid gap-1 rounded-md border bg-background px-3 py-2 text-sm" key={point.id}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-medium">{point.name}</span>
+        <article className="grid min-w-0 gap-1 rounded-md border bg-background px-3 py-2 text-sm" key={point.id}>
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 break-all font-medium">{point.name}</span>
             <StatusBadge tone={point.direct && point.sourceGroups.length > 0 ? "warning" : "muted"}>
               {point.sourceLabel}
             </StatusBadge>
@@ -483,7 +484,7 @@ function EffectivePermissionPointList({ permissionPoints }: { permissionPoints: 
             <span className="text-xs text-muted-foreground">{point.description}</span>
           ) : null}
           {point.sourceGroups.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
+            <span className="break-all text-xs text-muted-foreground">
               来源权限组：{point.sourceGroups.map((group) => `${group.name} / ${group.key}`).join("、")}
             </span>
           ) : null}

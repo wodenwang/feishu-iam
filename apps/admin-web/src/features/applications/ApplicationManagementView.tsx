@@ -385,6 +385,60 @@ export function ApplicationManagementView({
             }
             getRowKey={(application) => application.id}
             loading={state.status === "loading"}
+            mobileCard={{
+              title: (application) => application.name,
+              description: (application) => (
+                <code className="break-all rounded bg-muted px-2 py-1 text-xs">
+                  {application.appKey}
+                </code>
+              ),
+              fields: [
+                {
+                  label: "状态",
+                  render: (application) => (
+                    <StatusBadge
+                      tone={
+                        application.status === "active" ? "success" : "muted"
+                      }
+                    >
+                      {formatEntityStatus(application.status)}
+                    </StatusBadge>
+                  ),
+                },
+                {
+                  label: "负责人",
+                  render: (application) =>
+                    application.ownerUserId ?? "未配置",
+                },
+                {
+                  label: "更新时间",
+                  render: (application) =>
+                    formatDateTime(application.updatedAt),
+                },
+                {
+                  label: "接入",
+                  render: (application) => (
+                    <IntegrationSummaryCell application={application} />
+                  ),
+                },
+              ],
+              actions: (application) => (
+                <Button
+                  aria-label={`查看 ${application.appKey} 详情`}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const from = `${location.pathname}${location.search}`;
+                    void navigate(
+                      `/admin/applications/${encodeURIComponent(application.appKey)}?from=${encodeURIComponent(from)}`,
+                    );
+                  }}
+                >
+                  查看详情
+                </Button>
+              ),
+            }}
             rows={rows}
           />
 

@@ -41,6 +41,7 @@ import { ConfirmDialog } from "../../components/admin/ConfirmDialog";
 import { CopyField } from "../../components/admin/CopyField";
 import { DetailSheet } from "../../components/admin/DetailSheet";
 import type { DetailSheetProps } from "../../components/admin/DetailSheet";
+import { ResponsiveTabsList } from "../../components/admin/ResponsiveTabsList";
 import { SecretRevealPanel } from "../../components/admin/SecretRevealPanel";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { Button } from "../../components/ui/button";
@@ -48,7 +49,6 @@ import { Input } from "../../components/ui/input";
 import {
   Tabs,
   TabsContent,
-  TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
 import { Textarea } from "../../components/ui/textarea";
@@ -500,15 +500,15 @@ export function ApplicationDetailSheet({
     >
       {application ? (
         <div className="pt-4">
-          <Tabs value={resolvedActiveTab} onValueChange={setResolvedActiveTab}>
-            <TabsList className="h-auto flex-wrap justify-start">
+          <Tabs className="min-w-0" value={resolvedActiveTab} onValueChange={setResolvedActiveTab}>
+            <ResponsiveTabsList aria-label="应用详情标签">
               <TabsTrigger value="details">详细资料</TabsTrigger>
               <TabsTrigger value="roles">角色管理</TabsTrigger>
               <TabsTrigger value="development">开发信息</TabsTrigger>
               <TabsTrigger value="danger">危险操作</TabsTrigger>
-            </TabsList>
+            </ResponsiveTabsList>
 
-            <TabsContent value="details" className="mt-4">
+            <TabsContent value="details" className="mt-4 min-w-0">
               <Section title="详细资料">
                 {readonly ? (
                   <Notice>
@@ -596,7 +596,7 @@ export function ApplicationDetailSheet({
               </Section>
             </TabsContent>
 
-            <TabsContent value="roles" className="mt-4">
+            <TabsContent value="roles" className="mt-4 min-w-0">
               <Section title="角色管理">
                 <RoleSection
                   application={application}
@@ -612,7 +612,7 @@ export function ApplicationDetailSheet({
               </Section>
             </TabsContent>
 
-            <TabsContent value="development" className="mt-4">
+            <TabsContent value="development" className="mt-4 min-w-0">
               <div className="grid gap-5">
                 {state.status === "loading" ? (
                   <p className="text-sm text-muted-foreground">
@@ -886,7 +886,7 @@ export function ApplicationDetailSheet({
               </div>
             </TabsContent>
 
-            <TabsContent value="danger" className="mt-4">
+            <TabsContent value="danger" className="mt-4 min-w-0">
               <Section title="危险操作">
                 <Notice>
                   应用启停会影响授权、换取 token、userinfo、权限查询和 developer

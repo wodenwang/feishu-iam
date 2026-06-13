@@ -116,7 +116,9 @@ describe('OauthErrorFilter', () => {
     expect(html).toContain('Feishu IAM 问题提示');
     expect(html).toContain('无法完成登录');
     expect(html).toContain('飞书登录服务暂时不可用，请稍后重试');
-    expect(html).toContain('复制问题信息');
+    expect(html).toContain('复制 request id');
+    expect(html).not.toContain('复制问题信息');
+    expect(html).not.toContain('data-feedback');
     expect(html).toMatch(/[0-9a-f-]{36}/);
     expect(html).not.toContain('unknown');
     expect(html).not.toMatch(/client_secret|Authorization|access_token/i);
@@ -135,6 +137,9 @@ describe('OauthErrorFilter', () => {
     expect(html).toContain('无法完成登录');
     expect(html).toContain('登录状态已失效，请重新发起登录');
     expect(html).toContain('req-legacy-callback');
+    expect(html).toContain('复制 request id');
+    expect(html).not.toContain('复制问题信息');
+    expect(html).not.toContain('data-feedback');
   });
 
   it('rejects invalid non-error HTTP status', () => {

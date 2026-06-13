@@ -585,9 +585,9 @@ describe('OAuth 浏览器授权端点', () => {
       .expect((response) => {
         expect(response.text).toContain('无法完成登录');
         expect(response.text).toContain('飞书登录服务暂时不可用，请稍后重试');
-        expect(response.text).toMatch(/<dt>request id<\/dt><dd>[0-9a-f-]{36}<\/dd>/);
+        expect(response.text).toMatch(/<dt>request id<\/dt><dd[^>]*>[0-9a-f-]{36}<\/dd>/);
         expect(response.text).not.toContain('unknown');
-        const renderedRequestId = response.text.match(/<dt>request id<\/dt><dd>([0-9a-f-]{36})<\/dd>/)?.[1];
+        const renderedRequestId = response.text.match(/<dt>request id<\/dt><dd[^>]*>([0-9a-f-]{36})<\/dd>/)?.[1];
         const serviceContext = oauthService.startAuthorization.mock.calls[0]?.[1];
         expect(renderedRequestId).toBe(serviceContext?.requestId);
       });

@@ -45,7 +45,7 @@
 
 ## 反馈模板
 
-终端用户可直接复制统一问题提示页中的问题信息；如果需要手工整理，使用以下字段：
+终端用户只需要复制统一问题提示页中的 `request id`。不要要求用户复制整段问题信息、URL、token、cookie、authorization、授权码、token hash、state hash 或 raw payload。如果需要手工整理，使用以下字段：
 
 ```text
 第三方系统：

@@ -21,8 +21,8 @@
 | ✅ | 11 | gstack `/qa` | 已完成 | 覆盖后端 471 个用例、前端 160 个用例、13 个路由多视口响应式检查 |
 | ✅ | 12 | gstack `/review` | 已完成 | 已复核 secret 边界、审计脱敏、长期明文 token 禁止、README 不越权声明生产部署 |
 | ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | 用户已选择 D1，只提交 v1.0.3 候选版改动，不包含并行域名清理改动 |
-| ✅ | 14 | gstack `/ship` | 已授权执行 | 范围为 commit、tag `v1.0.3`、push 和 GitHub Release；不包含生产部署 |
-| 🎯 | 15 | gstack `/land-and-deploy` | 待授权 | 未获 deploy 授权前不执行镜像发布、生产部署或 canary |
+| ✅ | 14 | gstack `/ship` | 已完成 | commit `53f94b0`、tag `v1.0.3`、GitHub Release 和 push 已完成 |
+| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 已构建 linux/amd64 离线镜像并部署到 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`；公网 `/ready` ready，`/version` 为 `1.0.3 / 53f94b0` |
 
 ## 关键制品
 

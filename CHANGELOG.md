@@ -26,7 +26,9 @@
 - 已通过 `pnpm check`：类型检查、lint、后端 41 个测试文件 471 个用例、前端 17 个测试文件 160 个用例通过。
 - 已通过 `pnpm build`：后端 NestJS 构建完成，前端 Vite 生产构建完成；Vite chunk size warning 为既有构建提示。
 - 已通过 Playwright 浏览器自检：390px 和 1280px 下应用详情 `开发信息` Tab 可确认刷新、展示完整提示词、包含 Base Portal preset、复制入口可见，且无 console error、无 request failure、无横向溢出。
-- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3`。镜像发布、生产部署和 canary 需在 `/land-and-deploy` 获得授权后补充。
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3`。
+- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地 manifest digest 为 `sha256:fad6c05532a12fbc4c83abc83e00a6d606eb222978e912c304a05e5740622c1c`，线上运行 `feishu-iam:v1.0.3`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260620-104106`。
+- 生产健康检查通过：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`/version` 返回 `1.0.3 / 53f94b0`。
 
 ## v1.0.2 - UI/UX P0 收口补丁
 

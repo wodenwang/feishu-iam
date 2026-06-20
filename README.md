@@ -111,9 +111,9 @@ curl -fsS https://feishu-iam.example.com/version
 
 `/ready` 应返回 ready，`/version` 应返回 `1.0.3`。
 
-### 2.3 当前候选版信息
+### 2.3 当前正式版信息
 
-当前候选版：
+当前正式版：
 
 ```text
 v1.0.3
@@ -131,7 +131,7 @@ GitHub Release：
 https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3
 ```
 
-`v1.0.3` 是 `v1.0.2` 之后的第三方接入体验收敛版本。本地候选版已通过以下检查：
+`v1.0.3` 是 `v1.0.2` 之后的第三方接入体验收敛版本，已完成 GitHub Release、linux/amd64 离线镜像构建、远端停机升级和生产健康检查。本版本已通过以下检查：
 
 - `pnpm check` 通过：类型检查、lint、后端 41 个测试文件 471 个用例、前端 17 个测试文件 160 个用例通过。
 - `pnpm build` 通过：后端 NestJS 构建完成，前端 Vite 生产构建完成。
@@ -147,9 +147,12 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3
 - 完整提示词刷新在同一个数据库事务中轮换 OAuth `client_secret` 和 developer API token。
 - `base-portal` 应用提示词包含 Portal 菜单权限点建议、打开方式约束和 iframe 无感 SSO 验收矩阵。
 - Playwright 已覆盖应用详情 `开发信息` Tab 的 390px 和 1280px 刷新完整提示词主流程，未发现 console error、request failure 或横向溢出。
+- linux/amd64 离线镜像 `feishu-iam:v1.0.3` 已构建并加载到 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，本地 manifest digest 为 `sha256:fad6c05532a12fbc4c83abc83e00a6d606eb222978e912c304a05e5740622c1c`。
+- 生产容器运行 `feishu-iam:v1.0.3`，`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`/version` 返回 `1.0.3 / 53f94b0`。
+- 停机升级备份目录为 `/home/bpmt/feishu-iam/backups/20260620-104106`。
 - “王文哲”已获得 IAM 平台管理员权限。
 
-注意：`v1.0.3` 继续沿用 `v1.0.0` 的单机 Docker Compose 停机升级模型；如果生产环境 `FEISHU_OAUTH_REDIRECT_URI` 仍是旧 `/api/auth/feishu/callback`，服务会兼容处理，但新部署必须改为 `/oauth/feishu/callback`。本次 `/ship` 只创建 GitHub Release；镜像发布、生产部署和 canary 需要在 `/land-and-deploy` 获得授权后执行。
+注意：`v1.0.3` 继续沿用 `v1.0.0` 的单机 Docker Compose 停机升级模型；如果生产环境 `FEISHU_OAUTH_REDIRECT_URI` 仍是旧 `/api/auth/feishu/callback`，服务会兼容处理，但新部署必须改为 `/oauth/feishu/callback`。
 
 ### 2.4 版本历史
 
@@ -161,6 +164,7 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3
 - developer API token 仍不长期明文保存；需要完整提示词时通过轮换生成，旧 token 立即失效。
 - 不新增 DDL，不改变 OAuth 协议、管理员 session、权限模型、redirect_uri 精确匹配规则或部署拓扑。
 - GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3`。
+- 生产部署：`bpmt@120.24.236.92:/home/bpmt/feishu-iam` 已运行 `feishu-iam:v1.0.3`，`/ready` ready，`/version` 返回 `1.0.3 / 53f94b0`。
 
 #### v1.0.2
 

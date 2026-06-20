@@ -126,6 +126,8 @@ describe("Admin auth controller", () => {
     createClient: vi.fn<OauthConfigService["createClient"]>(),
     viewClientSecret: vi.fn<OauthConfigService["viewClientSecret"]>(),
     rotateClientSecret: vi.fn<OauthConfigService["rotateClientSecret"]>(),
+    rotateClientSecretInTransaction:
+      vi.fn<OauthConfigService["rotateClientSecretInTransaction"]>(),
     setClientStatus: vi.fn<OauthConfigService["setClientStatus"]>(),
   };
   const onboarding = {
@@ -134,9 +136,14 @@ describe("Admin auth controller", () => {
   };
   const developerCredentials = {
     listCredentials: vi.fn<DeveloperCredentialService["listCredentials"]>(),
+    rotatePrimaryCredential:
+      vi.fn<DeveloperCredentialService["rotatePrimaryCredential"]>(),
+    rotatePrimaryCredentialInTransaction:
+      vi.fn<DeveloperCredentialService["rotatePrimaryCredentialInTransaction"]>(),
   };
   const integrationPrompts = {
     generateSafePrompt: vi.fn<IntegrationPromptService["generateSafePrompt"]>(),
+    generateFullPrompt: vi.fn<IntegrationPromptService["generateFullPrompt"]>(),
   };
   const feishuStatus = {
     getStatus: vi.fn<FeishuStatusService["getStatus"]>(),
@@ -163,6 +170,7 @@ describe("Admin auth controller", () => {
     isReady: vi.fn().mockResolvedValue(true),
     $connect: vi.fn(),
     $disconnect: vi.fn(),
+    $transaction: vi.fn(),
     feishuUser: {
       count: vi.fn(),
       findMany: vi.fn(),
@@ -255,6 +263,10 @@ describe("Admin auth controller", () => {
     auth.logout.mockResolvedValue(undefined);
     securityEvents.record.mockReset();
     securityEvents.record.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: typeof prisma) => unknown) =>
+        Promise.resolve(callback(prisma)),
+    );
     adminUsers.createAdminUser.mockResolvedValue({
       id: "admin-created",
       feishuUserId: "ou_created",
@@ -740,6 +752,10 @@ describe("Admin auth controller", () => {
       clientId: "bic_finance_dev",
       clientSecret: "secret-rotated",
     });
+    oauthConfig.rotateClientSecretInTransaction.mockResolvedValue({
+      clientId: "bic_finance_dev",
+      clientSecret: "secret-rotated",
+    });
     oauthConfig.viewClientSecret.mockResolvedValue({
       clientId: "bic_finance_dev",
       clientSecret: "secret-viewed",
@@ -770,8 +786,37 @@ describe("Admin auth controller", () => {
         updatedAt: new Date("2026-05-17T01:00:00.000Z"),
       },
     ]);
+    developerCredentials.rotatePrimaryCredential.mockResolvedValue({
+      credential: {
+        id: "developer-credential-1",
+        applicationId: "app-finance",
+        name: "默认开发者 API 凭证",
+        status: "active",
+        lastUsedAt: null,
+        rotatedAt: new Date("2026-06-20T01:00:00.000Z"),
+        createdAt: new Date("2026-05-17T01:00:00.000Z"),
+        updatedAt: new Date("2026-06-20T01:00:00.000Z"),
+      },
+      token: "biad_rotated",
+    });
+    developerCredentials.rotatePrimaryCredentialInTransaction.mockResolvedValue({
+      credential: {
+        id: "developer-credential-1",
+        applicationId: "app-finance",
+        name: "默认开发者 API 凭证",
+        status: "active",
+        lastUsedAt: null,
+        rotatedAt: new Date("2026-06-20T01:00:00.000Z"),
+        createdAt: new Date("2026-05-17T01:00:00.000Z"),
+        updatedAt: new Date("2026-06-20T01:00:00.000Z"),
+      },
+      token: "biad_rotated",
+    });
     integrationPrompts.generateSafePrompt.mockReturnValue(
       "safe prompt with AGENTS.md and placeholders",
+    );
+    integrationPrompts.generateFullPrompt.mockReturnValue(
+      "full prompt with client_secret secret-rotated and developer_api_token biad_rotated",
     );
     feishuStatus.getStatus.mockResolvedValue({
       configStatus: "connected",
@@ -3480,6 +3525,86 @@ describe("Admin auth controller", () => {
       applicationName: "财务系统",
       redirectUris: ["http://localhost:5173/callback"],
       clientId: "bic_finance_dev",
+    });
+  });
+
+  it("POST /api/v1/admin/applications/finance/integration-prompt/refresh 轮换凭证并返回完整提示词", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-app",
+      feishuUserId: "ou_app",
+      displayName: "应用管理员",
+      roles: ["application_admin"],
+      applicationIds: ["app-finance"],
+    });
+    oauthConfig.listRedirectUris.mockResolvedValue([
+      {
+        id: "redirect-1",
+        applicationId: "app-finance",
+        environmentId: null,
+        sourceEnvironmentId: null,
+        redirectUri: "https://base-portal.riversoft.com.cn/oauth/callback",
+        status: "active",
+        createdAt: new Date("2026-05-17T01:00:00.000Z"),
+        updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+      },
+    ]);
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .post("/api/v1/admin/applications/finance/integration-prompt/refresh")
+      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
+      .set("x-request-id", "req-refresh-prompt")
+      .expect(201)
+      .expect((response) => {
+        expect(getField(response.body as unknown, "clientId")).toBe(
+          "bic_finance_dev",
+        );
+        expect(getField(response.body as unknown, "developerCredentialId")).toBe(
+          "developer-credential-1",
+        );
+        expect(getField(response.body as unknown, "integrationPrompt")).toBe(
+          "full prompt with client_secret secret-rotated and developer_api_token biad_rotated",
+        );
+        expect(JSON.stringify(response.body)).not.toContain("clientSecretHash");
+        expect(JSON.stringify(response.body)).not.toContain(
+          "clientSecretCiphertext",
+        );
+      });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(oauthConfig.rotateClientSecret).not.toHaveBeenCalled();
+    expect(developerCredentials.rotatePrimaryCredential).not.toHaveBeenCalled();
+    expect(oauthConfig.rotateClientSecretInTransaction).toHaveBeenCalledWith(
+      "finance",
+      "bic_finance_dev",
+      prisma,
+      expect.objectContaining({
+        actorType: "admin_user",
+        actorId: "admin-app",
+        source: "admin_web",
+        requestId: "req-refresh-prompt",
+      }) as unknown,
+    );
+    expect(
+      developerCredentials.rotatePrimaryCredentialInTransaction,
+    ).toHaveBeenCalledWith(
+      "finance",
+      prisma,
+      expect.objectContaining({
+        actorType: "admin_user",
+        actorId: "admin-app",
+        source: "admin_web",
+        requestId: "req-refresh-prompt",
+      }) as unknown,
+    );
+    expect(integrationPrompts.generateFullPrompt).toHaveBeenCalledWith({
+      baseIamUrl: "http://localhost:8000",
+      appKey: "finance",
+      applicationName: "财务系统",
+      redirectUris: ["https://base-portal.riversoft.com.cn/oauth/callback"],
+      clientId: "bic_finance_dev",
+      clientSecret: "secret-rotated",
+      developerApiToken: "biad_rotated",
     });
   });
 

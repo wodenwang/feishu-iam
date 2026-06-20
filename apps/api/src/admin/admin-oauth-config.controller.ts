@@ -15,9 +15,10 @@ import { DeveloperCredentialService } from "../oauth/developer-credential.servic
 import { IntegrationPromptService } from "../oauth/integration-prompt.service";
 import { OauthConfigService } from "../oauth/oauth-config.service";
 import { OauthErrorFilter } from "../oauth/oauth-error.filter";
-import type { OauthAuditContext } from "../oauth/oauth.types";
+import { OauthDomainError, type OauthAuditContext } from "../oauth/oauth.types";
 import { ApplicationService } from "../permission/application.service";
 import { PermissionErrorFilter } from "../permission/permission-error.filter";
+import { PrismaService } from "../prisma/prisma.service";
 import { AdminErrorFilter } from "./admin-error.filter";
 import { AdminPermissionService } from "./admin-permission.service";
 import { getAdminRequestId, readAdminContext } from "./admin-request-context";
@@ -65,6 +66,8 @@ export class AdminOauthConfigController {
     private readonly developerCredentials: DeveloperCredentialService,
     @Inject(IntegrationPromptService)
     private readonly prompts: IntegrationPromptService,
+    @Inject(PrismaService)
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get("/redirect-uris")
@@ -152,6 +155,68 @@ export class AdminOauthConfigController {
           (redirectUri) => redirectUri.redirectUri,
         ),
         clientId: client?.clientId ?? "<请先创建 OAuth 登录凭证>",
+      }),
+    };
+  }
+
+  @Post("/integration-prompt/refresh")
+  async refreshIntegrationPrompt(
+    @Param("appKey") appKey: string,
+    @Req() request: Request,
+  ): Promise<{
+    clientId: string;
+    developerCredentialId: string;
+    integrationPrompt: string;
+  }> {
+    const context = await this.assertCanManageApplication(appKey, request);
+    const auditContext = buildAdminOauthAuditContext(request, context);
+    const application = await this.applications.getApplicationByKey(appKey);
+    const [redirectUris, clients] = await Promise.all([
+      this.oauthConfig.listRedirectUris(appKey),
+      this.oauthConfig.listClients(appKey),
+    ]);
+    const client =
+      clients.find((item) => item.status === "active") ?? clients[0] ?? null;
+    if (!client) {
+      throw new OauthDomainError(
+        "OAUTH_CLIENT_NOT_FOUND",
+        "请先创建 OAuth 登录凭证",
+        404,
+      );
+    }
+
+    const [rotatedClient, rotatedDeveloperCredential] =
+      await this.prisma.$transaction((tx) =>
+        Promise.all([
+          this.oauthConfig.rotateClientSecretInTransaction(
+            appKey,
+            client.clientId,
+            tx,
+            auditContext,
+          ),
+          this.developerCredentials.rotatePrimaryCredentialInTransaction(
+            appKey,
+            tx,
+            auditContext,
+          ),
+        ]),
+      );
+
+    return {
+      clientId: rotatedClient.clientId,
+      developerCredentialId: rotatedDeveloperCredential.credential.id,
+      integrationPrompt: this.prompts.generateFullPrompt({
+        baseIamUrl:
+          process.env.FEISHU_IAM_PUBLIC_URL ??
+          `http://localhost:${process.env.HOST_WEB_PORT ?? "8000"}`,
+        appKey,
+        applicationName: application.name,
+        redirectUris: redirectUris.map(
+          (redirectUri) => redirectUri.redirectUri,
+        ),
+        clientId: rotatedClient.clientId,
+        clientSecret: rotatedClient.clientSecret,
+        developerApiToken: rotatedDeveloperCredential.token,
       }),
     };
   }

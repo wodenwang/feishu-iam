@@ -12,6 +12,48 @@ import { PageState } from "./PageState";
 import { SecretRevealPanel } from "./SecretRevealPanel";
 import { StatusBadge } from "./StatusBadge";
 
+const APP_SHELL_STORAGE_KEY = "feishu-iam:admin-sidebar-collapsed";
+const storageState = new Map<string, string>();
+const storageMock: Storage = {
+  get length() {
+    return storageState.size;
+  },
+  clear() {
+    storageState.clear();
+  },
+  getItem(key: string) {
+    return storageState.get(key) ?? null;
+  },
+  key(index: number) {
+    return Array.from(storageState.keys())[index] ?? null;
+  },
+  removeItem(key: string) {
+    storageState.delete(key);
+  },
+  setItem(key: string, value: string) {
+    storageState.set(key, value);
+  },
+};
+
+function ensureLocalStorage() {
+  if (
+    typeof window.localStorage.getItem === "function" &&
+    typeof window.localStorage.setItem === "function"
+  ) {
+    return;
+  }
+
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: storageMock,
+  });
+}
+
+function resetAppShellStorage() {
+  ensureLocalStorage();
+  window.localStorage.setItem(APP_SHELL_STORAGE_KEY, "false");
+}
+
 describe("admin components", () => {
   it("DataTable renders loading, empty, error and rows", () => {
     const columns = [
@@ -87,7 +129,7 @@ describe("admin components", () => {
   });
 
   it("AppShell supports desktop collapse state, nav labels and localStorage persistence", async () => {
-    localStorage.clear();
+    resetAppShellStorage();
     const user = userEvent.setup();
     const renderShell = () =>
       render(
@@ -125,9 +167,7 @@ describe("admin components", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "收起主菜单" }));
-    expect(localStorage.getItem("feishu-iam:admin-sidebar-collapsed")).toBe(
-      "true",
-    );
+    expect(window.localStorage.getItem(APP_SHELL_STORAGE_KEY)).toBe("true");
     expect(
       screen.getByRole("button", { name: "展开主菜单" }),
     ).toBeInTheDocument();
@@ -149,7 +189,7 @@ describe("admin components", () => {
   });
 
   it("AppShell renders grouped system management navigation in expanded and collapsed states", async () => {
-    localStorage.clear();
+    resetAppShellStorage();
     const user = userEvent.setup();
 
     render(
@@ -234,7 +274,7 @@ describe("admin components", () => {
   });
 
   it("AppShell renders mobile drawer grouped navigation with surface text colors", async () => {
-    localStorage.clear();
+    resetAppShellStorage();
     const user = userEvent.setup();
 
     render(
@@ -300,7 +340,7 @@ describe("admin components", () => {
   });
 
   it("AppShell lets inactive grouped navigation expand and collapse with aria state", async () => {
-    localStorage.clear();
+    resetAppShellStorage();
     const user = userEvent.setup();
 
     render(

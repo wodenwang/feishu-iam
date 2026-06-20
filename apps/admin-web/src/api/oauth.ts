@@ -19,6 +19,12 @@ export type ApplicationClientSecretResult = {
   clientSecret: string;
 };
 
+export type ApplicationIntegrationPromptRefreshResult = {
+  clientId: string;
+  developerCredentialId: string;
+  integrationPrompt: string;
+};
+
 export type ApplicationDeveloperCredential = {
   id: string;
   name: string;
@@ -134,6 +140,7 @@ function safeErrorMessage(status: number, code?: string): string {
     OAUTH_APPLICATION_DISABLED: "应用已停用，接入和凭证能力暂不可用",
     OAUTH_TOKEN_CONTEXT_DISABLED: "应用或 OAuth 凭证已停用",
     DEVELOPER_APPLICATION_DISABLED: "开发者 API 所属应用已停用",
+    DEVELOPER_CREDENTIAL_CONFLICT: "开发者 API 凭证已存在，请稍后重试",
   };
 
   if (code && codeMessages[code]) {
@@ -229,5 +236,13 @@ export async function fetchIntegrationPrompt(
 ): Promise<{ integrationPrompt: string }> {
   return readJson<{ integrationPrompt: string }>(
     `${applicationPath(appKey)}/integration-prompt`,
+  );
+}
+
+export async function refreshApplicationIntegrationPrompt(
+  appKey: string,
+): Promise<ApplicationIntegrationPromptRefreshResult> {
+  return writeJson<ApplicationIntegrationPromptRefreshResult>(
+    `${applicationPath(appKey)}/integration-prompt/refresh`,
   );
 }

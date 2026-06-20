@@ -561,6 +561,71 @@ describe('OauthConfigService', () => {
     expect(auditPayload).not.toContain('rotated-cipher');
   });
 
+  it('rotateClientSecretInTransaction 使用调用方事务且不嵌套开启事务', async () => {
+    const prisma = makePrisma();
+    const audit = makeAudit();
+    const securityEvents = makeSecurityEvents();
+    mockApplication(prisma);
+    prisma.applicationClient.findFirst.mockResolvedValue({
+      id: 'client-row-1',
+      applicationId: 'app-finance',
+      environmentId: 'env-dev',
+      clientId: 'bic_test',
+      clientSecretHash: 'old-hash',
+      clientSecretCiphertext: 'old-cipher',
+      clientSecretIv: 'old-iv',
+      clientSecretAuthTag: 'old-tag',
+      clientSecretAlgorithm: 'aes-256-gcm',
+      name: 'Web Client',
+      status: 'active'
+    });
+    prisma.applicationClient.update.mockImplementation((args: { data: Record<string, unknown> }) => ({
+      id: 'client-row-1',
+      applicationId: 'app-finance',
+      environmentId: 'env-dev',
+      clientId: 'bic_test',
+      clientSecretHash: args.data.clientSecretHash,
+      clientSecretCiphertext: args.data.clientSecretCiphertext,
+      clientSecretIv: args.data.clientSecretIv,
+      clientSecretAuthTag: args.data.clientSecretAuthTag,
+      clientSecretAlgorithm: args.data.clientSecretAlgorithm,
+      name: 'Web Client',
+      status: 'active'
+    }));
+    const service = makeService(prisma, audit, securityEvents);
+
+    const result = await service.rotateClientSecretInTransaction(
+      'finance',
+      'bic_test',
+      prisma as never,
+      {
+        actorType: 'admin_user',
+        actorId: 'admin-app',
+        source: 'admin_web',
+        requestId: 'req-rotate-secret-helper',
+        ip: '127.0.0.1',
+        userAgent: 'vitest-admin-console'
+      }
+    );
+
+    expect(result.clientSecret).toMatch(/^bics_/);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'rotate_secret',
+        requestId: 'req-rotate-secret-helper'
+      }) as unknown,
+      prisma
+    );
+    expect(securityEvents.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'secret_rotated',
+        requestId: 'req-rotate-secret-helper'
+      }) as unknown,
+      prisma
+    );
+  });
+
   it('setClientStatus 按 applicationId 和 clientId 禁用 client', async () => {
     const prisma = makePrisma();
     mockApplication(prisma);

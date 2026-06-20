@@ -43,6 +43,55 @@ export class DeveloperCredentialService {
     return this.prisma.$transaction((tx) => this.createCredentialInTransaction(appKey, name, tx, auditContext));
   }
 
+  async rotatePrimaryCredential(
+    appKey: string,
+    auditContext?: PermissionAuditContext
+  ): Promise<{ credential: SafeDeveloperCredential; token: string }> {
+    return this.prisma.$transaction((tx) =>
+      this.rotatePrimaryCredentialInTransaction(appKey, tx, auditContext)
+    );
+  }
+
+  async rotatePrimaryCredentialInTransaction(
+    appKey: string,
+    tx: Prisma.TransactionClient,
+    auditContext?: PermissionAuditContext
+  ): Promise<{ credential: SafeDeveloperCredential; token: string }> {
+    const application = await this.applications.getApplicationByKey(appKey, tx);
+    const credentials = await tx.applicationDeveloperCredential.findMany({
+      where: { applicationId: application.id },
+      orderBy: [{ status: 'asc' }, { createdAt: 'asc' }]
+    });
+    const current = credentials.find((credential) => credential.status === 'active') ?? credentials[0] ?? null;
+
+    if (!current) {
+      return this.createCredentialInTransaction(appKey, '默认开发者 API 凭证', tx, auditContext);
+    }
+
+    const token = createOauthSecret('biad');
+    const tokenHash = hashOauthSecret(token);
+    const updated = await tx.applicationDeveloperCredential.update({
+      where: { id: current.id },
+      data: {
+        tokenHash,
+        status: 'active',
+        rotatedAt: new Date()
+      }
+    });
+
+    await this.recordAudit(
+      application.id,
+      updated.id,
+      removeTokenHash(current),
+      { ...removeTokenHash(updated), tokenShownOnce: true },
+      tx,
+      auditContext,
+      'rotate_secret'
+    );
+
+    return { credential: removeTokenHash(updated), token };
+  }
+
   async listCredentials(appKey: string): Promise<SafeDeveloperCredential[]> {
     const application = await this.applications.getApplicationByKey(appKey);
     const credentials = await this.prisma.applicationDeveloperCredential.findMany({
@@ -79,7 +128,8 @@ export class DeveloperCredentialService {
         undefined,
         { ...removeTokenHash(created), tokenShownOnce: true },
         tx,
-        auditContext
+        auditContext,
+        'create'
       );
 
       return { credential: removeTokenHash(created), token };
@@ -146,7 +196,8 @@ export class DeveloperCredentialService {
     before: unknown,
     after: unknown,
     client: DeveloperCredentialClient,
-    auditContext?: PermissionAuditContext
+    auditContext?: PermissionAuditContext,
+    action = 'create'
   ): Promise<void> {
     await this.audit.record({
       actorType: auditContext?.actorType ?? SYSTEM_ACTOR.actorType,
@@ -155,7 +206,7 @@ export class DeveloperCredentialService {
       applicationId,
       resourceType: 'application_developer_credential',
       resourceId,
-      action: 'create',
+      action,
       before,
       after,
       result: 'success',

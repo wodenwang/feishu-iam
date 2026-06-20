@@ -1,5 +1,33 @@
 # 变更日志
 
+## v1.0.3 - Base Portal 接入包与完整提示词收敛
+
+`v1.0.3` 是 `v1.0.2` 后的第三方接入体验收敛版本，范围锁定 Base Portal 接入包、完整提示词主流程、secret 按需轮换、接入预检和 iframe 无感 SSO 验收说明。本版本不新增 DDL，不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限或长期明文保存 developer API token。
+
+### 新增与调整
+
+- 应用详情 `开发信息` Tab 新增 `刷新凭证并生成完整提示词` 主流程，一次确认后轮换 OAuth `client_secret` 和 developer API token，并返回可直接交给第三方 Codex 项目的完整接入提示词。
+- 完整提示词包含 `FEISHU_IAM_URL`、`app_key`、`client_id`、`client_secret`、`developer_api_token`、回调地址、OAuth 授权码流程、权限查询、Developer API 权限边界和验收 checklist。
+- `base-portal` 应用自动追加 Portal preset：菜单权限点建议、`iframe` / `immersive_iframe` / `new_tab` 打开方式、Portal 不做二次鉴权边界和 iframe 无感访问验收矩阵。
+- 应用详情开发信息区新增接入预检，提示启用回调地址、OAuth 登录凭证、Developer API 凭证和 request id 排障边界。
+- 后端新增 `POST /api/v1/admin/applications/{app_key}/integration-prompt/refresh`，保留旧 `GET /integration-prompt` 兼容路径。
+- 完整提示词刷新会在同一个数据库事务中轮换 OAuth `client_secret` 和 developer API token，避免只轮换其中一个凭证后无法返回完整提示词。
+
+### 安全与边界
+
+- developer API token 继续只保存 hash；需要完整提示词时通过轮换生成，旧 token 立即失效。
+- OAuth `client_secret` 和 developer API token 明文只出现在本次响应的完整提示词中，不写入审计日志、安全事件、文档、截图或会话归档。
+- 不放宽 `redirect_uri` 精确匹配，不改变管理员 session、权限裁剪、飞书通讯录同步或生产部署拓扑。
+
+### 本地验收
+
+- 已通过后端定向测试：`pnpm --filter @feishu-iam/api test -- test/oauth-config.service.spec.ts test/developer-credential.service.spec.ts test/admin.controller.e2e-spec.ts`，3 个测试文件 155 个用例通过。
+- 已通过前端定向测试：`pnpm --filter @feishu-iam/admin-web test -- src/features/applications/ApplicationManagementView.test.tsx`，13 个用例通过。
+- 已通过 `pnpm check`：类型检查、lint、后端 41 个测试文件 471 个用例、前端 17 个测试文件 160 个用例通过。
+- 已通过 `pnpm build`：后端 NestJS 构建完成，前端 Vite 生产构建完成；Vite chunk size warning 为既有构建提示。
+- 已通过 Playwright 浏览器自检：390px 和 1280px 下应用详情 `开发信息` Tab 可确认刷新、展示完整提示词、包含 Base Portal preset、复制入口可见，且无 console error、无 request failure、无横向溢出。
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3`。镜像发布、生产部署和 canary 需在 `/land-and-deploy` 获得授权后补充。
+
 ## v1.0.2 - UI/UX P0 收口补丁
 
 `v1.0.2` 是 `v1.0.1` 后的前端 UI/UX P0 补丁版本，范围锁定移动端资源列表、窄屏 Tabs 和 OAuth 公开错误页复制边界。本版本不新增 DDL，不改变 OAuth 协议、管理员 session、权限模型、审计语义或第三方应用接入契约。

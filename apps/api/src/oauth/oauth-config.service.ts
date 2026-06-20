@@ -475,67 +475,73 @@ export class OauthConfigService {
     clientReference: string,
     auditContext?: OauthAuditContext,
   ): Promise<{ clientId: string; clientSecret: string }> {
+    return this.prisma.$transaction((tx) =>
+      this.rotateClientSecretInTransaction(
+        appKey,
+        clientReference,
+        tx,
+        auditContext,
+      ),
+    );
+  }
+
+  async rotateClientSecretInTransaction(
+    appKey: string,
+    clientReference: string,
+    tx: Prisma.TransactionClient,
+    auditContext?: OauthAuditContext,
+  ): Promise<{ clientId: string; clientSecret: string }> {
     const clientSecret = createOauthSecret("bics");
     const clientSecretHash = hashOauthSecret(clientSecret);
     const encryptedSecret = this.clientSecretVault.encrypt(clientSecret);
 
-    const rotated = await this.prisma.$transaction(async (tx) => {
-      const application = await this.applications.getApplicationByKey(
-        appKey,
-        tx,
-      );
-      const current = await this.getClient(application.id, clientReference, tx);
-      const updated = await tx.applicationClient.update({
-        where: {
-          applicationId_clientId: {
-            applicationId: application.id,
-            clientId: current.clientId,
-          },
-        },
-        data: {
-          clientSecretHash,
-          clientSecretCiphertext: encryptedSecret.ciphertext,
-          clientSecretIv: encryptedSecret.iv,
-          clientSecretAuthTag: encryptedSecret.authTag,
-          clientSecretAlgorithm: encryptedSecret.algorithm,
-        },
-      });
-
-      await this.recordAudit(
-        application.id,
-        "application_client",
-        updated.id,
-        "rotate_secret",
-        current,
-        { ...updated, secretShownOnce: true },
-        tx,
-        auditContext,
-      );
-
-      await this.securityEvents.record(
-        {
-          eventType: "secret_rotated",
+    const application = await this.applications.getApplicationByKey(appKey, tx);
+    const current = await this.getClient(application.id, clientReference, tx);
+    const updated = await tx.applicationClient.update({
+      where: {
+        applicationId_clientId: {
           applicationId: application.id,
-          clientId: updated.clientId,
-          result: "success",
-          reasonCode: "CLIENT_SECRET_ROTATED",
-          summary: "应用 client secret 已轮换",
-          ip: auditContext?.ip,
-          userAgent: auditContext?.userAgent,
-          requestId: auditContext?.requestId,
+          clientId: current.clientId,
         },
-        tx,
-      );
-
-      return {
-        clientId: updated.clientId,
-        clientSecret,
-      };
+      },
+      data: {
+        clientSecretHash,
+        clientSecretCiphertext: encryptedSecret.ciphertext,
+        clientSecretIv: encryptedSecret.iv,
+        clientSecretAuthTag: encryptedSecret.authTag,
+        clientSecretAlgorithm: encryptedSecret.algorithm,
+      },
     });
 
+    await this.recordAudit(
+      application.id,
+      "application_client",
+      updated.id,
+      "rotate_secret",
+      current,
+      { ...updated, secretShownOnce: true },
+      tx,
+      auditContext,
+    );
+
+    await this.securityEvents.record(
+      {
+        eventType: "secret_rotated",
+        applicationId: application.id,
+        clientId: updated.clientId,
+        result: "success",
+        reasonCode: "CLIENT_SECRET_ROTATED",
+        summary: "应用 client secret 已轮换",
+        ip: auditContext?.ip,
+        userAgent: auditContext?.userAgent,
+        requestId: auditContext?.requestId,
+      },
+      tx,
+    );
+
     return {
-      clientId: rotated.clientId,
-      clientSecret: rotated.clientSecret,
+      clientId: updated.clientId,
+      clientSecret,
     };
   }
 

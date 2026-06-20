@@ -2,7 +2,7 @@
 
 ## 适用范围
 
-本文档适用于接入 Feishu IAM SSO Provider 的内部 Web 系统。`v0.8.1` 起，管理员创建应用时会同时生成应用级回调地址、默认 OAuth 凭证、开发者 API 凭证和可复制的 Codex 接入提示词。该 SSO Provider 能力实现授权码流程子集，支持第三方应用通过 Feishu IAM 登录、换取 Feishu IAM access token、读取当前用户信息，并查询当前用户在指定应用下的权限组和权限点。
+本文档适用于接入 Feishu IAM SSO Provider 的内部 Web 系统。`v0.8.1` 起，管理员创建应用时会同时生成应用级回调地址、默认 OAuth 凭证、开发者 API 凭证和可复制的 Codex 接入提示词。`v1.0.3` 起，应用详情提供 `刷新凭证并生成完整提示词` 主流程，用于重新生成包含 `client_secret` 和 `developer_api_token` 的完整提示词。该 SSO Provider 能力实现授权码流程子集，支持第三方应用通过 Feishu IAM 登录、换取 Feishu IAM access token、读取当前用户信息，并查询当前用户在指定应用下的权限组和权限点。
 
 本文档不适用于完整 OIDC、SAML、refresh token、资源级权限、ABAC、飞书角色同步或飞书用户组同步场景。第三方应用只接入 Feishu IAM，不保存飞书 `app_id`、飞书 `app_secret` 或飞书 OAuth code。
 
@@ -32,8 +32,8 @@ sequenceDiagram
 
 1. 管理员已在 Feishu IAM 创建应用，并保存 `app_key`。
 2. 管理员已在应用中登记一个或多个精确回调地址。
-3. 管理员已保存创建应用时一次性展示的 `client_id` 和 `client_secret`。
-4. 第三方系统后端具备安全保存 `client_secret` 的能力。
+3. 管理员已通过应用详情复制创建时展示的完整提示词，或在 `开发信息` Tab 通过 `刷新凭证并生成完整提示词` 获取新的 `client_id`、`client_secret` 和 `developer_api_token`。
+4. 第三方系统后端具备安全保存 `client_secret` 和 `developer_api_token` 的能力。
 5. 飞书身份镜像中存在可登录用户，且用户未禁用、未离职、未删除。
 
 回调地址规则：
@@ -44,6 +44,26 @@ sequenceDiagram
 - 配置 HTTP 就允许该精确 HTTP 回调，配置 HTTPS 就允许该精确 HTTPS 回调。
 
 `v0.5.0` 起，Web 管理端写操作通过管理员 session 和固定后台角色校验，管理员日常操作不再依赖前端注入平台 token；平台 token 仍保留给自动化和运维脚本。
+
+## 完整接入提示词
+
+管理员进入应用详情的 `开发信息` Tab 后，应优先使用 `刷新凭证并生成完整提示词`。该操作会同时轮换 OAuth `client_secret` 和 developer API token，旧凭证立即失效。完整提示词只在本次结果中展示，复制后应写入第三方项目后端 `.env`、密钥系统或本地安全配置。
+
+提示词包含：
+
+- `FEISHU_IAM_URL`
+- `app_key`
+- `client_id`
+- `client_secret`
+- `developer_api_token`
+- 精确回调地址清单
+- OAuth 登录、token、userinfo 和权限查询接口
+- Developer API 权限点、权限组和绑定接口
+- 接入预检和验收 checklist
+
+`base-portal` 应用会额外包含 Portal preset：菜单权限点建议、`iframe` / `immersive_iframe` / `new_tab` 打开方式、Portal 不做第三方二次鉴权边界和 iframe 无感 SSO 验收矩阵。
+
+注意：developer API token 不长期明文保存。忘记 token 或需要重新交给第三方项目时，应再次刷新完整提示词，而不是要求 Feishu IAM 回看旧 token。
 
 管理后台飞书登录使用独立回调地址：
 
@@ -269,6 +289,7 @@ JSON API 错误结构：
 ## 安全注意事项
 
 - 不要在代码、文档、日志、审计记录、工单、截图或聊天消息中记录或提交 `client_secret`。
+- 不要在代码、文档、日志、审计记录、工单、截图或聊天消息中记录或提交 `developer_api_token`。
 - 不要记录或提交 authorization code、access token、Feishu secret、cookie 或密码。
 - authorize URL 中禁止携带 `client_secret`。
 - `/oauth/token`、`/oauth/revoke` 必须由第三方应用后端调用。
@@ -281,6 +302,7 @@ JSON API 错误结构：
 ## Agent 接入 checklist
 
 - [ ] 已确认第三方应用只保存 Feishu IAM OAuth 凭证，不保存飞书凭证。
+- [ ] 已使用 `刷新凭证并生成完整提示词` 获取当前有效的接入参数。
 - [ ] 已确认 `redirect_uri` 与 Feishu IAM 后台登记值完全一致。
 - [ ] 已实现 `state` 生成、存储和回调校验。
 - [ ] 已确认 authorize URL 不包含 `client_secret`。
@@ -292,4 +314,5 @@ JSON API 错误结构：
 - [ ] 已按权限接口返回值控制菜单、按钮、接口和业务行为。
 - [ ] 已实现 token 过期、撤销、跨应用和用户不可用时的重新登录处理。
 - [ ] 已实现用户退出时调用 `/oauth/revoke`。
+- [ ] 如第三方系统通过 Base Portal iframe 打开，已验证顶层访问、Portal 内嵌、未登录自动跳转、已登录无额外交互和失败 request id。
 - [ ] 已完成测试环境完整接入验收，并记录不含敏感值的验收结论。

@@ -28,7 +28,7 @@ import {
   fetchApplicationDeveloperCredential,
   fetchApplicationOauthCredential,
   fetchApplicationRedirectUris,
-  fetchIntegrationPrompt,
+  refreshApplicationIntegrationPrompt,
   rotateApplicationClientSecret,
   viewApplicationClientSecret,
 } from "../../api/oauth";
@@ -53,7 +53,7 @@ vi.mock("../../api/oauth", () => ({
   disableApplicationRedirectUri: vi.fn(),
   fetchApplicationOauthCredential: vi.fn(),
   fetchApplicationDeveloperCredential: vi.fn(),
-  fetchIntegrationPrompt: vi.fn(),
+  refreshApplicationIntegrationPrompt: vi.fn(),
   viewApplicationClientSecret: vi.fn(),
   rotateApplicationClientSecret: vi.fn(),
 }));
@@ -125,9 +125,11 @@ describe("ApplicationManagementPage v0.11.2", () => {
       lastUsedAt: null,
       rotatedAt: null,
     });
-    vi.mocked(fetchIntegrationPrompt).mockResolvedValue({
+    vi.mocked(refreshApplicationIntegrationPrompt).mockResolvedValue({
+      clientId: "client_crm",
+      developerCredentialId: "dev-1",
       integrationPrompt:
-        "接入 CRM 的 Codex 提示词\nclient_secret: <请轮换后填入>",
+        "接入 CRM 的 Codex 完整提示词\nclient_secret: rotated-secret\ndeveloper_api_token: biad_rotated",
     });
     vi.mocked(fetchIamRoles).mockResolvedValue([
       {
@@ -473,7 +475,7 @@ describe("ApplicationManagementPage v0.11.2", () => {
     });
   });
 
-  it("copies safe integration prompt without leaking secrets", async () => {
+  it("refreshes credentials and copies the full integration prompt", async () => {
     const user = userEvent.setup();
     window.history.pushState({}, "", "/admin/applications?sheet=app%3Acrm");
 
@@ -481,21 +483,40 @@ describe("ApplicationManagementPage v0.11.2", () => {
 
     const dialog = await screen.findByRole("dialog", { name: /应用详情/ });
     await user.click(within(dialog).getByRole("tab", { name: "开发信息" }));
-    const prompt = await within(dialog).findByLabelText("Codex 接入提示词");
-    expect((prompt as HTMLTextAreaElement).value).not.toContain(
-      "created-client-secret",
+    expect(
+      await within(dialog).findByText("启用回调地址"),
+    ).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "刷新凭证并生成完整提示词",
+      }),
     );
+    const confirm = await screen.findByRole("alertdialog", {
+      name: "刷新凭证并生成完整提示词",
+    });
+    await user.click(within(confirm).getByRole("button", { name: "确认" }));
+
+    const prompt = await within(dialog).findByLabelText("Codex 完整接入提示词");
+    expect((prompt as HTMLTextAreaElement).value).toContain(
+      "client_secret: rotated-secret",
+    );
+    expect((prompt as HTMLTextAreaElement).value).toContain(
+      "developer_api_token: biad_rotated",
+    );
+    await waitFor(() => {
+      expect(refreshApplicationIntegrationPrompt).toHaveBeenCalledWith("crm");
+    });
     const writeText = vi
       .spyOn(navigator.clipboard, "writeText")
       .mockResolvedValue(undefined);
     const copyButton = within(dialog).getByRole("button", {
-      name: "复制安全版提示词",
+      name: "复制完整提示词",
     });
-    copyButton.click();
+    await user.click(copyButton);
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        expect.stringContaining("接入 CRM 的 Codex 提示词"),
+        expect.stringContaining("developer_api_token: biad_rotated"),
       );
     });
   });

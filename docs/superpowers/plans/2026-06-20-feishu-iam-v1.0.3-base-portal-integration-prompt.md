@@ -1,10 +1,8 @@
 # Feishu IAM v1.0.3 Base Portal 接入包与完整提示词实施计划
 
-> 当前计划对应 `docs/superpowers/plans/2026-06-20-feishu-iam-v1.0.3-base-portal-integration-prompt.md`。执行时必须遵守 `AGENTS.md`、`CLAUDE.md`、`DESIGN.md` 和本文件。
-
 ## 目标
 
-完成 `v1.0.3` 的可运行 vertical slice：管理员在应用详情中确认刷新凭证后，获得包含 OAuth `client_secret` 和 `developer_api_token` 的完整接入提示词；Base Portal 获得专用接入约束和 iframe 无感验收说明。
+完成 `v1.0.3` 的第一个可运行 vertical slice：管理员在应用详情中确认刷新凭证后，获得包含 OAuth `client_secret` 和 `developer_api_token` 的完整接入提示词；Base Portal 获得专用接入约束和 iframe 无感验收说明。
 
 ## 不可变边界
 
@@ -14,6 +12,25 @@
 - 不放宽 `redirect_uri` 精确匹配。
 - 不改变管理员 session、权限裁剪、平台管理员初始化或部署拓扑。
 - 审计、安全事件、文档、截图和会话归档不得记录真实 secret、token、cookie、authorization、授权码、hash 或 ciphertext。
+
+## 文件清单
+
+- Modify `IMPLEMENTATION_PLAN.md`：同步当前 v1.0.3 计划。
+- Create `docs/superpowers/specs/2026-06-20-feishu-iam-v1.0.3-base-portal-integration-prompt.md`。
+- Create `docs/superpowers/plans/2026-06-20-feishu-iam-v1.0.3-base-portal-integration-prompt.md`。
+- Create `.my-harness/status.md`：记录 15 步状态和下一步。
+- Modify `apps/api/src/oauth/developer-credential.service.ts`。
+- Modify `apps/api/src/oauth/integration-prompt.service.ts`。
+- Modify `apps/api/src/admin/admin-oauth-config.controller.ts`。
+- Modify `apps/api/test/developer-credential.service.spec.ts`。
+- Modify `apps/api/test/admin.controller.e2e-spec.ts`。
+- Modify `apps/api/test/integration-prompt.service.spec.ts`。
+- Modify `apps/admin-web/src/api/oauth.ts`。
+- Modify `apps/admin-web/src/features/applications/ApplicationDetailSheet.tsx`。
+- Modify `apps/admin-web/src/features/applications/ApplicationManagementView.test.tsx`。
+- Modify `README.md`、`CHANGELOG.md`、`docs/sso-provider.md`、`docs/oauth-troubleshooting.md`。
+- Create `docs/acceptance/v1.0.3-base-portal-integration-prompt.md`。
+- Create `docs/codex-sessions/2026-06-20-0215-v1.0.3-base-portal-integration-prompt.md`。
 
 ## Task 1: 后端刷新完整提示词
 

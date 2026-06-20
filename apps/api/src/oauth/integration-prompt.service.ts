@@ -54,6 +54,15 @@ OAuth 登录和权限 API：
 - 权限组接口使用 ${input.baseIamUrl}/api/v1/developer/apps/${input.appKey}/permission-groups。
 - 权限组绑定接口使用 ${input.baseIamUrl}/api/v1/developer/apps/${input.appKey}/permission-groups/{group_id}/points。
 
+${buildScenarioPreset(input)}
+
+接入预检：
+- Feishu IAM 中至少存在 1 个启用的 Redirect URI，且第三方后端配置的 redirect_uri 必须逐字精确匹配。
+- Feishu IAM 中至少存在 1 个启用的 OAuth 登录凭证。
+- Feishu IAM 中至少存在 1 个 developer API 凭证。
+- 如果本提示词来自“刷新凭证并生成完整提示词”，旧 client_secret 和 developer_api_token 会立即失效，第三方项目必须同步更新后端 env 或密钥系统。
+- 排障只需要复制 request id；不要复制 token、cookie、authorization、授权码或整段问题信息。
+
 安全要求：
 - 不要把 client_secret、developer_api_token、authorization code、access token、cookie 或密码写入仓库、日志、截图、聊天消息、测试快照或会话归档。
 - 不要在前端代码中保存 client_secret 或 developer_api_token。
@@ -66,4 +75,25 @@ OAuth 登录和权限 API：
 - 可以读取 /api/v1/apps/${input.appKey}/me/permissions。
 - 可以用开发者 API 创建或更新本应用权限点和权限组。
 `;
+}
+
+function buildScenarioPreset(input: IntegrationPromptInput): string {
+  if (input.appKey !== 'base-portal') {
+    return `第三方应用接入约束：
+- 第三方应用只对接 Feishu IAM，不直接绑定飞书 app_id 或 app_secret。
+- Feishu IAM 只返回用户身份、权限组和权限点；菜单、按钮、接口和业务行为由第三方应用自行控制。
+- 权限点建议按 ${input.appKey}.<module>.<action> 命名，并在第三方项目中集中维护权限点清单。`;
+  }
+
+  return `Base Portal preset：
+- Portal 只负责入口编排、登录态和权限过滤，不替被嵌入的第三方系统做二次鉴权。
+- 菜单打开方式必须显式标注为 iframe、immersive_iframe 或 new_tab。
+- 推荐权限点：
+  - base-portal.portal.access
+  - base-portal.navigation.view
+  - base-portal.menu.<menu_key>.open
+  - base-portal.admin.sync-permissions
+- Portal 菜单权限点必须通过 developer API 同步到 Feishu IAM，key 必须以 base-portal. 开头。
+- iframe 无感验收必须覆盖：顶层访问、Portal 内嵌访问、未登录自动跳转、已登录无额外交互、失败页只复制 request id。
+- 如果第三方页面不允许 iframe 或 cookie 无法在嵌入场景生效，应把该菜单切换为 new_tab 或让第三方系统调整 frame/cookie 策略；Feishu IAM 本版本不实现 silent SSO、refresh token 或 iframe 专用协议。`;
 }

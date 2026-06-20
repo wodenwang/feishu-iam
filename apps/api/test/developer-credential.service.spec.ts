@@ -17,7 +17,10 @@ type UpdateCredentialArgs = {
     id: string;
   };
   data: {
-    lastUsedAt: Date;
+    lastUsedAt?: Date;
+    tokenHash?: string;
+    status?: string;
+    rotatedAt?: Date;
   };
 };
 
@@ -54,7 +57,9 @@ describe('DeveloperCredentialService', () => {
   };
   const tx = {
     applicationDeveloperCredential: {
-      create: vi.fn()
+      create: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn()
     },
     auditLog: {
       create: vi.fn()
@@ -95,6 +100,13 @@ describe('DeveloperCredentialService', () => {
       ...createdCredential,
       tokenHash: args.data.tokenHash,
       name: args.data.name
+    }));
+    tx.applicationDeveloperCredential.findMany.mockResolvedValue([createdCredential]);
+    tx.applicationDeveloperCredential.update.mockImplementation((args: UpdateCredentialArgs) => Promise.resolve({
+      ...createdCredential,
+      tokenHash: args.data.tokenHash ?? createdCredential.tokenHash,
+      status: args.data.status ?? createdCredential.status,
+      rotatedAt: args.data.rotatedAt ?? createdCredential.rotatedAt
     }));
   });
 
@@ -145,6 +157,63 @@ describe('DeveloperCredentialService', () => {
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(applications.getApplicationByKey).toHaveBeenCalledWith('finance', tx);
+  });
+
+  it('rotates the primary developer credential without leaking plaintext token or token hash to audit', async () => {
+    const service = new DeveloperCredentialService(prisma as never, applications as never, audit as never, securityEvents as never);
+
+    const result = await service.rotatePrimaryCredential('finance', auditContext);
+
+    expect(result.token).toMatch(/^biad_/);
+    expect(result.credential).not.toHaveProperty('tokenHash');
+    expect(tx.applicationDeveloperCredential.findMany).toHaveBeenCalledWith({
+      where: { applicationId: 'app-finance' },
+      orderBy: [{ status: 'asc' }, { createdAt: 'asc' }]
+    });
+    const updateCalls = tx.applicationDeveloperCredential.update.mock.calls as Array<[UpdateCredentialArgs]>;
+    expect(updateCalls[0]?.[0].where).toEqual({ id: 'developer-credential-1' });
+    expect(updateCalls[0]?.[0].data).toMatchObject({
+      tokenHash: hashOauthSecret(result.token),
+      status: 'active'
+    });
+    expect(updateCalls[0]?.[0].data.rotatedAt).toBeInstanceOf(Date);
+
+    const auditPayload = JSON.stringify(audit.record.mock.calls);
+    expect(auditPayload).not.toContain(result.token);
+    expect(auditPayload).not.toContain(hashOauthSecret(result.token));
+    expect(auditPayload).not.toContain('tokenHash');
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
+      applicationId: 'app-finance',
+      resourceType: 'application_developer_credential',
+      resourceId: 'developer-credential-1',
+      action: 'rotate_secret',
+      after: expect.objectContaining({
+        id: 'developer-credential-1',
+        tokenShownOnce: true
+      }) as unknown
+    }), tx);
+  });
+
+  it('rotation helper uses caller transaction without opening a nested transaction', async () => {
+    const service = new DeveloperCredentialService(prisma as never, applications as never, audit as never, securityEvents as never);
+
+    const result = await service.rotatePrimaryCredentialInTransaction('finance', tx as never, auditContext);
+
+    expect(result.token).toMatch(/^biad_/);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(applications.getApplicationByKey).toHaveBeenCalledWith('finance', tx);
+    expect(tx.applicationDeveloperCredential.update).toHaveBeenCalled();
+  });
+
+  it('creates a default developer credential when refresh has no existing credential', async () => {
+    tx.applicationDeveloperCredential.findMany.mockResolvedValue([]);
+    const service = new DeveloperCredentialService(prisma as never, applications as never, audit as never, securityEvents as never);
+
+    const result = await service.rotatePrimaryCredential('finance', auditContext);
+
+    expect(result.token).toMatch(/^biad_/);
+    expect(tx.applicationDeveloperCredential.create).toHaveBeenCalled();
+    expect(tx.applicationDeveloperCredential.update).not.toHaveBeenCalled();
   });
 
   it('maps duplicate token hash to a stable domain error', async () => {

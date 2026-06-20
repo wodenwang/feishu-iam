@@ -2,7 +2,7 @@
 set -euo pipefail
 umask 077
 
-FEISHU_IAM_VERSION="${FEISHU_IAM_VERSION:-v1.0.2}"
+FEISHU_IAM_VERSION="${FEISHU_IAM_VERSION:-v1.0.3}"
 FEISHU_IAM_DEPLOY_DIR="${FEISHU_IAM_DEPLOY_DIR:-${HOME}/feishu-iam}"
 FEISHU_IAM_RAW_BASE="${FEISHU_IAM_RAW_BASE:-https://raw.githubusercontent.com/wodenwang/feishu-iam/${FEISHU_IAM_VERSION}}"
 

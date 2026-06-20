@@ -33,7 +33,7 @@ import {
   fetchApplicationDeveloperCredential,
   fetchApplicationOauthCredential,
   fetchApplicationRedirectUris,
-  fetchIntegrationPrompt,
+  refreshApplicationIntegrationPrompt,
   rotateApplicationClientSecret,
   viewApplicationClientSecret,
 } from "../../api/oauth";
@@ -96,7 +96,6 @@ type DetailState =
       redirectUris: ApplicationRedirectUri[];
       oauthCredential: ApplicationOauthCredential | null;
       developerCredential: ApplicationDeveloperCredential | null;
-      integrationPrompt: string | null;
     }
   | { status: "failed"; message: string; forbidden: boolean };
 
@@ -121,6 +120,11 @@ type RoleStatusConfirmation = {
 
 type SecretAction = "view" | "rotate";
 type SecretResult = ApplicationClientSecretResult & { action: SecretAction };
+type PromptRefreshResult = {
+  clientId: string;
+  developerCredentialId: string;
+  integrationPrompt: string;
+};
 export type StatusAction = "enable" | "disable";
 
 export function ApplicationDetailSheet({
@@ -153,6 +157,12 @@ export function ApplicationDetailSheet({
   const [promptCopyState, setPromptCopyState] = useState<
     "idle" | "copied" | "failed"
   >("idle");
+  const [promptRefreshOpen, setPromptRefreshOpen] = useState(false);
+  const [promptPending, setPromptPending] = useState(false);
+  const [promptError, setPromptError] = useState<string>();
+  const [promptResult, setPromptResult] = useState<PromptRefreshResult | null>(
+    null,
+  );
   const [roleForm, setRoleForm] = useState<RoleFormState | null>(null);
   const [rolePending, setRolePending] = useState(false);
   const [roleError, setRoleError] = useState<string>();
@@ -192,6 +202,10 @@ export function ApplicationDetailSheet({
     setRoleForm(null);
     setRoleError(undefined);
     setPromptCopyState("idle");
+    setPromptRefreshOpen(false);
+    setPromptPending(false);
+    setPromptError(undefined);
+    setPromptResult(null);
     setLocalActiveTab("details");
 
     const requestSeq = latestRequestRef.current + 1;
@@ -218,6 +232,10 @@ export function ApplicationDetailSheet({
     setRedirectError(undefined);
     setRedirectDisableTarget(null);
     setPromptCopyState("idle");
+    setPromptRefreshOpen(false);
+    setPromptPending(false);
+    setPromptError(undefined);
+    setPromptResult(null);
     setRoleForm(null);
     setRolePending(false);
     setRoleError(undefined);
@@ -234,12 +252,10 @@ export function ApplicationDetailSheet({
         redirectUris,
         oauthCredential,
         developerCredential,
-        integrationPrompt,
       ] = await Promise.all([
         fetchApplicationRedirectUris(appKey),
         fetchApplicationOauthCredential(appKey),
         fetchApplicationDeveloperCredential(appKey),
-        fetchIntegrationPrompt(appKey),
       ]);
       if (latestRequestRef.current !== requestSeq) {
         return;
@@ -249,7 +265,6 @@ export function ApplicationDetailSheet({
         redirectUris,
         oauthCredential,
         developerCredential,
-        integrationPrompt: integrationPrompt.integrationPrompt,
       });
     } catch (error: unknown) {
       if (latestRequestRef.current !== requestSeq) {
@@ -362,6 +377,43 @@ export function ApplicationDetailSheet({
       setPromptCopyState("copied");
     } catch {
       setPromptCopyState("failed");
+    }
+  }
+
+  async function handleRefreshIntegrationPrompt() {
+    if (!application) {
+      return;
+    }
+    setPromptPending(true);
+    setPromptError(undefined);
+    setPromptCopyState("idle");
+    try {
+      const result = await refreshApplicationIntegrationPrompt(application.appKey);
+      setPromptResult(result);
+      setPromptRefreshOpen(false);
+      if (state.status === "loaded") {
+        setState({
+          ...state,
+          oauthCredential: state.oauthCredential
+            ? {
+                ...state.oauthCredential,
+                clientId: result.clientId,
+              }
+            : state.oauthCredential,
+          developerCredential: state.developerCredential
+            ? {
+                ...state.developerCredential,
+                id: result.developerCredentialId,
+                status: "active",
+                rotatedAt: new Date().toISOString(),
+              }
+            : state.developerCredential,
+        });
+      }
+    } catch (error: unknown) {
+      setPromptError(errorMessage(error, "无法生成完整接入提示词"));
+    } finally {
+      setPromptPending(false);
     }
   }
 
@@ -839,47 +891,74 @@ export function ApplicationDetailSheet({
                     </Section>
 
                     <Section title="接入提示词">
-                      {state.integrationPrompt ? (
-                        <div className="grid gap-3">
-                          <Notice>
-                            当前仅提供安全版提示词，不包含
-                            敏感凭证或平台凭证。完整提示词只允许在创建或轮换凭证时一次性生成。
-                          </Notice>
-                          <Textarea
-                            aria-label="Codex 接入提示词"
-                            readOnly
-                            value={state.integrationPrompt}
-                          />
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() =>
-                                void handleCopyPrompt(
-                                  state.integrationPrompt ?? "",
-                                )
-                              }
-                            >
-                              <Copy aria-hidden="true" size={16} />
-                              复制安全版提示词
-                            </Button>
-                            {promptCopyState === "copied" ? (
-                              <span className="text-sm text-[hsl(var(--status-success))]">
-                                已复制
-                              </span>
-                            ) : null}
-                            {promptCopyState === "failed" ? (
-                              <span className="text-sm text-destructive">
-                                无法写入剪贴板
-                              </span>
-                            ) : null}
-                          </div>
+                      <div className="grid gap-3">
+                        <Notice>
+                          完整提示词会包含新的 client_secret 和
+                          developer_api_token。生成前会轮换旧凭证，第三方项目必须同步更新后端
+                          env 或密钥系统。
+                        </Notice>
+                        <IntegrationPreflight
+                          developerCredential={state.developerCredential}
+                          oauthCredential={state.oauthCredential}
+                          redirectUris={state.redirectUris}
+                        />
+                        {promptError ? (
+                          <ErrorMessage>{promptError}</ErrorMessage>
+                        ) : null}
+                        {promptResult ? (
+                          <>
+                            <Textarea
+                              aria-label="Codex 完整接入提示词"
+                              readOnly
+                              value={promptResult.integrationPrompt}
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                  void handleCopyPrompt(
+                                    promptResult.integrationPrompt,
+                                  )
+                                }
+                              >
+                                <Copy aria-hidden="true" size={16} />
+                                复制完整提示词
+                              </Button>
+                              {promptCopyState === "copied" ? (
+                                <span className="text-sm text-[hsl(var(--status-success))]">
+                                  已复制
+                                </span>
+                              ) : null}
+                              {promptCopyState === "failed" ? (
+                                <span className="text-sm text-destructive">
+                                  无法写入剪贴板
+                                </span>
+                              ) : null}
+                            </div>
+                          </>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            disabled={
+                              promptPending ||
+                              !state.oauthCredential ||
+                              state.redirectUris.filter(
+                                (item) => item.status === "active",
+                              ).length === 0
+                            }
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setPromptError(undefined);
+                              setPromptRefreshOpen(true);
+                            }}
+                          >
+                            <RotateCw aria-hidden="true" size={16} />
+                            刷新凭证并生成完整提示词
+                          </Button>
                         </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          暂无 Codex 接入提示词。
-                        </p>
-                      )}
+                      </div>
                     </Section>
                   </>
                 ) : null}
@@ -963,6 +1042,22 @@ export function ApplicationDetailSheet({
           open
           pending={secretPending}
           title={confirmCopy.title}
+        />
+      ) : null}
+
+      {promptRefreshOpen ? (
+        <ConfirmDialog
+          danger
+          description="确认后会轮换 OAuth client_secret 和 developer_api_token，旧凭证立即失效。完整提示词只在本次结果中展示，请复制后写入第三方项目后端 env 或密钥系统。"
+          onConfirm={() => void handleRefreshIntegrationPrompt()}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen && !promptPending) {
+              setPromptRefreshOpen(false);
+            }
+          }}
+          open
+          pending={promptPending}
+          title="刷新凭证并生成完整提示词"
         />
       ) : null}
 
@@ -1312,6 +1407,71 @@ function RoleSection(props: {
         </div>
       )}
     </div>
+  );
+}
+
+function IntegrationPreflight(props: {
+  redirectUris: ApplicationRedirectUri[];
+  oauthCredential: ApplicationOauthCredential | null;
+  developerCredential: ApplicationDeveloperCredential | null;
+}) {
+  const activeRedirectCount = props.redirectUris.filter(
+    (item) => item.status === "active",
+  ).length;
+  const checks = [
+    {
+      label: "启用回调地址",
+      ok: activeRedirectCount > 0,
+      detail:
+        activeRedirectCount > 0
+          ? `${String(activeRedirectCount)} 个 Redirect URI 可用`
+          : "至少需要 1 个启用的 Redirect URI",
+    },
+    {
+      label: "OAuth 登录凭证",
+      ok: props.oauthCredential?.status === "active",
+      detail: props.oauthCredential
+        ? `client_id: ${props.oauthCredential.clientId}`
+        : "请先创建 OAuth 登录凭证",
+    },
+    {
+      label: "Developer API 凭证",
+      ok: props.developerCredential?.status === "active",
+      detail: props.developerCredential
+        ? `credential id: ${props.developerCredential.id}`
+        : "生成完整提示词时会创建默认 developer API 凭证",
+    },
+    {
+      label: "排障方式",
+      ok: true,
+      detail: "失败时只复制 request id，不复制 token、cookie 或整段问题信息",
+    },
+  ];
+
+  return (
+    <dl className="grid gap-2">
+      {checks.map((check) => (
+        <div
+          className="grid gap-1 rounded-md border bg-muted/20 p-3 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-start"
+          key={check.label}
+        >
+          <dt className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <span
+              aria-hidden="true"
+              className={
+                check.ok
+                  ? "h-2 w-2 rounded-full bg-[hsl(var(--status-success))]"
+                  : "h-2 w-2 rounded-full bg-[hsl(var(--status-warning))]"
+              }
+            />
+            {check.label}
+          </dt>
+          <dd className="min-w-0 break-words text-sm text-muted-foreground">
+            {check.detail}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

@@ -1,5 +1,34 @@
 # 变更日志
 
+## v1.0.5 - 权限管理角色配置工作台
+
+`v1.0.5` 是 `v1.0.4` 后的权限管理流程重构版本，范围锁定角色独立化、角色与应用多对多绑定、权限管理首屏角色列表、独立角色配置工作台、组织 / 用户同树绑定、应用权限绑定和权限点对比。本条目记录 release commit 的产品、工程和本地验证内容；生产镜像 digest、升级备份和线上验收结果会在 step15 部署完成后追加记录。
+
+### 新增与调整
+
+- 新增 `iam_role_applications`，角色成为全局资源，角色与应用支持多对多绑定。
+- 权限管理首屏调整为角色列表，应用仅作为筛选条件；角色配置入口进入独立页面。
+- 角色配置工作台拆成 `组织与用户` 和 `应用权限` 两个工作区，避免单页承载过重。
+- `组织与用户` 工作区继续使用同一个组织用户选择器勾选组织节点和用户节点。
+- `应用权限` 工作区支持应用上下文切换、权限组绑定、最终权限点查看和权限点对比。
+- 应用管理移除原 `角色管理` Tab、入口、角色 CRUD 和启停操作，聚焦应用详情、密钥、回调、Codex 提示词和权限资产查看。
+- 旧 `/admin/permissions/:appKey/roles/:roleId?tab=subjects|groups` 深链以低成本方式进入新工作台，并将权限绑定语义收敛到 `tab=permissions`。
+
+### 安全与边界
+
+- 本版本不新增完整 OIDC、refresh token、SAML、ABAC、资源级权限、deny 规则或数据范围权限。
+- 权限计算必须同时要求角色启用、角色与当前应用绑定有效，并且权限组 / 权限点仍按应用隔离。
+- 删除和状态变更仍走后台写操作审计；不在前端绕过后端权限校验。
+
+### 本地验收
+
+- 已完成 step10 浏览器自检，覆盖角色列表、角色配置独立页面、组织 / 用户同树绑定、应用权限绑定、权限点对比、应用详情移除角色管理和旧 deep link 兼容。
+- 已完成 step11 系统化 QA，记录于 `.gstack/qa-reports/v1.0.5-step11/report.md` 和 `output/playwright/v1.0.5-permission-workbench/browser-report.json`。
+- 已完成 step12 工程 review，修正 `docs/permission-model.md` 的旧角色归属描述和 `README.md` 的删除入口口径。
+- 已完成 step13 Git 收口预检：`git diff --check` 通过，版本号一致性检查通过，敏感信息扫描未发现真实 secret 阻塞项。
+- 已完成 step14 ship 验证：`pnpm check` 通过，后端 41 个测试文件 484 个用例、前端 18 个测试文件 159 个用例通过；`pnpm build` 通过，Vite chunk size warning 为既有构建提示。
+- ship 覆盖率审计从 72% 基线补测到约 80%：新增前端 API 层跨应用角色合并、`groupIds` 请求体、角色列表批量停用，以及后端权限计算 Prisma 查询形状断言。
+
 ## v1.0.4 - OAuth silent SSO 与 iframe 安全边界
 
 `v1.0.4` 是 `v1.0.3` 后的第三方 iframe 接入补丁版本，范围锁定 OAuth `prompt=none`、IAM SSO 浏览器 session、应用级 silent SSO 策略、frame policy 和 SSO Demo / Base Portal 嵌入场景。本版本不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限或让 Base Portal 代理第三方鉴权。

@@ -248,9 +248,11 @@ export class AdminPermissionController {
     @Param("appKey") appKey: string,
     @Req() request: Request,
   ): Promise<{ items: IamRoleResponse[] }> {
-    await this.assertCanManageApplication(appKey, request);
+    const { context } = await this.assertCanManageApplication(appKey, request);
     const roles = await this.iamRoles.listRoles(appKey);
-    return { items: roles.map((role) => ({ ...role, app_key: appKey })) };
+    return {
+      items: roles.map((role) => serializeRoleForAdmin(role, appKey, context)),
+    };
   }
 
   @Get("/:appKey/feishu/users")
@@ -391,6 +393,7 @@ export class AdminPermissionController {
     @Req() request: Request,
   ): Promise<IamRoleMutationResponse> {
     const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
     const role = await this.iamRoles.createRole(
       appKey,
       readCreateRoleBody(body),
@@ -407,10 +410,27 @@ export class AdminPermissionController {
     @Req() request: Request,
   ): Promise<IamRoleMutationResponse> {
     const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
     const role = await this.iamRoles.updateRole(
       appKey,
       roleId,
       readUpdateRoleBody(body),
+      buildPermissionAuditContext(request, context),
+    );
+    return serializeRoleMutation(role, appKey);
+  }
+
+  @Post("/:appKey/iam-roles/:roleId/application-binding")
+  async bindRoleApplication(
+    @Param("appKey") appKey: string,
+    @Param("roleId") roleId: string,
+    @Req() request: Request,
+  ): Promise<IamRoleMutationResponse> {
+    const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
+    const role = await this.iamRoles.bindRoleToApplication(
+      appKey,
+      roleId,
       buildPermissionAuditContext(request, context),
     );
     return serializeRoleMutation(role, appKey);
@@ -445,15 +465,7 @@ export class AdminPermissionController {
     await this.iamRoles.replaceRolePermissionGroups(
       appKey,
       roleId,
-      readStringArray(
-        readObjectBody(
-          body,
-          "PERMISSION_GROUP_IDS_INVALID",
-          "权限组 ID 列表不合法",
-        ).permissionGroupIds,
-        "PERMISSION_GROUP_IDS_INVALID",
-        "权限组 ID 列表不合法",
-      ),
+      readRolePermissionGroupIds(body),
       buildPermissionAuditContext(request, context),
     );
     return { ok: true };
@@ -467,6 +479,7 @@ export class AdminPermissionController {
     @Req() request: Request,
   ): Promise<{ ok: true }> {
     const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
     const input = readObjectBody(
       body,
       "IAM_ROLE_SUBJECTS_INVALID",
@@ -501,6 +514,7 @@ export class AdminPermissionController {
     request: Request,
   ): Promise<IamRoleMutationResponse> {
     const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
     const role = await this.iamRoles.setRoleStatus(
       appKey,
       roleId,
@@ -558,8 +572,16 @@ export class AdminPermissionController {
       this.prisma.applicationDeveloperCredential.count({
         where: { applicationId, status: "active" },
       }),
-      this.prisma.iamRole.count({ where: { applicationId } }),
-      this.prisma.iamRole.count({ where: { applicationId, status: "active" } }),
+      this.prisma.iamRoleApplication.count({ where: { applicationId } }),
+      this.prisma.iamRoleApplication.count({
+        where: {
+          applicationId,
+          status: "active",
+          iamRole: {
+            status: "active",
+          },
+        },
+      }),
     ]);
 
     return {
@@ -581,6 +603,32 @@ function serializeRoleMutation(
 ): IamRoleMutationResponse {
   return {
     ...role,
+    app_key: appKey,
+  };
+}
+
+function serializeRoleForAdmin(
+  role: Awaited<ReturnType<IamRoleService["listRoles"]>>[number],
+  appKey: string,
+  context: AdminContext,
+): IamRoleResponse {
+  if (context.roles.includes("platform_admin")) {
+    return {
+      ...role,
+      app_key: appKey,
+    };
+  }
+
+  const allowedApplicationIds = new Set(context.applicationIds);
+  const applications = role.applications.filter((application) =>
+    allowedApplicationIds.has(application.applicationId),
+  );
+
+  return {
+    ...role,
+    applications,
+    applicationIds: applications.map((application) => application.applicationId),
+    appKeys: applications.map((application) => application.appKey),
     app_key: appKey,
   };
 }
@@ -755,6 +803,19 @@ function readObjectBody(
   }
 
   return body as Record<string, unknown>;
+}
+
+function readRolePermissionGroupIds(body: unknown): string[] {
+  const input = readObjectBody(
+    body,
+    "PERMISSION_GROUP_IDS_INVALID",
+    "权限组 ID 列表不合法",
+  );
+  return readStringArray(
+    input.groupIds ?? input.permissionGroupIds,
+    "PERMISSION_GROUP_IDS_INVALID",
+    "权限组 ID 列表不合法",
+  );
 }
 
 function readCreateApplicationBody(body: unknown): CreateApplicationBody {

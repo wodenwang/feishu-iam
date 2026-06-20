@@ -19,7 +19,7 @@ services:
       retries: 20
 
   web:
-    image: ${FEISHU_IAM_IMAGE:-feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v1.0.4}
+    image: ${FEISHU_IAM_IMAGE:-feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v1.0.5}
     restart: unless-stopped
     depends_on:
       db:
@@ -38,7 +38,7 @@ services:
       FEISHU_OAUTH_REDIRECT_URI: ${FEISHU_OAUTH_REDIRECT_URI:-}
       FEISHU_ADMIN_OAUTH_REDIRECT_URI: ${FEISHU_ADMIN_OAUTH_REDIRECT_URI:-}
       INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID: ${INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID:-}
-      APP_VERSION: ${APP_VERSION:-1.0.4}
+      APP_VERSION: ${APP_VERSION:-1.0.5}
       GIT_COMMIT: ${GIT_COMMIT:-local}
     ports:
       - "${HOST_WEB_PORT:-8000}:${CONTAINER_WEB_PORT:-3000}"

@@ -531,6 +531,25 @@ describe('权限平台 API', () => {
     expect(iamRoleService.setRoleStatus).toHaveBeenCalledWith('finance', 'role-1', 'active', auditContext);
   });
 
+  it('IAM role 权限组绑定兼容 permissionGroupIds 旧字段', async () => {
+    iamRoleService.replaceRolePermissionGroups.mockResolvedValue(undefined);
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .put('/api/v1/platform/applications/finance/iam-roles/role-1/permission-groups')
+      .set('Authorization', 'Bearer test-token')
+      .send({ permissionGroupIds: ['group-legacy'] })
+      .expect(200)
+      .expect({ ok: true });
+
+    expect(iamRoleService.replaceRolePermissionGroups).toHaveBeenCalledWith(
+      'finance',
+      'role-1',
+      ['group-legacy'],
+      auditContext
+    );
+  });
+
   it('拒绝非数组 IAM role subjects，避免静默清空主体绑定', async () => {
     const httpServer = app.getHttpServer() as SupertestApp;
 

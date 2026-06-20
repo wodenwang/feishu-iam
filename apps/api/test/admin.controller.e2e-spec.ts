@@ -112,6 +112,7 @@ describe("Admin auth controller", () => {
     listRoles: vi.fn<IamRoleService["listRoles"]>(),
     updateRole: vi.fn<IamRoleService["updateRole"]>(),
     setRoleStatus: vi.fn<IamRoleService["setRoleStatus"]>(),
+    bindRoleToApplication: vi.fn<IamRoleService["bindRoleToApplication"]>(),
     replaceRolePermissionGroups:
       vi.fn<IamRoleService["replaceRolePermissionGroups"]>(),
     replaceRoleSubjects: vi.fn<IamRoleService["replaceRoleSubjects"]>(),
@@ -194,6 +195,9 @@ describe("Admin auth controller", () => {
       count: vi.fn(),
     },
     iamRole: {
+      count: vi.fn(),
+    },
+    iamRoleApplication: {
       count: vi.fn(),
     },
   };
@@ -583,11 +587,28 @@ describe("Admin auth controller", () => {
     iamRoles.listRoles.mockResolvedValue([
       {
         id: "role-finance-admin",
-        applicationId: "app-finance",
         key: "finance-admin",
         name: "财务角色",
         description: null,
         status: "active",
+        applications: [
+          {
+            applicationId: "app-finance",
+            appKey: "finance",
+            name: "财务系统",
+            status: "active",
+            bindingStatus: "active",
+          },
+          {
+            applicationId: "app-hr",
+            appKey: "hr",
+            name: "人事系统",
+            status: "active",
+            bindingStatus: "active",
+          },
+        ],
+        applicationIds: ["app-finance", "app-hr"],
+        appKeys: ["finance", "hr"],
         permissionGroupIds: ["group-finance-admin"],
         permissionGroups: [
           {
@@ -651,7 +672,6 @@ describe("Admin auth controller", () => {
     ]);
     iamRoles.createRole.mockResolvedValue({
       id: "role-demo-admin",
-      applicationId: "app-finance",
       key: "finance.admin",
       name: "财务管理员",
       description: null,
@@ -661,7 +681,6 @@ describe("Admin auth controller", () => {
     });
     iamRoles.updateRole.mockResolvedValue({
       id: "role-demo-admin",
-      applicationId: "app-finance",
       key: "finance.admin",
       name: "财务管理员 V2",
       description: null,
@@ -672,7 +691,6 @@ describe("Admin auth controller", () => {
     iamRoles.setRoleStatus.mockImplementation((_appKey, roleId, status) =>
       Promise.resolve({
         id: roleId,
-        applicationId: "app-finance",
         key: "finance.admin",
         name: "财务管理员",
         description: null,
@@ -681,6 +699,15 @@ describe("Admin auth controller", () => {
         updatedAt: new Date("2026-05-17T01:00:00.000Z"),
       }),
     );
+    iamRoles.bindRoleToApplication.mockResolvedValue({
+      id: "role-finance-admin",
+      key: "finance.admin",
+      name: "财务管理员",
+      description: null,
+      status: "active",
+      createdAt: new Date("2026-05-17T01:00:00.000Z"),
+      updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+    });
     iamRoles.replaceRolePermissionGroups.mockResolvedValue(undefined);
     iamRoles.replaceRoleSubjects.mockResolvedValue(undefined);
     oauthConfig.listEnvironments.mockResolvedValue([
@@ -1014,6 +1041,7 @@ describe("Admin auth controller", () => {
     prisma.applicationClient.count.mockResolvedValue(1);
     prisma.applicationDeveloperCredential.count.mockResolvedValue(1);
     prisma.iamRole.count.mockResolvedValue(1);
+    prisma.iamRoleApplication.count.mockResolvedValue(1);
     audit.record.mockResolvedValue(undefined);
   });
 
@@ -2137,6 +2165,14 @@ describe("Admin auth controller", () => {
             id: "role-finance-admin",
             key: "finance-admin",
             app_key: "finance",
+            applications: [
+              expect.objectContaining({
+                applicationId: "app-finance",
+                appKey: "finance",
+              }),
+            ],
+            applicationIds: ["app-finance"],
+            appKeys: ["finance"],
             permissionGroupIds: ["group-finance-admin"],
             permissionGroups: [
               expect.objectContaining({
@@ -2464,13 +2500,77 @@ describe("Admin auth controller", () => {
     );
   });
 
-  it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/disable 和 enable 授权应用管理员可切换角色状态", async () => {
+  it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 平台管理员可绑定已有全局角色到当前应用", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .post(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/application-binding",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
+      .set("x-request-id", "req-bind-role-app")
+      .set("user-agent", "vitest-admin-console")
+      .expect(201)
+      .expect((response) => {
+        expect(getField(response.body as unknown, "id")).toBe(
+          "role-finance-admin",
+        );
+        expect(getField(response.body as unknown, "app_key")).toBe("finance");
+      });
+
+    expect(iamRoles.bindRoleToApplication).toHaveBeenCalledWith(
+      "finance",
+      "role-finance-admin",
+      {
+        actorType: "admin_user",
+        actorId: "admin-platform",
+        source: "admin_web",
+        requestId: "req-bind-role-app",
+        ip: expect.any(String) as unknown,
+        userAgent: "vitest-admin-console",
+      },
+    );
+  });
+
+  it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 应用管理员不可绑定已有全局角色", async () => {
     auth.getContextFromSessionSecret.mockResolvedValue({
       adminUserId: "admin-app",
       feishuUserId: "ou_app",
       displayName: "应用管理员",
       roles: ["application_admin"],
       applicationIds: ["app-finance"],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .post(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/application-binding",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
+      .expect(403)
+      .expect((response) => {
+        expect(getErrorCode(response.body as unknown)).toBe(
+          "ADMIN_PERMISSION_DENIED",
+        );
+      });
+
+    expect(iamRoles.bindRoleToApplication).not.toHaveBeenCalled();
+  });
+
+  it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/disable 和 enable 平台管理员可切换角色状态", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
     });
     const httpServer = app.getHttpServer() as SupertestApp;
 
@@ -2511,7 +2611,7 @@ describe("Admin auth controller", () => {
       "disabled",
       expect.objectContaining({
         actorType: "admin_user",
-        actorId: "admin-app",
+        actorId: "admin-platform",
         source: "admin_web",
         requestId: "req-disable-role",
       }) as unknown,
@@ -2522,11 +2622,37 @@ describe("Admin auth controller", () => {
       "active",
       expect.objectContaining({
         actorType: "admin_user",
-        actorId: "admin-app",
+        actorId: "admin-platform",
         source: "admin_web",
         requestId: "req-enable-role",
       }) as unknown,
     );
+  });
+
+  it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/disable 应用管理员不能切换全局角色状态", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-app",
+      feishuUserId: "ou_app",
+      displayName: "应用管理员",
+      roles: ["application_admin"],
+      applicationIds: ["app-finance"],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .post(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/disable",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
+      .expect(403)
+      .expect((response) => {
+        expect(getErrorCode(response.body as unknown)).toBe(
+          "ADMIN_PERMISSION_DENIED",
+        );
+      });
+
+    expect(applications.getApplicationByKey).toHaveBeenCalledWith("finance");
+    expect(iamRoles.setRoleStatus).not.toHaveBeenCalled();
   });
 
   it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/disable 未授权应用管理员不能切换其他应用角色状态", async () => {
@@ -2584,7 +2710,7 @@ describe("Admin auth controller", () => {
     },
   );
 
-  it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId 权限组和主体 授权应用管理员可替换", async () => {
+  it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId/permission-groups 应用管理员可替换", async () => {
     auth.getContextFromSessionSecret.mockResolvedValue({
       adminUserId: "admin-app",
       feishuUserId: "ou_app",
@@ -2600,22 +2726,7 @@ describe("Admin auth controller", () => {
       )
       .set("Cookie", ["feishu_iam_admin_session=bias_app"])
       .set("x-request-id", "req-replace-role-groups")
-      .send({ permissionGroupIds: ["group-finance-admin"] })
-      .expect(200)
-      .expect({ ok: true });
-
-    await request(httpServer)
-      .put(
-        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/subjects",
-      )
-      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
-      .set("x-request-id", "req-replace-role-subjects")
-      .send({
-        subjects: [
-          { type: "feishu_user", id: "5be616gc" },
-          { type: "feishu_department", id: "od-demo" },
-        ],
-      })
+      .send({ groupIds: ["group-finance-admin"] })
       .expect(200)
       .expect({ ok: true });
 
@@ -2630,6 +2741,34 @@ describe("Admin auth controller", () => {
         requestId: "req-replace-role-groups",
       }),
     );
+    expect(iamRoles.replaceRoleSubjects).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId/subjects 平台管理员可替换", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .put(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/subjects",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
+      .set("x-request-id", "req-replace-role-subjects")
+      .send({
+        subjects: [
+          { type: "feishu_user", id: "5be616gc" },
+          { type: "feishu_department", id: "od-demo" },
+        ],
+      })
+      .expect(200)
+      .expect({ ok: true });
+
     expect(iamRoles.replaceRoleSubjects).toHaveBeenCalledWith(
       "finance",
       "role-finance-admin",
@@ -2639,7 +2778,7 @@ describe("Admin auth controller", () => {
       ],
       expect.objectContaining({
         actorType: "admin_user",
-        actorId: "admin-app",
+        actorId: "admin-platform",
         source: "admin_web",
         requestId: "req-replace-role-subjects",
       }),
@@ -2648,11 +2787,11 @@ describe("Admin auth controller", () => {
 
   it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId/subjects 兼容 org_subjects 和 user_subjects", async () => {
     auth.getContextFromSessionSecret.mockResolvedValue({
-      adminUserId: "admin-app",
-      feishuUserId: "ou_app",
-      displayName: "应用管理员",
-      roles: ["application_admin"],
-      applicationIds: ["app-finance"],
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
     });
     const httpServer = app.getHttpServer() as SupertestApp;
 
@@ -2660,7 +2799,7 @@ describe("Admin auth controller", () => {
       .put(
         "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/subjects",
       )
-      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
       .set("x-request-id", "req-replace-role-subjects-explicit")
       .send({
         org_subjects: ["od-demo"],
@@ -2723,6 +2862,32 @@ describe("Admin auth controller", () => {
 
   it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId/subjects 包含 null 元素时返回稳定 422", async () => {
     auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .put(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/subjects",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
+      .send({ subjects: [null] })
+      .expect(422)
+      .expect((response) => {
+        expect(getErrorCode(response.body as unknown)).toBe(
+          "IAM_ROLE_SUBJECTS_INVALID",
+        );
+      });
+
+    expect(iamRoles.replaceRoleSubjects).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/v1/admin/applications/:appKey/iam-roles/:roleId/subjects 应用管理员不能替换全局角色主体", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
       adminUserId: "admin-app",
       feishuUserId: "ou_app",
       displayName: "应用管理员",
@@ -2736,11 +2901,11 @@ describe("Admin auth controller", () => {
         "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/subjects",
       )
       .set("Cookie", ["feishu_iam_admin_session=bias_app"])
-      .send({ subjects: [null] })
-      .expect(422)
+      .send({ subjects: [{ type: "feishu_user", id: "5be616gc" }] })
+      .expect(403)
       .expect((response) => {
         expect(getErrorCode(response.body as unknown)).toBe(
-          "IAM_ROLE_SUBJECTS_INVALID",
+          "ADMIN_PERMISSION_DENIED",
         );
       });
 

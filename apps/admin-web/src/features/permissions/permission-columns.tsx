@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Eye, Pencil, Power } from "lucide-react";
 import type { IamRole, IamRoleSubject, PermissionGroup } from "../../api/permission";
 import type { DataTableColumn } from "../../components/admin/DataTable";
 import { StatusBadge } from "../../components/admin/StatusBadge";
@@ -6,13 +6,37 @@ import { Button } from "../../components/ui/button";
 import { formatRoleStatus } from "./permission-form";
 
 export type PermissionRoleRowAction =
-  | { type: "detail"; role: IamRole };
+  | { type: "detail"; role: IamRole }
+  | { type: "edit"; role: IamRole }
+  | { type: "toggle_status"; role: IamRole };
 
 export function createPermissionRoleColumns(options: {
   permissionGroupsById: Map<string, PermissionGroup>;
+  canManageGlobalRoles?: boolean;
+  selectedRoleIds?: Set<string>;
   onAction: (action: PermissionRoleRowAction) => void;
+  onToggleSelection?: (role: IamRole, checked: boolean) => void;
 }): DataTableColumn<IamRole>[] {
   return [
+    {
+      key: "selection",
+      header: "选择",
+      width: "56px",
+      minWidth: "56px",
+      nowrap: true,
+      render: (role) => (
+        <input
+          aria-label={`选择 ${role.key}`}
+          checked={options.selectedRoleIds?.has(role.id) ?? false}
+          className="h-4 w-4 rounded border-input"
+          disabled={!options.canManageGlobalRoles}
+          type="checkbox"
+          onChange={(event) => {
+            options.onToggleSelection?.(role, event.target.checked);
+          }}
+        />
+      ),
+    },
     {
       key: "role",
       header: "角色名称",
@@ -57,6 +81,14 @@ export function createPermissionRoleColumns(options: {
       ),
     },
     {
+      key: "applications",
+      header: "关联应用",
+      className: "hidden lg:table-cell",
+      headerClassName: "hidden lg:table-cell",
+      minWidth: "180px",
+      render: (role) => <RoleApplicationSummary role={role} />,
+    },
+    {
       key: "groups",
       header: "权限组",
       className: "hidden lg:table-cell",
@@ -87,29 +119,84 @@ export function createPermissionRoleColumns(options: {
       header: "操作",
       className: "sticky right-0 z-10 bg-background shadow-[-12px_0_16px_-16px_rgba(15,23,42,0.35)]",
       headerClassName: "sticky right-0 z-20 bg-background shadow-[-12px_0_16px_-16px_rgba(15,23,42,0.35)]",
-      width: "88px",
-      minWidth: "88px",
+      width: "132px",
+      minWidth: "132px",
       nowrap: true,
       render: (role) => {
         return (
           <div className="flex w-full items-center justify-end gap-1.5">
             <Button
-              aria-label={`查看 ${role.key} 详情`}
+              aria-label={`配置 ${role.key}`}
               className="h-8 w-8 min-h-8 p-0"
               size="icon"
-              title="详情"
+              title="配置"
               type="button"
               variant="outline"
               onClick={() => { options.onAction({ type: "detail", role }); }}
             >
               <Eye aria-hidden="true" size={16} />
-              <span className="sr-only">详情</span>
+              <span className="sr-only">配置</span>
+            </Button>
+            <Button
+              aria-label={`编辑 ${role.key}`}
+              className="h-8 w-8 min-h-8 p-0"
+              disabled={!options.canManageGlobalRoles}
+              size="icon"
+              title={options.canManageGlobalRoles ? "编辑" : "只有平台管理员可以编辑角色基础信息"}
+              type="button"
+              variant="outline"
+              onClick={() => { options.onAction({ type: "edit", role }); }}
+            >
+              <Pencil aria-hidden="true" size={16} />
+              <span className="sr-only">编辑</span>
+            </Button>
+            <Button
+              aria-label={`${role.status === "active" ? "停用" : "启用"} ${role.key}`}
+              className="h-8 w-8 min-h-8 p-0"
+              disabled={!options.canManageGlobalRoles}
+              size="icon"
+              title={options.canManageGlobalRoles ? (role.status === "active" ? "停用" : "启用") : "只有平台管理员可以启停角色"}
+              type="button"
+              variant="outline"
+              onClick={() => { options.onAction({ type: "toggle_status", role }); }}
+            >
+              <Power aria-hidden="true" size={16} />
+              <span className="sr-only">{role.status === "active" ? "停用" : "启用"}</span>
             </Button>
           </div>
         );
       },
     },
   ];
+}
+
+function RoleApplicationSummary(props: { role: IamRole }) {
+  const applications = props.role.applications ?? [];
+  if (applications.length === 0) {
+    return <span className="text-sm text-muted-foreground">暂无应用</span>;
+  }
+
+  const visible = applications.slice(0, 2);
+  const overflow = applications.length - visible.length;
+
+  return (
+    <div className="flex min-w-0 flex-wrap gap-1.5">
+      {visible.map((application) => (
+        <span
+          className="max-w-[150px] truncate rounded border bg-muted px-2 py-1 text-xs"
+          key={application.appKey}
+          title={`${application.name} / ${application.appKey}`}
+        >
+          {application.name}
+        </span>
+      ))}
+      {overflow > 0 ? (
+        <span className="rounded border bg-background px-2 py-1 text-xs text-muted-foreground">
+          +{overflow}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function PermissionGroupSummary(props: { role: IamRole; groupsById: Map<string, PermissionGroup> }) {

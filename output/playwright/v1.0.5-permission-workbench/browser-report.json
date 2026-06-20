@@ -1,0 +1,15 @@
+{
+  "consoleErrors": [],
+  "requestFailures": [],
+  "responseErrors": [],
+  "hasRoleManagementTab": 0,
+  "screenshots": [
+    "01-role-list.png",
+    "02-role-workbench-overview.png",
+    "03-role-workbench-subjects.png",
+    "04-role-workbench-app-permissions-compare.png",
+    "05-direct-role-without-appkey.png",
+    "06-application-permission-assets.png",
+    "browser-report.json"
+  ]
+}

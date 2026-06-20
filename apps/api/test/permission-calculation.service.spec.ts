@@ -133,6 +133,41 @@ describe('PermissionCalculationService', () => {
     });
   });
 
+  it('只查询绑定当前应用且绑定启用的角色授权，并按当前应用过滤权限组和权限点', async () => {
+    const prisma = makePrisma();
+    mockActiveApplication(prisma);
+    mockActiveUser(prisma);
+    mockDirectDepartments(prisma, []);
+    prisma.iamRole.findMany.mockResolvedValue([]);
+
+    await makeService(prisma).calculate('finance', 'user-1');
+
+    expect(prisma.iamRole.findMany).toHaveBeenCalledWith({
+      where: {
+        status: 'active',
+        applications: {
+          some: {
+            applicationId: 'app-finance',
+            status: 'active'
+          }
+        }
+      },
+      include: expect.objectContaining({
+        subjects: true,
+        permissionGroups: expect.objectContaining({
+          where: {
+            applicationId: 'app-finance'
+          }
+        }) as unknown,
+        permissionPoints: expect.objectContaining({
+          where: {
+            applicationId: 'app-finance'
+          }
+        }) as unknown
+      }) as unknown
+    });
+  });
+
   it('用户通过直接所属部门命中角色', async () => {
     const prisma = makePrisma();
     mockActiveApplication(prisma);

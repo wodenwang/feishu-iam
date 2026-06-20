@@ -1,0 +1,45 @@
+uid=8_0 RootWebArea "Feishu IAM 管理后台" url="https://feishu-iam.riversoft.com.cn/admin/permissions/base-portal/roles/a5dac1d8-7e54-4571-870f-4b191908b7cd?from=%2Fadmin%2Fpermissions%3FappKey%3Dbase-portal&tab=subjects"
+  uid=8_1 banner
+    uid=8_2 button "打开导航" expandable haspopup="dialog"
+    uid=8_3 button "当前登录人 王文哲，平台管理员，飞书 user_id: f23b315a" expandable haspopup="menu"
+  uid=8_4 main
+    uid=8_5 main "角色详情"
+      uid=8_6 navigation "面包屑"
+        uid=8_7 link "后台" url="https://feishu-iam.riversoft.com.cn/admin/workspace"
+          uid=8_8 StaticText "后台"
+        uid=8_9 link "权限管理" url="https://feishu-iam.riversoft.com.cn/admin/permissions?appKey=base-portal"
+          uid=8_10 StaticText "权限管理"
+        uid=8_11 StaticText "管理员"
+      uid=8_12 heading "角色详情" level="1"
+      uid=8_13 StaticText "启用"
+      uid=8_14 StaticText "独立角色详情页，承载组织与用户绑定、权限组绑定、基础信息和保存说明。"
+      uid=8_15 button "返回角色列表"
+      uid=8_16 heading "角色详情" level="2"
+      uid=8_17 StaticText "base-portal.admin"
+      uid=8_18 StaticText "启用"
+      uid=8_19 tablist "角色详情标签" orientation="horizontal"
+        uid=8_20 tab "总览" selectable
+        uid=8_21 tab "组织与用户绑定" selectable selected
+        uid=8_22 tab "权限组绑定" selectable
+        uid=8_23 tab "基础信息" selectable
+        uid=8_24 tab "操作说明" selectable
+      uid=8_25 tabpanel "组织与用户绑定"
+        uid=8_26 tablist orientation="horizontal"
+          uid=8_27 tab "待选" selectable selected
+          uid=8_28 tab "已选" selectable
+          uid=8_29 tab "摘要" selectable
+        uid=8_30 tabpanel "待选"
+          uid=8_31 region "待选组织与用户"
+            uid=8_32 heading "待选组织与用户" level="3"
+            uid=8_33 StaticText "选择部门会保存为组织主体；不会展开成该部门下所有用户。用户可以单独选择。"
+            uid=8_34 textbox "搜索组织或用户"
+            uid=8_35 button "搜索"
+            uid=8_36 StaticText "组织路径：顶层组织"
+            uid=8_37 region "待选组织用户列表"
+              uid=8_38 heading "待选组织与用户" level="4"
+              uid=8_39 StaticText "组织和用户在同一列表中展示，保存时仍按主体类型区分。"
+              uid=8_40 StaticText "IT部"
+              uid=8_41 StaticText "组织"
+              uid=8_42 StaticText "6da5c6d232e36a76"
+              uid=8_43 button "进入组织 IT部"
+              uid=8_44 button "已选组织" disableable disabled

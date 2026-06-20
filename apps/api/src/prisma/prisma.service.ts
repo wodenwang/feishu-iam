@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-const REQUIRED_SCHEMA_VERSION = '0.9.0';
+const REQUIRED_SCHEMA_VERSION = '1.0.5';
 export const REQUIRED_TABLES = [
   'schema_versions',
   'system_settings',
@@ -15,6 +15,7 @@ export const REQUIRED_TABLES = [
   'permission_points',
   'permission_group_points',
   'iam_roles',
+  'iam_role_applications',
   'iam_role_subjects',
   'admin_users',
   'audit_logs',
@@ -29,6 +30,11 @@ export const REQUIRED_COLUMNS = [
   ['application_clients', 'revoked_at'],
   ['application_developer_credentials', 'application_id'],
   ['application_developer_credentials', 'token_hash'],
+  ['iam_role_applications', 'iam_role_id'],
+  ['iam_role_applications', 'application_id'],
+  ['iam_role_applications', 'status'],
+  ['iam_role_permission_groups', 'application_id'],
+  ['iam_role_permission_points', 'application_id'],
 ] as const;
 const REQUIRED_COLUMN_TABLES = REQUIRED_COLUMNS.map(([tableName]) => tableName);
 const REQUIRED_COLUMN_NAMES = REQUIRED_COLUMNS.map(([, columnName]) => columnName);

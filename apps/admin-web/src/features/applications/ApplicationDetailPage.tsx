@@ -158,7 +158,7 @@ export function ApplicationDetailWorkspace(props: {
             current: true,
           },
         ]}
-        description="独立应用详情页，承载基础信息、回调地址、OAuth 凭证、接入提示词、角色和状态操作。"
+        description="独立应用详情页，承载基础信息、回调地址、OAuth 凭证、接入提示词、权限资产查看和状态操作。"
         primaryAction={
           <Button
             type="button"

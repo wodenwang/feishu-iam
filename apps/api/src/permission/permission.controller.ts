@@ -63,6 +63,7 @@ type ReplaceRoleSubjectsBody = {
 
 type ReplaceRolePermissionGroupsBody = {
   groupIds?: string[];
+  permissionGroupIds?: string[];
 };
 
 type ReplaceRolePermissionPointsBody = {
@@ -405,7 +406,7 @@ export class PermissionController {
       (auditContext) => this.iamRoles.replaceRolePermissionGroups(
         appKey,
         roleId,
-        readStringArrayField(body, 'groupIds', 'PERMISSION_GROUP_IDS_INVALID', '权限组列表必须是非空字符串数组'),
+        readRolePermissionGroupIds(body),
         auditContext
       )
     );
@@ -568,6 +569,18 @@ function readStringArrayField(body: unknown, field: string, code: string, messag
   const values = readArrayField(body, field, code, message);
   if (!values.every(isNonEmptyString)) {
     throw new PermissionDomainError(code, message, 422);
+  }
+  return values;
+}
+
+function readRolePermissionGroupIds(body: unknown): string[] {
+  if (!isRecord(body)) {
+    throw new PermissionDomainError('PERMISSION_GROUP_IDS_INVALID', '权限组列表必须是非空字符串数组', 422);
+  }
+
+  const values = body.groupIds ?? body.permissionGroupIds;
+  if (!Array.isArray(values) || !values.every(isNonEmptyString)) {
+    throw new PermissionDomainError('PERMISSION_GROUP_IDS_INVALID', '权限组列表必须是非空字符串数组', 422);
   }
   return values;
 }

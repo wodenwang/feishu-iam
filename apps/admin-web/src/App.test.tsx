@@ -1564,14 +1564,17 @@ describe("管理后台骨架", () => {
       await within(main).findByText("OAuth credential"),
     ).toBeInTheDocument();
 
-    await user.click(within(main).getByRole("tab", { name: "角色管理" }));
+    expect(
+      within(main).queryByRole("tab", { name: "角色管理" }),
+    ).not.toBeInTheDocument();
+    await user.click(within(main).getByRole("tab", { name: "危险操作" }));
 
     const params = new URLSearchParams(window.location.search);
     expect(window.location.pathname).toBe("/admin/applications/finance");
-    expect(params.get("tab")).toBe("roles");
+    expect(params.get("tab")).toBe("danger");
     expect(params.get("from")).toBe("/admin/applications?q=finance");
     expect(
-      await within(main).findByRole("button", { name: "新增角色" }),
+      await within(main).findByRole("button", { name: "停用应用" }),
     ).toBeInTheDocument();
   });
 
@@ -1605,7 +1608,7 @@ describe("管理后台骨架", () => {
       within(section).getByRole("heading", { name: "IAM 角色授权" }),
     ).toBeInTheDocument();
     const applicationSelect = await permissionApplicationSelect(section);
-    expect(applicationSelect).toHaveValue("finance");
+    expect(applicationSelect).toHaveValue("");
     expect(
       within(applicationSelect).getByRole("option", {
         name: "财务系统 / finance",
@@ -1631,7 +1634,7 @@ describe("管理后台骨架", () => {
       screen.queryByRole("dialog", { name: "角色详情" }),
     ).not.toBeInTheDocument();
     expect(
-      await within(section).findByRole("button", { name: /finance_admin/ }),
+      await within(section).findByRole("button", { name: /配置 finance_admin/ }),
     ).toBeInTheDocument();
 
     const drawer = await openRoleDetail(section, user);
@@ -1640,20 +1643,18 @@ describe("管理后台骨架", () => {
     ).toBeInTheDocument();
     expect(drawer).toHaveTextContent("finance_admin");
     expect(
-      within(drawer).getByRole("tab", { name: "组织与用户绑定" }),
+      within(drawer).getByRole("tab", { name: "组织与用户" }),
     ).toBeInTheDocument();
-    expect(
-      within(drawer).getByRole("tab", { name: "权限组绑定" }),
-    ).toBeInTheDocument();
+    expect(within(drawer).getByRole("tab", { name: "应用权限" })).toBeInTheDocument();
 
-    await user.click(within(drawer).getByRole("tab", { name: "权限组绑定" }));
-    expect(await within(drawer).findByText("发票查看员")).toBeInTheDocument();
+    await user.click(within(drawer).getByRole("tab", { name: "应用权限" }));
+    await within(drawer).findAllByText("发票查看员");
     expect(
       within(drawer).getByText("finance.invoice.viewer"),
     ).toBeInTheDocument();
 
     await user.click(
-      within(drawer).getByRole("tab", { name: "组织与用户绑定" }),
+      within(drawer).getByRole("tab", { name: "组织与用户" }),
     );
     expect(within(drawer).getByText("5be616gc")).toBeInTheDocument();
     expect(within(drawer).getByText("od-demo")).toBeInTheDocument();
@@ -1663,7 +1664,7 @@ describe("管理后台骨架", () => {
     expect(drawer).not.toHaveTextContent("finance.invoice.read");
   });
 
-  it("权限管理不再暴露角色元数据创建入口", async () => {
+  it("权限管理暴露角色元数据创建入口", async () => {
     const user = userEvent.setup();
     mockFetch({
       feishuStatus: makeStatus(),
@@ -1677,15 +1678,9 @@ describe("管理后台骨架", () => {
     await selectPermissionApplication(section, user);
 
     expect(
-      screen.queryByRole("dialog", { name: "创建 IAM 角色" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("角色 key")).not.toBeInTheDocument();
-    expect(
-      within(section).queryByRole("button", { name: "创建角色" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(section).getByText(/角色元数据在应用管理维护/),
+      within(section).getByRole("button", { name: "创建角色" }),
     ).toBeInTheDocument();
+    expect(within(section).getByText(/统一管理角色资源/)).toBeInTheDocument();
   });
 
   it("权限管理按应用展示 IAM 角色并在详情 Tab 绑定权限组", async () => {
@@ -1704,15 +1699,15 @@ describe("管理后台骨架", () => {
     await selectPermissionApplication(section, user);
     const drawer = await openRoleDetail(section, user);
 
-    await user.click(within(drawer).getByRole("tab", { name: "权限组绑定" }));
-    expect(window.location.search).toContain("tab=groups");
+    await user.click(within(drawer).getByRole("tab", { name: "应用权限" }));
+    expect(window.location.search).toContain("tab=permissions");
     await user.click(within(drawer).getByLabelText("搜索权限组"));
     await user.click(await within(drawer).findByText("审计查看员"));
     await user.click(
-      within(drawer).getByRole("button", { name: "保存权限组绑定" }),
+      within(drawer).getByRole("button", { name: "保存应用权限" }),
     );
     const confirmDialog = await screen.findByRole("alertdialog", {
-      name: "确认保存权限组绑定",
+      name: "确认保存应用权限",
     });
     expect(confirmDialog).toHaveTextContent("新增 1 个权限组");
     expect(
@@ -1743,7 +1738,7 @@ describe("管理后台骨架", () => {
     await selectPermissionApplication(section, user);
     const drawer = await openRoleDetail(section, user);
     await user.click(
-      within(drawer).getByRole("tab", { name: "组织与用户绑定" }),
+      within(drawer).getByRole("tab", { name: "组织与用户" }),
     );
     expect(
       within(drawer).getAllByRole("button", { name: "搜索" }).length,
@@ -1775,7 +1770,7 @@ describe("管理后台骨架", () => {
     await selectPermissionApplication(section, user);
     const drawer = await openRoleDetail(section, user);
     await user.click(
-      within(drawer).getByRole("tab", { name: "组织与用户绑定" }),
+      within(drawer).getByRole("tab", { name: "组织与用户" }),
     );
 
     const searchInputs = within(drawer).getAllByLabelText("搜索组织或用户");
@@ -1803,7 +1798,7 @@ describe("管理后台骨架", () => {
       within(drawer).getAllByText("od-finance").length,
     ).toBeGreaterThanOrEqual(1);
     await user.click(
-      within(drawer).getAllByRole("button", { name: "保存主体绑定" })[0] as HTMLElement,
+      within(drawer).getAllByRole("button", { name: "保存组织与用户" })[0] as HTMLElement,
     );
     const confirmDialog = await screen.findByRole("alertdialog", {
       name: "确认保存组织与用户绑定",
@@ -1864,6 +1859,9 @@ describe("管理后台骨架", () => {
         if (url === "/api/v1/admin/applications/finance/permission-groups") {
           return financeGroups.promise;
         }
+        if (url === "/api/v1/admin/applications/finance/permission-points") {
+          return jsonResponse({ items: [makePermissionPoint()] });
+        }
         if (url === "/api/v1/admin/applications/finance/iam-roles") {
           return financeRoles.promise;
         }
@@ -1875,6 +1873,26 @@ describe("管理后台骨架", () => {
                 applicationId: "app-crm",
                 key: "crm.customer.viewer",
                 name: "客户查看员",
+                permissionPoints: [
+                  makePermissionPoint({
+                    id: "crm-point",
+                    applicationId: "app-crm",
+                    key: "crm.customer.read",
+                    name: "客户查看",
+                  }),
+                ],
+              }),
+            ],
+          });
+        }
+        if (url === "/api/v1/admin/applications/crm/permission-points") {
+          return jsonResponse({
+            items: [
+              makePermissionPoint({
+                id: "crm-point",
+                applicationId: "app-crm",
+                key: "crm.customer.read",
+                name: "客户查看",
               }),
             ],
           });
@@ -1912,11 +1930,11 @@ describe("管理后台骨架", () => {
     await selectPermissionApplication(section, user, /crm/);
 
     expect(
-      await within(section).findByRole("button", { name: /crm_admin/ }),
+      await within(section).findByRole("button", { name: /配置 crm_admin/ }),
     ).toBeInTheDocument();
     const drawer = await openRoleDetail(section, user, /crm_admin/);
-    await user.click(within(drawer).getByRole("tab", { name: "权限组绑定" }));
-    expect(await within(drawer).findByText("客户查看员")).toBeInTheDocument();
+    await user.click(within(drawer).getByRole("tab", { name: "应用权限" }));
+    await within(drawer).findAllByText("客户查看员");
     expect(within(drawer).getByText("crm.customer.viewer")).toBeInTheDocument();
 
     financeGroups.resolve(responseJson({ items: [makePermissionGroup()] }));
@@ -2021,9 +2039,9 @@ async function openRoleDetail(
   roleKey: RegExp = /finance_admin/,
 ): Promise<HTMLElement> {
   await user.click(
-    await within(section).findByRole("button", { name: roleKey }),
+    await within(section).findByRole("button", { name: new RegExp(`配置 .*${roleKey.source}`) }),
   );
-  return screen.findByRole("main", { name: "角色详情" });
+  return screen.findByRole("main", { name: "角色配置工作台" });
 }
 
 function mockFetch(options: {
@@ -2126,11 +2144,36 @@ function mockFetch(options: {
       if (url === "/api/v1/admin/applications/finance/permission-groups") {
         return jsonResponse({
           items: [
-            makePermissionGroup(),
+            makePermissionGroup({
+              permissionPoints: [
+                makePermissionPoint(),
+              ],
+            }),
             makePermissionGroup({
               id: "group-2",
               key: "finance.audit.viewer",
               name: "审计查看员",
+              description: "允许查看审计记录",
+              permissionPoints: [
+                makePermissionPoint({
+                  id: "point-audit",
+                  key: "finance.audit.read",
+                  name: "审计查看",
+                  description: "允许查看审计记录",
+                }),
+              ],
+            }),
+          ],
+        });
+      }
+      if (url === "/api/v1/admin/applications/finance/permission-points") {
+        return jsonResponse({
+          items: [
+            makePermissionPoint(),
+            makePermissionPoint({
+              id: "point-audit",
+              key: "finance.audit.read",
+              name: "审计查看",
               description: "允许查看审计记录",
             }),
           ],
@@ -2688,6 +2731,7 @@ type PermissionCatalogFixture = {
   status: string;
   createdAt: string;
   updatedAt: string;
+  permissionPoints?: PermissionCatalogFixture[];
 };
 
 type IamRoleFixture = PermissionCatalogFixture & {
@@ -2822,6 +2866,22 @@ function makePermissionGroup(
     key: "finance.invoice.viewer",
     name: "发票查看员",
     description: "允许查看发票",
+    status: "active",
+    createdAt: "2026-05-16T00:00:00.000Z",
+    updatedAt: "2026-05-16T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function makePermissionPoint(
+  overrides?: Partial<PermissionCatalogFixture>,
+): PermissionCatalogFixture {
+  return {
+    id: "point-1",
+    applicationId: "app-1",
+    key: "finance.invoice.read",
+    name: "发票查看",
+    description: "允许查看发票明细",
     status: "active",
     createdAt: "2026-05-16T00:00:00.000Z",
     updatedAt: "2026-05-16T00:00:00.000Z",

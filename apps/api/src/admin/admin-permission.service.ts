@@ -20,6 +20,16 @@ export class AdminPermissionService {
     return hasRole(context, 'platform_admin');
   }
 
+  canManageGlobalIamRoles(context: AdminContext): boolean {
+    return hasRole(context, 'platform_admin');
+  }
+
+  assertCanManageGlobalIamRoles(context: AdminContext): void {
+    if (!this.canManageGlobalIamRoles(context)) {
+      throw new AdminDomainError('ADMIN_PERMISSION_DENIED', '当前管理员无权维护全局 IAM 角色', 403);
+    }
+  }
+
   assertCanManageAdmins(context: AdminContext): void {
     if (!this.canManageAdmins(context)) {
       throw new AdminDomainError('ADMIN_PERMISSION_DENIED', '当前管理员无权管理管理员授权', 403);

@@ -12,10 +12,6 @@ export type PermissionCalculationResult = {
   computedAt: string;
 };
 
-type PermissionCalculationRole = Prisma.IamRoleGetPayload<{
-  include: typeof ROLE_INCLUDE;
-}>;
-
 const ROLE_INCLUDE = {
   subjects: true,
   permissionGroups: {
@@ -37,6 +33,15 @@ const ROLE_INCLUDE = {
     }
   }
 } satisfies Prisma.IamRoleInclude;
+
+type PermissionCalculationRole = {
+  status: string;
+  subjects: Array<{
+    subjectType: string;
+    subjectId: string;
+    isOrphaned: boolean;
+  }>;
+};
 
 @Injectable()
 export class PermissionCalculationService {
@@ -77,10 +82,29 @@ export class PermissionCalculationService {
     const directDepartmentIds = new Set(departments.map((department) => department.departmentId));
     const roles = await this.prisma.iamRole.findMany({
       where: {
-        applicationId: application.id,
-        status: 'active'
+        status: 'active',
+        applications: {
+          some: {
+            applicationId: application.id,
+            status: 'active'
+          }
+        }
       },
-      include: ROLE_INCLUDE
+      include: {
+        ...ROLE_INCLUDE,
+        permissionGroups: {
+          where: {
+            applicationId: application.id
+          },
+          include: ROLE_INCLUDE.permissionGroups.include
+        },
+        permissionPoints: {
+          where: {
+            applicationId: application.id
+          },
+          include: ROLE_INCLUDE.permissionPoints.include
+        }
+      }
     });
 
     const permissionGroups = new Map<string, { key: string; name: string }>();

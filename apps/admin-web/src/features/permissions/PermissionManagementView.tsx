@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import type { SyntheticEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -6,8 +6,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { AdminMe } from "../../admin-types";
 import {
   fetchApplications,
+  fetchIamRolesAcrossApplications,
   fetchIamRoles,
   fetchPermissionGroups,
+  disableIamRole,
+  enableIamRole,
 } from "../../api/permission";
 import type { Application, IamRole, PermissionGroup } from "../../api/permission";
 import { DataTable } from "../../components/admin/DataTable";
@@ -16,13 +19,12 @@ import { PageHeader } from "../../components/admin/PageHeader";
 import { StatusBadge } from "../../components/admin/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { ConfirmDialog } from "../../components/admin/ConfirmDialog";
 import {
-  closeSheet,
   parsePermissionSearch,
   serializePermissionSearch,
 } from "../../routes/admin-url-state";
 import type { PermissionSearchState } from "../../routes/admin-url-state";
-import { PermissionRoleDetailSheet } from "./PermissionRoleDetailSheet";
 import {
   createPermissionRoleColumns,
   formatDateTime,
@@ -30,6 +32,8 @@ import {
 } from "./permission-columns";
 import type { PermissionRoleRowAction } from "./permission-columns";
 import { formatRoleStatus } from "./permission-form";
+import { PermissionRoleCreateDialog } from "./PermissionRoleCreateDialog";
+import { PermissionRoleEditDialog } from "./PermissionRoleEditDialog";
 
 export type PermissionManagementViewProps = {
   admin: AdminMe;
@@ -48,9 +52,15 @@ type ApplicationState =
 
 type FilterDraft = {
   q: string;
+  code: string;
+  authStatus: PermissionSearchState["authStatus"];
   status: PermissionSearchState["status"];
   sort: PermissionSearchState["sort"];
 };
+
+type RoleStatusIntent =
+  | { type: "single"; role: IamRole; nextStatus: "active" | "disabled" }
+  | { type: "bulk"; roles: IamRole[]; nextStatus: "active" | "disabled" };
 
 export function PermissionManagementView({ admin, initialAppKey }: PermissionManagementViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,11 +71,18 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
   const [applicationsState, setApplicationsState] = useState<ApplicationState>({ status: "loading" });
   const [permissionState, setPermissionState] = useState<PermissionDataState>({ status: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<Set<string>>(new Set());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<IamRole | null>(null);
+  const [statusIntent, setStatusIntent] = useState<RoleStatusIntent | null>(null);
+  const [statusPending, setStatusPending] = useState(false);
+  const [actionError, setActionError] = useState<string>();
   const latestRequestRef = useRef(0);
+  const canManageGlobalRoles = admin.roles.includes("platform_admin");
 
   useEffect(() => {
     setDraft(filterDraftFromSearch(search));
-  }, [search.q, search.sort, search.status]);
+  }, [search.authStatus, search.code, search.q, search.sort, search.status]);
 
   useEffect(() => {
     void fetchApplications()
@@ -79,22 +96,10 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
           forbidden: isForbiddenError(error),
         });
       });
-  }, [admin.adminUserId]);
+  }, [admin.adminUserId, reloadKey]);
 
   useEffect(() => {
-    if (applicationsState.status !== "loaded" || search.appKey || applicationsState.applications.length === 0) {
-      return;
-    }
-    const firstApplication = applicationsState.applications[0];
-    if (!firstApplication) {
-      return;
-    }
-    updateSearch({ appKey: firstApplication.appKey, page: 1, sheet: undefined });
-  }, [applicationsState, search.appKey]);
-
-  useEffect(() => {
-    if (!search.appKey) {
-      setPermissionState({ status: "idle" });
+    if (applicationsState.status !== "loaded") {
       return;
     }
 
@@ -102,7 +107,11 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
     latestRequestRef.current = requestSeq;
     setPermissionState({ status: "loading" });
 
-    void Promise.all([fetchPermissionGroups(search.appKey), fetchIamRoles(search.appKey)])
+    const request = search.appKey
+      ? Promise.all([fetchPermissionGroups(search.appKey), fetchIamRoles(search.appKey)])
+      : fetchIamRolesAcrossApplications(applicationsState.applications).then((roles) => [[] as PermissionGroup[], roles] as const);
+
+    void request
       .then(([groups, roles]) => {
         if (latestRequestRef.current !== requestSeq) {
           return;
@@ -119,7 +128,7 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
           forbidden: isForbiddenError(error),
         });
       });
-  }, [admin.adminUserId, reloadKey, search.appKey]);
+  }, [admin.adminUserId, applicationsState, reloadKey, search.appKey]);
 
   const selectedApplication =
     applicationsState.status === "loaded"
@@ -127,19 +136,44 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
       : undefined;
   const groups = permissionState.status === "loaded" ? permissionState.groups : [];
   const roles = permissionState.status === "loaded" ? permissionState.roles : [];
-  const groupsById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
-  const filteredRoles = useMemo(() => filterAndSortRoles(roles, search), [roles, search.q, search.sort, search.status]);
+  const groupsById = useMemo(() => {
+    const next = new Map(groups.map((group) => [group.id, group]));
+    for (const role of roles) {
+      for (const group of role.permissionGroups ?? []) {
+        next.set(group.id, group);
+      }
+    }
+    return next;
+  }, [groups, roles]);
+  const filteredRoles = useMemo(
+    () => filterAndSortRoles(roles, search),
+    [roles, search.authStatus, search.code, search.q, search.sort, search.status],
+  );
   const pagedRoles = useMemo(() => paginateRows(filteredRoles, search.page, search.pageSize), [filteredRoles, search.page, search.pageSize]);
-  const roleSheetId = parseRoleSheetId(search.sheet);
-  const selectedRole = roleSheetId ? roles.find((role) => role.id === roleSheetId) ?? null : null;
-  const roleMissing = Boolean(roleSheetId && permissionState.status === "loaded" && !selectedRole);
+  const selectedRoles = useMemo(
+    () => filteredRoles.filter((role) => selectedRoleIds.has(role.id)),
+    [filteredRoles, selectedRoleIds],
+  );
   const columns = useMemo(
     () =>
       createPermissionRoleColumns({
+        canManageGlobalRoles,
         permissionGroupsById: groupsById,
+        selectedRoleIds,
         onAction: handleRowAction,
+        onToggleSelection: (role, checked) => {
+          setSelectedRoleIds((current) => {
+            const next = new Set(current);
+            if (checked) {
+              next.add(role.id);
+            } else {
+              next.delete(role.id);
+            }
+            return next;
+          });
+        },
       }),
-    [groupsById, search],
+    [canManageGlobalRoles, groupsById, search, selectedRoleIds],
   );
 
   function updateSearch(next: Partial<PermissionSearchState>) {
@@ -150,6 +184,8 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
     event.preventDefault();
     updateSearch({
       q: cleanDraft(draft.q),
+      code: cleanDraft(draft.code),
+      authStatus: draft.authStatus,
       status: draft.status,
       sort: draft.sort,
       page: 1,
@@ -158,13 +194,60 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
   }
 
   function handleRowAction(action: PermissionRoleRowAction) {
-    if (!search.appKey) {
+    if (action.type === "edit") {
+      setEditingRole(action.role);
+      return;
+    }
+    if (action.type === "toggle_status") {
+      setStatusIntent({
+        type: "single",
+        role: action.role,
+        nextStatus: action.role.status === "active" ? "disabled" : "active",
+      });
+      return;
+    }
+    const roleAppKey = search.appKey ?? action.role.appKeys?.[0] ?? action.role.appKey;
+    if (!roleAppKey) {
       return;
     }
     const from = `${location.pathname}${location.search}`;
     void navigate(
-      `/admin/permissions/${encodeURIComponent(search.appKey)}/roles/${encodeURIComponent(action.role.id)}?from=${encodeURIComponent(from)}`,
+      `/admin/permissions/roles/${encodeURIComponent(action.role.id)}?appKey=${encodeURIComponent(roleAppKey)}&from=${encodeURIComponent(from)}`,
     );
+  }
+
+  function reloadRoles() {
+    setSelectedRoleIds(new Set());
+    setActionError(undefined);
+    setReloadKey((current) => current + 1);
+  }
+
+  async function handleConfirmStatusChange() {
+    if (!statusIntent) {
+      return;
+    }
+    setStatusPending(true);
+    setActionError(undefined);
+    try {
+      const targets = statusIntent.type === "single" ? [statusIntent.role] : statusIntent.roles;
+      await Promise.all(
+        targets.map((role) => {
+          const roleAppKey = search.appKey ?? role.appKeys?.[0] ?? role.appKey;
+          if (!roleAppKey) {
+            throw new Error(`角色 ${role.key} 缺少关联应用，无法变更状态`);
+          }
+          return statusIntent.nextStatus === "active"
+            ? enableIamRole(roleAppKey, role.id)
+            : disableIamRole(roleAppKey, role.id);
+        }),
+      );
+      setStatusIntent(null);
+      reloadRoles();
+    } catch (error: unknown) {
+      setActionError(error instanceof Error ? error.message : "无法更新角色状态");
+    } finally {
+      setStatusPending(false);
+    }
   }
 
   return (
@@ -181,7 +264,24 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
             </StatusBadge>
           ) : null
         }
-        description="按应用查看 IAM 角色，并进入详情维护组织、用户和权限组授权。角色元数据在应用管理维护。"
+        description="统一管理角色资源，按应用筛选关联角色，并进入独立工作台维护组织、用户和应用权限。"
+        primaryAction={
+          <Button
+            disabled={!search.appKey || !canManageGlobalRoles}
+            title={
+              !canManageGlobalRoles
+                ? "只有平台管理员可以创建角色"
+                : search.appKey
+                  ? "创建角色"
+                  : "请先选择一个应用后创建角色"
+            }
+            type="button"
+            onClick={() => { setCreateOpen(true); }}
+          >
+            <Plus aria-hidden="true" size={16} />
+            创建角色
+          </Button>
+        }
         title="权限管理"
       />
 
@@ -190,6 +290,11 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
         {applicationsState.status === "failed" ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
             {applicationsState.forbidden ? "当前管理员无权查看应用列表。" : applicationsState.message}
+          </div>
+        ) : null}
+        {actionError ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+            {actionError}
           </div>
         ) : null}
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -203,6 +308,8 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
             onReset={() => {
               updateSearch({
                 q: undefined,
+                code: undefined,
+                authStatus: "all",
                 status: "all",
                 sort: "key:asc",
                 page: 1,
@@ -222,7 +329,7 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
                   updateSearch({ appKey: event.target.value || undefined, page: 1, sheet: undefined });
                 }}
               >
-                <option value="">请选择应用</option>
+                <option value="">全部应用</option>
                 {applicationsState.status === "loaded"
                   ? applicationsState.applications.map((application) => (
                       <option key={application.appKey} value={application.appKey}>
@@ -236,9 +343,18 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
               <span>角色查询</span>
               <Input
                 aria-label="角色查询"
-                placeholder="搜索角色名称 / key / 描述"
+                placeholder="搜索角色名称 / 描述"
                 value={draft.q}
                 onChange={(event) => { setDraft((current) => ({ ...current, q: event.target.value })); }}
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium text-foreground">
+              <span>角色编号</span>
+              <Input
+                aria-label="角色编号"
+                placeholder="搜索角色 key / ID"
+                value={draft.code}
+                onChange={(event) => { setDraft((current) => ({ ...current, code: event.target.value })); }}
               />
             </label>
             <label className="grid gap-1.5 text-sm font-medium text-foreground">
@@ -252,6 +368,19 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
                 <option value="all">全部</option>
                 <option value="enabled">启用</option>
                 <option value="disabled">停用</option>
+              </select>
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium text-foreground">
+              <span>授权状态</span>
+              <select
+                aria-label="授权状态"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                value={draft.authStatus}
+                onChange={(event) => { setDraft((current) => ({ ...current, authStatus: event.target.value as PermissionSearchState["authStatus"] })); }}
+              >
+                <option value="all">全部</option>
+                <option value="configured">已配置授权</option>
+                <option value="unconfigured">未配置授权</option>
               </select>
             </label>
             <label className="grid gap-1.5 text-sm font-medium text-foreground">
@@ -269,10 +398,52 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
             </label>
           </FilterBar>
 
+          <div className="flex flex-col gap-3 rounded-md border bg-background px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              已选择 {selectedRoles.length} 个角色
+              {!search.appKey ? "；跨应用视图下会按角色首个关联应用执行状态变更。" : null}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={selectedRoles.length === 0 || !canManageGlobalRoles}
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setStatusIntent({ type: "bulk", roles: selectedRoles, nextStatus: "active" });
+                }}
+              >
+                批量启用
+              </Button>
+              <Button
+                disabled={selectedRoles.length === 0 || !canManageGlobalRoles}
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setStatusIntent({ type: "bulk", roles: selectedRoles, nextStatus: "disabled" });
+                }}
+              >
+                批量停用
+              </Button>
+              <Button
+                disabled={selectedRoles.length === 0 || !canManageGlobalRoles}
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedRoleIds(new Set());
+                }}
+              >
+                清空选择
+              </Button>
+            </div>
+          </div>
+
           <DataTable
             aria-label="IAM 角色清单"
             columns={columns}
-            emptyText={selectedApplication ? "暂无 IAM 角色" : "请选择应用后查看 IAM 角色"}
+            emptyText={selectedApplication ? "当前应用暂无关联角色" : "暂无 IAM 角色"}
             error={permissionState.status === "failed" && !permissionState.forbidden ? permissionState.message : null}
             forbidden={permissionState.status === "failed" && permissionState.forbidden ? "当前管理员无权查看 IAM 角色授权。" : false}
             getRowKey={(role) => role.id}
@@ -307,13 +478,13 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
               ],
               actions: (role) => (
                 <Button
-                  aria-label={`查看 ${role.key} 详情`}
+                  aria-label={`配置 ${role.key}`}
                   size="sm"
                   type="button"
                   variant="outline"
                   onClick={() => { handleRowAction({ type: "detail", role }); }}
                 >
-                  查看详情
+                  配置
                 </Button>
               ),
             }}
@@ -332,30 +503,50 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
         </form>
       </section>
 
-      <PermissionRoleDetailSheet
+      <PermissionRoleCreateDialog
         appKey={search.appKey}
-        permissionGroups={groups}
+        onCreated={reloadRoles}
+        onOpenChange={setCreateOpen}
+        open={createOpen}
+      />
+      <PermissionRoleEditDialog
+        appKey={search.appKey ?? editingRole?.appKeys?.[0] ?? editingRole?.appKey}
         onOpenChange={(open) => {
           if (!open) {
-            setSearchParams(closeSheet(searchParams));
+            setEditingRole(null);
           }
         }}
-        onSaved={() => { setReloadKey((current) => current + 1); }}
-        open={Boolean(roleSheetId && (selectedRole || roleMissing))}
-        permissionGroupsById={groupsById}
-        readOnly={selectedApplication?.status !== "active" || selectedRole?.status === "disabled"}
-        readOnlyReason={
-          selectedApplication?.status !== "active"
-            ? "当前应用已停用，权限管理只读。"
-            : selectedRole?.status === "disabled"
-              ? "当前角色已停用，权限管理只读。"
-              : undefined
-        }
-        role={selectedRole}
-        roleMissing={roleMissing}
+        onUpdated={reloadRoles}
+        open={Boolean(editingRole)}
+        role={editingRole}
       />
+      {statusIntent ? (
+        <ConfirmDialog
+          danger={statusIntent.nextStatus === "disabled"}
+          description={statusIntentDescription(statusIntent)}
+          onConfirm={() => void handleConfirmStatusChange()}
+          onOpenChange={(open) => {
+            if (!open && !statusPending) {
+              setStatusIntent(null);
+            }
+          }}
+          open
+          pending={statusPending}
+          title={statusIntent.nextStatus === "active" ? "确认启用角色" : "确认停用角色"}
+        />
+      ) : null}
+
     </main>
   );
+}
+
+function statusIntentDescription(intent: RoleStatusIntent): string {
+  const targetCount = intent.type === "single" ? 1 : intent.roles.length;
+  const action = intent.nextStatus === "active" ? "启用" : "停用";
+  if (intent.type === "single") {
+    return `确认${action}角色「${intent.role.name}」？该操作会影响该角色在所有关联应用中的授权结果，并写入审计日志。`;
+  }
+  return `确认批量${action} ${String(targetCount)} 个角色？该操作会影响这些角色在所有关联应用中的授权结果，并写入审计日志。`;
 }
 
 function PaginationBar(props: {
@@ -395,15 +586,27 @@ function PaginationBar(props: {
 
 function filterAndSortRoles(roles: IamRole[], search: PermissionSearchState): IamRole[] {
   const keyword = search.q?.trim().toLowerCase();
+  const codeKeyword = search.code?.trim().toLowerCase();
   const filtered = roles.filter((role) => {
     const matchesKeyword = keyword
-      ? [role.name, role.key, role.description ?? ""].some((value) => value.toLowerCase().includes(keyword))
+      ? [role.name, role.description ?? ""].some((value) => value.toLowerCase().includes(keyword))
+      : true;
+    const matchesCode = codeKeyword
+      ? [role.key, role.id].some((value) => value.toLowerCase().includes(codeKeyword))
       : true;
     const matchesStatus =
       search.status === "all" ||
       (search.status === "enabled" && role.status === "active") ||
       (search.status === "disabled" && role.status === "disabled");
-    return matchesKeyword && matchesStatus;
+    const hasAuthorization =
+      (role.subjects?.length ?? 0) > 0 ||
+      readBoundPermissionGroupIds(role).length > 0 ||
+      (role.permissionPoints?.length ?? 0) > 0;
+    const matchesAuthStatus =
+      search.authStatus === "all" ||
+      (search.authStatus === "configured" && hasAuthorization) ||
+      (search.authStatus === "unconfigured" && !hasAuthorization);
+    return matchesKeyword && matchesCode && matchesStatus && matchesAuthStatus;
   });
 
   return filtered.sort((left, right) => {
@@ -425,6 +628,8 @@ function paginateRows(rows: IamRole[], page: number, pageSize: number): IamRole[
 function filterDraftFromSearch(search: PermissionSearchState): FilterDraft {
   return {
     q: search.q ?? "",
+    code: search.code ?? "",
+    authStatus: search.authStatus,
     status: search.status,
     sort: search.sort,
   };
@@ -435,10 +640,6 @@ function withInitialAppKey(search: PermissionSearchState, initialAppKey?: string
     return search;
   }
   return { ...search, appKey: initialAppKey.trim() };
-}
-
-function parseRoleSheetId(sheet: PermissionSearchState["sheet"]): string | undefined {
-  return sheet?.startsWith("role:") ? sheet.slice("role:".length) : undefined;
 }
 
 function cleanDraft(value: string): string | undefined {

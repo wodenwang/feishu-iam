@@ -457,6 +457,10 @@ function AdminApp() {
           element={<PermissionManagementPage admin={adminState.admin} />}
         />
         <Route
+          path="/admin/permissions/roles/:roleId"
+          element={<PermissionRoleDetailPage admin={adminState.admin} />}
+        />
+        <Route
           path="/admin/permissions/:appKey/roles/:roleId"
           element={<PermissionRoleDetailPage admin={adminState.admin} />}
         />

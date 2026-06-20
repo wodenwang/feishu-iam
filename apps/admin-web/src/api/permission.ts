@@ -68,8 +68,11 @@ export type PermissionPoint = {
 
 export type IamRole = {
   id: string;
-  applicationId: string;
+  applicationId?: string;
   appKey: string;
+  applications?: IamRoleApplicationSummary[];
+  applicationIds?: string[];
+  appKeys?: string[];
   key: string;
   name: string;
   description?: string | null;
@@ -80,6 +83,14 @@ export type IamRole = {
   subjects?: IamRoleSubject[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type IamRoleApplicationSummary = {
+  applicationId: string;
+  appKey: string;
+  name: string;
+  status: EntityStatus;
+  bindingStatus: EntityStatus;
 };
 
 export type IamRoleSubject = {
@@ -356,6 +367,28 @@ export async function fetchIamRoles(appKey: string): Promise<IamRole[]> {
   return result.items.map((role) => normalizeIamRole(role, appKey));
 }
 
+export async function fetchIamRolesAcrossApplications(
+  applications: Application[],
+): Promise<IamRole[]> {
+  const roleLists = await Promise.all(
+    applications.map((application) => fetchIamRoles(application.appKey)),
+  );
+  const rolesById = new Map<string, IamRole>();
+
+  for (const role of roleLists.flat()) {
+    const current = rolesById.get(role.id);
+    if (!current) {
+      rolesById.set(role.id, role);
+      continue;
+    }
+    rolesById.set(role.id, mergeRoleApplications(current, role));
+  }
+
+  return [...rolesById.values()].sort((left, right) =>
+    left.key.localeCompare(right.key),
+  );
+}
+
 export async function createIamRole(
   appKey: string,
   input: { key: string; name: string; description?: string },
@@ -401,6 +434,19 @@ export async function disableIamRole(
   return setIamRoleStatus(appKey, roleId, "disable");
 }
 
+export async function bindIamRoleApplication(
+  appKey: string,
+  roleId: string,
+): Promise<IamRole> {
+  const role = await readJson<RawIamRole>(
+    `/api/v1/admin/applications/${encodeURIComponent(appKey)}/iam-roles/${encodeURIComponent(roleId)}/application-binding`,
+    {
+      method: "POST",
+    },
+  );
+  return normalizeIamRole(role, appKey);
+}
+
 async function setIamRoleStatus(
   appKey: string,
   roleId: string,
@@ -425,7 +471,7 @@ export async function replaceIamRolePermissionGroups(
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ permissionGroupIds }),
+      body: JSON.stringify({ groupIds: permissionGroupIds }),
     },
   );
 }
@@ -457,10 +503,21 @@ export async function replaceIamRoleSubjects(
 
 type RawIamRole = Omit<
   IamRole,
-  "appKey" | "permissionGroups" | "permissionGroupIds" | "subjects"
+  | "appKey"
+  | "applications"
+  | "applicationIds"
+  | "appKeys"
+  | "permissionGroups"
+  | "permissionGroupIds"
+  | "subjects"
 > & {
   app_key?: string;
   appKey?: string;
+  applications?: RawIamRoleApplicationSummary[];
+  application_ids?: string[];
+  applicationIds?: string[];
+  app_keys?: string[];
+  appKeys?: string[];
   permissionGroups?: PermissionGroup[];
   permission_groups?: PermissionGroup[];
   permissionPoints?: PermissionPoint[];
@@ -470,10 +527,26 @@ type RawIamRole = Omit<
   subjects?: IamRoleSubject[];
 };
 
+type RawIamRoleApplicationSummary = Partial<IamRoleApplicationSummary> & {
+  application_id?: string;
+  app_key?: string;
+  binding_status?: EntityStatus;
+};
+
 function normalizeIamRole(role: RawIamRole, appKey: string): IamRole {
+  const applications = normalizeRoleApplications(role, appKey);
   return {
     ...role,
     appKey: role.appKey ?? role.app_key ?? appKey,
+    applications,
+    applicationIds:
+      role.applicationIds ??
+      role.application_ids ??
+      applications.map((application) => application.applicationId),
+    appKeys:
+      role.appKeys ??
+      role.app_keys ??
+      applications.map((application) => application.appKey),
     permissionGroups: (role.permissionGroups ?? role.permission_groups)?.map(
       normalizePermissionGroup,
     ),
@@ -481,6 +554,79 @@ function normalizeIamRole(role: RawIamRole, appKey: string): IamRole {
     permissionPoints: role.permissionPoints ?? role.permission_points ?? [],
     subjects: role.subjects,
   };
+}
+
+function normalizeRoleApplications(
+  role: RawIamRole,
+  fallbackAppKey: string,
+): IamRoleApplicationSummary[] {
+  if (Array.isArray(role.applications) && role.applications.length > 0) {
+    return role.applications.map((application) => ({
+      applicationId:
+        application.applicationId ?? application.application_id ?? "",
+      appKey: application.appKey ?? application.app_key ?? fallbackAppKey,
+      name: application.name ?? application.appKey ?? fallbackAppKey,
+      status: application.status ?? "active",
+      bindingStatus:
+        application.bindingStatus ?? application.binding_status ?? "active",
+    }));
+  }
+
+  return [
+    {
+      applicationId: role.applicationId ?? "",
+      appKey: role.appKey ?? role.app_key ?? fallbackAppKey,
+      name: role.appKey ?? role.app_key ?? fallbackAppKey,
+      status: "active",
+      bindingStatus: "active",
+    },
+  ];
+}
+
+function mergeRoleApplications(left: IamRole, right: IamRole): IamRole {
+  const applicationsByKey = new Map<string, IamRoleApplicationSummary>();
+  for (const application of [
+    ...(left.applications ?? []),
+    ...(right.applications ?? []),
+  ]) {
+    applicationsByKey.set(application.appKey, application);
+  }
+  const applications = [...applicationsByKey.values()].sort((a, b) =>
+    a.appKey.localeCompare(b.appKey),
+  );
+  const permissionGroups = mergeById(
+    left.permissionGroups ?? [],
+    right.permissionGroups ?? [],
+  );
+  const permissionPoints = mergeById(
+    left.permissionPoints ?? [],
+    right.permissionPoints ?? [],
+  );
+  const permissionGroupIds = [
+    ...new Set([
+      ...(left.permissionGroupIds ?? []),
+      ...(right.permissionGroupIds ?? []),
+      ...permissionGroups.map((group) => group.id),
+    ]),
+  ];
+
+  return {
+    ...left,
+    applications,
+    applicationIds: applications.map((application) => application.applicationId),
+    appKeys: applications.map((application) => application.appKey),
+    permissionGroups,
+    permissionGroupIds,
+    permissionPoints,
+  };
+}
+
+function mergeById<T extends { id: string }>(left: T[], right: T[]): T[] {
+  const byId = new Map<string, T>();
+  for (const item of [...left, ...right]) {
+    byId.set(item.id, item);
+  }
+  return [...byId.values()];
 }
 
 function normalizePermissionGroup(

@@ -16,6 +16,11 @@ function makePrisma() {
       findFirst: vi.fn(),
       update: vi.fn()
     },
+    iamRoleApplication: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      upsert: vi.fn()
+    },
     iamRoleSubject: {
       findMany: vi.fn(),
       deleteMany: vi.fn(),
@@ -89,10 +94,14 @@ function mockApplication(prisma: PrismaMock, applicationId = 'app-finance') {
 function mockRole(prisma: PrismaMock, applicationId = 'app-finance') {
   prisma.iamRole.findFirst.mockResolvedValue({
     id: 'role-1',
-    applicationId,
     key: 'invoice_manager',
     name: '发票管理员',
-    status: 'active'
+    status: 'active',
+    applications: [
+      {
+        applicationId
+      }
+    ]
   });
 }
 
@@ -108,13 +117,12 @@ describe('IamRoleService', () => {
     ).rejects.toMatchObject({ code: 'IAM_ROLE_KEY_INVALID' });
   });
 
-  it('创建角色属于指定应用，写入 applicationId 并记录审计', async () => {
+  it('创建全局角色后绑定当前应用，并记录审计', async () => {
     const prisma = makePrisma();
     const audit = makeAudit();
     mockApplication(prisma);
     const created = {
       id: 'role-1',
-      applicationId: 'app-finance',
       key: 'invoice_manager',
       name: '发票管理员',
       description: '管理发票权限',
@@ -134,11 +142,17 @@ describe('IamRoleService', () => {
     expect(prisma.iamRole.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         id: expect.any(String) as unknown,
-        applicationId: 'app-finance',
         key: 'invoice_manager',
         name: '发票管理员',
         description: '管理发票权限'
       }) as unknown
+    });
+    expect(prisma.iamRoleApplication.create).toHaveBeenCalledWith({
+      data: {
+        iamRoleId: 'role-1',
+        applicationId: 'app-finance',
+        status: 'active'
+      }
     });
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,7 +160,10 @@ describe('IamRoleService', () => {
         resourceType: 'iam_role',
         resourceId: 'role-1',
         action: 'create',
-        after: created,
+        after: expect.objectContaining({
+          ...created,
+          appKey: 'finance'
+        }) as unknown,
         result: 'success'
       }),
       prisma
@@ -159,7 +176,6 @@ describe('IamRoleService', () => {
     mockApplication(prisma);
     const created = {
       id: 'role-1',
-      applicationId: 'app-finance',
       key: 'invoice_manager',
       name: '发票管理员',
       description: null,
@@ -205,13 +221,34 @@ describe('IamRoleService', () => {
     prisma.iamRole.findMany.mockResolvedValue([
       {
         id: 'role-1',
-        applicationId: 'app-finance',
         key: 'finance.admin',
         name: '财务管理员',
         description: null,
         status: 'active',
         createdAt: new Date('2026-05-20T00:00:00.000Z'),
         updatedAt: new Date('2026-05-20T00:00:00.000Z'),
+        applications: [
+          {
+            applicationId: 'app-finance',
+            status: 'active',
+            application: {
+              id: 'app-finance',
+              appKey: 'finance',
+              name: '财务系统',
+              status: 'active'
+            }
+          },
+          {
+            applicationId: 'app-hr',
+            status: 'active',
+            application: {
+              id: 'app-hr',
+              appKey: 'hr',
+              name: 'HR 系统',
+              status: 'active'
+            }
+          }
+        ],
         permissionGroups: [
           {
             permissionGroupId: 'group-finance-admin',
@@ -314,6 +351,22 @@ describe('IamRoleService', () => {
     await expect(service.listRoles('finance')).resolves.toEqual([
       expect.objectContaining({
         id: 'role-1',
+        applicationIds: ['app-finance', 'app-hr'],
+        appKeys: ['finance', 'hr'],
+        applications: [
+          expect.objectContaining({
+            applicationId: 'app-finance',
+            appKey: 'finance',
+            name: '财务系统',
+            bindingStatus: 'active'
+          }),
+          expect.objectContaining({
+            applicationId: 'app-hr',
+            appKey: 'hr',
+            name: 'HR 系统',
+            bindingStatus: 'active'
+          })
+        ],
         permissionGroupIds: ['group-finance-admin'],
         permissionGroups: [
           expect.objectContaining({
@@ -358,10 +411,25 @@ describe('IamRoleService', () => {
 
     expect(prisma.iamRole.findMany).toHaveBeenCalledWith({
       where: {
-        applicationId: 'app-finance'
+        applications: {
+          some: {
+            applicationId: 'app-finance'
+          }
+        }
       },
       include: {
+        applications: {
+          include: {
+            application: true
+          },
+          orderBy: {
+            applicationId: 'asc'
+          }
+        },
         permissionGroups: {
+          where: {
+            applicationId: 'app-finance'
+          },
           include: {
             permissionGroup: {
               include: {
@@ -381,6 +449,9 @@ describe('IamRoleService', () => {
           }
         },
         permissionPoints: {
+          where: {
+            applicationId: 'app-finance'
+          },
           include: {
             permissionPoint: true
           },
@@ -408,7 +479,6 @@ describe('IamRoleService', () => {
     mockRole(prisma);
     prisma.iamRole.update.mockResolvedValue({
       id: 'role-1',
-      applicationId: 'app-finance',
       key: 'invoice_manager',
       name: '发票管理员 V2',
       description: null,
@@ -430,10 +500,7 @@ describe('IamRoleService', () => {
 
     expect(prisma.iamRole.update).toHaveBeenCalledWith({
       where: {
-        applicationId_id: {
-          applicationId: 'app-finance',
-          id: 'role-1'
-        }
+        id: 'role-1'
       },
       data: {
         name: '发票管理员 V2'
@@ -448,7 +515,6 @@ describe('IamRoleService', () => {
     mockRole(prisma);
     prisma.iamRole.update.mockResolvedValue({
       id: 'role-1',
-      applicationId: 'app-finance',
       key: 'invoice_manager',
       status: 'disabled'
     });
@@ -459,10 +525,7 @@ describe('IamRoleService', () => {
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
     expect(prisma.iamRole.update).toHaveBeenCalledWith({
       where: {
-        applicationId_id: {
-          applicationId: 'app-finance',
-          id: 'role-1'
-        }
+        id: 'role-1'
       },
       data: {
         status: 'disabled'
@@ -480,6 +543,82 @@ describe('IamRoleService', () => {
       }),
       prisma
     );
+  });
+
+  it('bindRoleToApplication 把已有全局角色绑定到当前应用并记录审计', async () => {
+    const prisma = makePrisma();
+    const audit = makeAudit();
+    mockApplication(prisma);
+    prisma.iamRole.findFirst.mockResolvedValue({
+      id: 'role-1',
+      key: 'invoice_manager',
+      name: '发票管理员',
+      description: null,
+      status: 'active'
+    });
+    prisma.iamRoleApplication.findUnique.mockResolvedValue({
+      iamRoleId: 'role-1',
+      applicationId: 'app-finance',
+      status: 'disabled'
+    });
+    const service = makeService(prisma, audit);
+
+    await expect(service.bindRoleToApplication('finance', 'role-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'role-1' })
+    );
+
+    expect(prisma.iamRole.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'role-1'
+      }
+    });
+    expect(prisma.iamRoleApplication.upsert).toHaveBeenCalledWith({
+      where: {
+        iamRoleId_applicationId: {
+          iamRoleId: 'role-1',
+          applicationId: 'app-finance'
+        }
+      },
+      create: {
+        iamRoleId: 'role-1',
+        applicationId: 'app-finance',
+        status: 'active'
+      },
+      update: {
+        status: 'active'
+      }
+    });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationId: 'app-finance',
+        resourceType: 'iam_role',
+        resourceId: 'role-1',
+        action: 'bind_application',
+        before: {
+          applicationId: 'app-finance',
+          bindingStatus: 'disabled'
+        },
+        after: {
+          applicationId: 'app-finance',
+          bindingStatus: 'active'
+        },
+        result: 'success'
+      }),
+      prisma
+    );
+  });
+
+  it('bindRoleToApplication 找不到全局角色时返回 IAM_ROLE_NOT_FOUND', async () => {
+    const prisma = makePrisma();
+    mockApplication(prisma);
+    prisma.iamRole.findFirst.mockResolvedValue(null);
+    const service = makeService(prisma);
+
+    await expect(service.bindRoleToApplication('finance', 'role-missing')).rejects.toMatchObject({
+      code: 'IAM_ROLE_NOT_FOUND',
+      status: 404
+    });
+    expect(prisma.iamRoleApplication.upsert).not.toHaveBeenCalled();
   });
 
   it('replaceRoleSubjects 只接受 feishu_user 和 feishu_department', async () => {

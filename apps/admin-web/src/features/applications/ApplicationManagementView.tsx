@@ -663,7 +663,7 @@ function IntegrationSummaryCell({ application }: { application: Application }) {
         回调 {summary.activeRedirectUriCount}/{summary.redirectUriCount} · OAuth{" "}
         {summary.activeOauthClientCount}/{summary.oauthClientCount} · API{" "}
         {summary.activeDeveloperCredentialCount}/
-        {summary.developerCredentialCount} · 角色 {summary.activeIamRoleCount}/
+        {summary.developerCredentialCount} · 关联角色 {summary.activeIamRoleCount}/
         {summary.iamRoleCount}
       </span>
     </div>

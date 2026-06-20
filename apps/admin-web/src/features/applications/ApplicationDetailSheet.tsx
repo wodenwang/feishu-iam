@@ -3,23 +3,17 @@ import {
   Edit2,
   Eye,
   KeyRound,
-  Power,
-  PowerOff,
   Plus,
   RotateCw,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import type { ReactNode, SyntheticEvent } from "react";
-import { useEffect, useRef, useState } from "react";
-import type { Application, IamRole } from "../../api/permission";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Application, PermissionGroup, PermissionPoint } from "../../api/permission";
 import {
-  createIamRole,
-  disableIamRole,
-  enableIamRole,
-  fetchIamRoles,
+  fetchPermissionGroups,
+  fetchPermissionPoints,
   updateApplication,
-  updateIamRole,
 } from "../../api/permission";
 import type {
   ApplicationClientSecretResult,
@@ -55,8 +49,8 @@ import { Textarea } from "../../components/ui/textarea";
 
 export const applicationDetailTabs = [
   "details",
-  "roles",
   "development",
+  "permissions",
   "danger",
 ] as const;
 
@@ -96,26 +90,14 @@ type DetailState =
       redirectUris: ApplicationRedirectUri[];
       oauthCredential: ApplicationOauthCredential | null;
       developerCredential: ApplicationDeveloperCredential | null;
+      permissionGroups: PermissionGroup[];
+      permissionPoints: PermissionPoint[];
     }
-  | { status: "failed"; message: string; forbidden: boolean };
-
-type RoleState =
-  | { status: "idle" | "loading" }
-  | { status: "loaded"; roles: IamRole[] }
   | { status: "failed"; message: string; forbidden: boolean };
 
 type BasicDraft = {
   name: string;
   description: string;
-};
-
-type RoleFormState =
-  | { mode: "create"; key: string; name: string; description: string }
-  | { mode: "edit"; role: IamRole; name: string; description: string };
-
-type RoleStatusConfirmation = {
-  action: StatusAction;
-  role: IamRole;
 };
 
 type SecretAction = "view" | "rotate";
@@ -141,7 +123,6 @@ export function ApplicationDetailSheet({
   presentation,
 }: ApplicationDetailSheetProps) {
   const [state, setState] = useState<DetailState>({ status: "idle" });
-  const [roleState, setRoleState] = useState<RoleState>({ status: "idle" });
   const [editBasic, setEditBasic] = useState(false);
   const [basicDraft, setBasicDraft] = useState<BasicDraft>({
     name: "",
@@ -150,6 +131,8 @@ export function ApplicationDetailSheet({
   const [basicPending, setBasicPending] = useState(false);
   const [basicError, setBasicError] = useState<string>();
   const [redirectDraft, setRedirectDraft] = useState("");
+  const [permissionQuery, setPermissionQuery] = useState("");
+  const [compareGroupIds, setCompareGroupIds] = useState<string[]>([]);
   const [redirectPending, setRedirectPending] = useState(false);
   const [redirectError, setRedirectError] = useState<string>();
   const [redirectDisableTarget, setRedirectDisableTarget] =
@@ -163,11 +146,6 @@ export function ApplicationDetailSheet({
   const [promptResult, setPromptResult] = useState<PromptRefreshResult | null>(
     null,
   );
-  const [roleForm, setRoleForm] = useState<RoleFormState | null>(null);
-  const [rolePending, setRolePending] = useState(false);
-  const [roleError, setRoleError] = useState<string>();
-  const [roleStatusConfirmation, setRoleStatusConfirmation] =
-    useState<RoleStatusConfirmation | null>(null);
   const [secretAction, setSecretAction] = useState<SecretAction | null>(null);
   const [secretPending, setSecretPending] = useState(false);
   const [secretError, setSecretError] = useState<string>();
@@ -198,9 +176,9 @@ export function ApplicationDetailSheet({
     setEditBasic(false);
     setBasicError(undefined);
     setRedirectDraft("");
+    setPermissionQuery("");
+    setCompareGroupIds([]);
     setRedirectError(undefined);
-    setRoleForm(null);
-    setRoleError(undefined);
     setPromptCopyState("idle");
     setPromptRefreshOpen(false);
     setPromptPending(false);
@@ -211,23 +189,22 @@ export function ApplicationDetailSheet({
     const requestSeq = latestRequestRef.current + 1;
     latestRequestRef.current = requestSeq;
     setState({ status: "loading" });
-    setRoleState({ status: "loading" });
     setSecretAction(null);
     setSecretPending(false);
     setSecretError(undefined);
     setSecretResult(null);
 
     void loadConnectionSummary(application.appKey, requestSeq);
-    void loadRoles(application.appKey, requestSeq);
   }, [application, open]);
 
   function resetTransientState() {
     setState({ status: "idle" });
-    setRoleState({ status: "idle" });
     setEditBasic(false);
     setBasicPending(false);
     setBasicError(undefined);
     setRedirectDraft("");
+    setPermissionQuery("");
+    setCompareGroupIds([]);
     setRedirectPending(false);
     setRedirectError(undefined);
     setRedirectDisableTarget(null);
@@ -236,10 +213,6 @@ export function ApplicationDetailSheet({
     setPromptPending(false);
     setPromptError(undefined);
     setPromptResult(null);
-    setRoleForm(null);
-    setRolePending(false);
-    setRoleError(undefined);
-    setRoleStatusConfirmation(null);
     setSecretAction(null);
     setSecretPending(false);
     setSecretError(undefined);
@@ -252,10 +225,14 @@ export function ApplicationDetailSheet({
         redirectUris,
         oauthCredential,
         developerCredential,
+        permissionGroups,
+        permissionPoints,
       ] = await Promise.all([
         fetchApplicationRedirectUris(appKey),
         fetchApplicationOauthCredential(appKey),
         fetchApplicationDeveloperCredential(appKey),
+        fetchPermissionGroups(appKey),
+        fetchPermissionPoints(appKey),
       ]);
       if (latestRequestRef.current !== requestSeq) {
         return;
@@ -265,6 +242,8 @@ export function ApplicationDetailSheet({
         redirectUris,
         oauthCredential,
         developerCredential,
+        permissionGroups,
+        permissionPoints,
       });
     } catch (error: unknown) {
       if (latestRequestRef.current !== requestSeq) {
@@ -273,28 +252,6 @@ export function ApplicationDetailSheet({
       setState({
         status: "failed",
         message: errorMessage(error, "无法读取应用接入摘要"),
-        forbidden: isForbiddenError(error),
-      });
-    }
-  }
-
-  async function loadRoles(
-    appKey: string,
-    requestSeq = latestRequestRef.current,
-  ) {
-    try {
-      const roles = await fetchIamRoles(appKey);
-      if (latestRequestRef.current !== requestSeq) {
-        return;
-      }
-      setRoleState({ status: "loaded", roles });
-    } catch (error: unknown) {
-      if (latestRequestRef.current !== requestSeq) {
-        return;
-      }
-      setRoleState({
-        status: "failed",
-        message: errorMessage(error, "无法读取应用角色"),
         forbidden: isForbiddenError(error),
       });
     }
@@ -453,77 +410,6 @@ export function ApplicationDetailSheet({
     }
   }
 
-  async function handleRoleSubmit(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!application || !roleForm || roleState.status !== "loaded") {
-      return;
-    }
-    setRolePending(true);
-    setRoleError(undefined);
-    try {
-      const saved =
-        roleForm.mode === "create"
-          ? await createIamRole(application.appKey, {
-              key: roleForm.key.trim(),
-              name: roleForm.name.trim(),
-              description: nullableTrim(roleForm.description) ?? undefined,
-            })
-          : await updateIamRole(application.appKey, roleForm.role.id, {
-              name: roleForm.name.trim(),
-              description: nullableTrim(roleForm.description),
-            });
-      setRoleState({
-        status: "loaded",
-        roles:
-          roleForm.mode === "create"
-            ? [...roleState.roles, saved]
-            : roleState.roles.map((role) =>
-                role.id === saved.id ? saved : role,
-              ),
-      });
-      setRoleForm(null);
-    } catch (error: unknown) {
-      setRoleError(errorMessage(error, "无法保存应用角色"));
-    } finally {
-      setRolePending(false);
-    }
-  }
-
-  async function handleRoleStatusConfirm() {
-    if (
-      !application ||
-      !roleStatusConfirmation ||
-      roleState.status !== "loaded"
-    ) {
-      return;
-    }
-    setRolePending(true);
-    setRoleError(undefined);
-    try {
-      const updated =
-        roleStatusConfirmation.action === "enable"
-          ? await enableIamRole(
-              application.appKey,
-              roleStatusConfirmation.role.id,
-            )
-          : await disableIamRole(
-              application.appKey,
-              roleStatusConfirmation.role.id,
-            );
-      setRoleState({
-        status: "loaded",
-        roles: roleState.roles.map((role) =>
-          role.id === updated.id ? updated : role,
-        ),
-      });
-      setRoleStatusConfirmation(null);
-    } catch (error: unknown) {
-      setRoleError(errorMessage(error, "无法更新角色状态"));
-    } finally {
-      setRolePending(false);
-    }
-  }
-
   const oauthCredential =
     state.status === "loaded" ? state.oauthCredential : null;
   const confirmCopy = secretAction ? secretActionCopy[secretAction] : null;
@@ -555,8 +441,8 @@ export function ApplicationDetailSheet({
           <Tabs className="min-w-0" value={resolvedActiveTab} onValueChange={setResolvedActiveTab}>
             <ResponsiveTabsList aria-label="应用详情标签">
               <TabsTrigger value="details">详细资料</TabsTrigger>
-              <TabsTrigger value="roles">角色管理</TabsTrigger>
               <TabsTrigger value="development">开发信息</TabsTrigger>
+              <TabsTrigger value="permissions">权限资产</TabsTrigger>
               <TabsTrigger value="danger">危险操作</TabsTrigger>
             </ResponsiveTabsList>
 
@@ -645,22 +531,6 @@ export function ApplicationDetailSheet({
                     </div>
                   </>
                 )}
-              </Section>
-            </TabsContent>
-
-            <TabsContent value="roles" className="mt-4 min-w-0">
-              <Section title="角色管理">
-                <RoleSection
-                  application={application}
-                  readonly={readonly}
-                  roleError={roleError}
-                  roleForm={roleForm}
-                  rolePending={rolePending}
-                  roleState={roleState}
-                  setRoleForm={setRoleForm}
-                  setRoleStatusConfirmation={setRoleStatusConfirmation}
-                  onRoleSubmit={(event) => void handleRoleSubmit(event)}
-                />
               </Section>
             </TabsContent>
 
@@ -965,11 +835,41 @@ export function ApplicationDetailSheet({
               </div>
             </TabsContent>
 
+            <TabsContent value="permissions" className="mt-4 min-w-0">
+              <div className="grid gap-5">
+                {state.status === "loading" ? (
+                  <p className="text-sm text-muted-foreground">
+                    正在读取权限资产
+                  </p>
+                ) : null}
+                {state.status === "failed" ? (
+                  <div
+                    className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+                    role={state.forbidden ? "status" : "alert"}
+                  >
+                    {state.forbidden
+                      ? "当前管理员无权查看权限资产。"
+                      : state.message}
+                  </div>
+                ) : null}
+                {state.status === "loaded" ? (
+                  <PermissionAssetsTab
+                    compareGroupIds={compareGroupIds}
+                    permissionGroups={state.permissionGroups}
+                    permissionPoints={state.permissionPoints}
+                    query={permissionQuery}
+                    onCompareGroupIdsChange={setCompareGroupIds}
+                    onQueryChange={setPermissionQuery}
+                  />
+                ) : null}
+              </div>
+            </TabsContent>
+
             <TabsContent value="danger" className="mt-4 min-w-0">
               <Section title="危险操作">
                 <Notice>
                   应用启停会影响授权、换取 token、userinfo、权限查询和 developer
-                  API。操作会写入审计日志，配置和角色元数据会保留。
+                  API。操作会写入审计日志，应用配置和权限资产会保留。
                 </Notice>
                 <InfoGrid
                   items={[
@@ -978,15 +878,6 @@ export function ApplicationDetailSheet({
                   ]}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    disabled
-                    title="角色授权工作区已在权限管理中承载"
-                    type="button"
-                    variant="outline"
-                  >
-                    <ShieldCheck aria-hidden="true" size={16} />
-                    角色授权在权限管理
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -1077,336 +968,7 @@ export function ApplicationDetailSheet({
         />
       ) : null}
 
-      {roleStatusConfirmation ? (
-        <ConfirmDialog
-          danger={roleStatusConfirmation.action === "disable"}
-          description={
-            roleStatusConfirmation.action === "disable"
-              ? "停用后该角色元数据保留，但后续授权绑定不应继续使用该角色。该操作会写入审计日志。"
-              : "启用后该角色可继续作为后续授权绑定的角色元数据使用。该操作会写入审计日志。"
-          }
-          onConfirm={() => void handleRoleStatusConfirm()}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen && !rolePending) {
-              setRoleStatusConfirmation(null);
-            }
-          }}
-          open
-          pending={rolePending}
-          title={
-            roleStatusConfirmation.action === "disable"
-              ? "确认停用角色"
-              : "确认启用角色"
-          }
-        />
-      ) : null}
     </DetailSheet>
-  );
-}
-
-function RoleSection(props: {
-  application: Application;
-  readonly: boolean;
-  roleState: RoleState;
-  roleForm: RoleFormState | null;
-  rolePending: boolean;
-  roleError?: string;
-  setRoleForm: (value: RoleFormState | null) => void;
-  setRoleStatusConfirmation: (value: RoleStatusConfirmation) => void;
-  onRoleSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
-}) {
-  const [rolePreview, setRolePreview] = useState<IamRole | null>(null);
-
-  function updateRoleForm(
-    patch: Partial<{ key: string; name: string; description: string }>,
-  ) {
-    const current = props.roleForm;
-    if (!current) {
-      return;
-    }
-    if (current.mode === "create") {
-      props.setRoleForm({ ...current, ...patch });
-      return;
-    }
-    props.setRoleForm({ ...current, ...patch });
-  }
-
-  if (props.roleState.status === "loading") {
-    return <p className="text-sm text-muted-foreground">正在读取应用角色</p>;
-  }
-  if (props.roleState.status === "failed") {
-    return (
-      <div
-        className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
-        role={props.roleState.forbidden ? "status" : "alert"}
-      >
-        {props.roleState.forbidden
-          ? "当前管理员无权查看该应用角色。"
-          : props.roleState.message}
-      </div>
-    );
-  }
-  if (props.roleState.status !== "loaded") {
-    return null;
-  }
-
-  return (
-    <div className="grid gap-3">
-      {props.readonly ? (
-        <Notice>
-          应用已停用，角色元数据保持只读。启用应用后再新增或编辑角色。
-        </Notice>
-      ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          仅维护角色 key、名称、描述和状态；授权绑定继续在权限管理中处理。
-        </p>
-        <Button
-          disabled={props.readonly || props.rolePending}
-          type="button"
-          variant="outline"
-          onClick={() => {
-            props.setRoleForm({
-              mode: "create",
-              key: "",
-              name: "",
-              description: "",
-            });
-          }}
-        >
-          <Plus aria-hidden="true" size={16} />
-          新增角色
-        </Button>
-      </div>
-
-      {props.roleForm ? (
-        <form
-          className="grid gap-3 rounded-md border p-3"
-          onSubmit={props.onRoleSubmit}
-        >
-          {props.roleForm.mode === "create" ? (
-            <Field label="角色 key">
-              <Input
-                aria-label="角色 key"
-                placeholder={`${props.application.appKey}.admin`}
-                value={props.roleForm.key}
-                onChange={(event) => {
-                  updateRoleForm({ key: event.target.value });
-                }}
-              />
-            </Field>
-          ) : (
-            <CopyField label="角色 key" value={props.roleForm.role.key} />
-          )}
-          <Field label="角色名称">
-            <Input
-              aria-label="角色名称"
-              value={props.roleForm.name}
-              onChange={(event) => {
-                updateRoleForm({ name: event.target.value });
-              }}
-            />
-          </Field>
-          <Field label="角色描述">
-            <Textarea
-              aria-label="角色描述"
-              value={props.roleForm.description}
-              onChange={(event) => {
-                updateRoleForm({ description: event.target.value });
-              }}
-            />
-          </Field>
-          {props.roleError ? (
-            <ErrorMessage>{props.roleError}</ErrorMessage>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={props.rolePending} type="submit">
-              {props.roleForm.mode === "create" ? "创建角色" : "保存角色"}
-            </Button>
-            <Button
-              disabled={props.rolePending}
-              type="button"
-              variant="outline"
-              onClick={() => {
-                props.setRoleForm(null);
-              }}
-            >
-              取消
-            </Button>
-          </div>
-        </form>
-      ) : null}
-
-      {rolePreview ? (
-        <div
-          aria-label="角色关键信息"
-          className="grid gap-3 rounded-md border bg-muted/20 p-3"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="font-medium text-foreground">
-                {rolePreview.name}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {rolePreview.description ?? "暂无描述"}
-              </p>
-            </div>
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setRolePreview(null);
-              }}
-            >
-              关闭
-            </Button>
-          </div>
-          <InfoGrid
-            items={[
-              ["角色 key", rolePreview.key],
-              ["状态", formatEntityStatus(rolePreview.status)],
-              ["创建时间", formatDateTime(rolePreview.createdAt)],
-              ["更新时间", formatDateTime(rolePreview.updatedAt)],
-            ]}
-          />
-        </div>
-      ) : null}
-
-      {props.roleState.roles.length === 0 ? (
-        <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          暂无应用角色。先新增角色元数据，再进入权限管理完成授权绑定。
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-md border bg-background">
-          <table
-            aria-label="应用角色清单"
-            className="w-full table-fixed text-sm"
-          >
-            <thead>
-              <tr className="border-b bg-muted/50 text-left">
-                <th className="w-[180px] px-3 py-2 font-medium">
-                  角色名称
-                </th>
-                <th className="w-[220px] px-3 py-2 font-medium">角色 key</th>
-                <th className="w-[88px] px-3 py-2 font-medium">状态</th>
-                <th className="px-3 py-2 font-medium">描述摘要</th>
-                <th className="w-[150px] px-3 py-2 font-medium">创建时间</th>
-                <th className="w-[150px] px-3 py-2 font-medium">更新时间</th>
-                <th
-                  className="px-3 py-2 text-right font-medium"
-                  style={{ width: "132px", minWidth: "132px" }}
-                >
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.roleState.roles.map((role) => (
-                <tr className="border-b last:border-b-0" key={role.id}>
-                  <td className="px-3 py-2 font-medium text-foreground">
-                    {role.name}
-                  </td>
-                  <td className="px-3 py-2">
-                    <code
-                      className="block max-w-[200px] truncate rounded bg-muted px-2 py-1 text-xs"
-                      title={role.key}
-                    >
-                      {role.key}
-                    </code>
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      tone={role.status === "active" ? "success" : "muted"}
-                    >
-                      {formatEntityStatus(role.status)}
-                    </StatusBadge>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    <span
-                      className="block max-w-[240px] truncate"
-                      title={role.description ?? "暂无描述"}
-                    >
-                      {role.description ?? "暂无描述"}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                    {formatDateTime(role.createdAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                    {formatDateTime(role.updatedAt)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        aria-label={`查看 ${role.key}`}
-                        className="h-8 min-h-8 w-8 p-0"
-                        size="sm"
-                        title="查看"
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setRolePreview(role);
-                        }}
-                      >
-                        <Eye aria-hidden="true" size={14} />
-                      </Button>
-                      <Button
-                        aria-label={`编辑 ${role.key}`}
-                        className="h-8 min-h-8 w-8 p-0"
-                        disabled={props.readonly || props.rolePending}
-                        size="sm"
-                        title="编辑"
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setRolePreview(null);
-                          props.setRoleForm({
-                            mode: "edit",
-                            role,
-                            name: role.name,
-                            description: role.description ?? "",
-                          });
-                        }}
-                      >
-                        <Edit2 aria-hidden="true" size={14} />
-                      </Button>
-                      <Button
-                        aria-label={`${
-                          role.status === "active" ? "停用" : "启用"
-                        } ${role.key}`}
-                        className="h-8 min-h-8 w-8 p-0"
-                        disabled={props.readonly || props.rolePending}
-                        size="sm"
-                        title={role.status === "active" ? "停用" : "启用"}
-                        type="button"
-                        variant={
-                          role.status === "active" ? "destructive" : "outline"
-                        }
-                        onClick={() => {
-                          setRolePreview(null);
-                          props.setRoleStatusConfirmation({
-                            action:
-                              role.status === "active" ? "disable" : "enable",
-                            role,
-                          });
-                        }}
-                      >
-                        {role.status === "active" ? (
-                          <PowerOff aria-hidden="true" size={14} />
-                        ) : (
-                          <Power aria-hidden="true" size={14} />
-                        )}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -1473,6 +1035,212 @@ function IntegrationPreflight(props: {
       ))}
     </dl>
   );
+}
+
+function PermissionAssetsTab(props: {
+  permissionGroups: PermissionGroup[];
+  permissionPoints: PermissionPoint[];
+  query: string;
+  compareGroupIds: string[];
+  onQueryChange: (query: string) => void;
+  onCompareGroupIdsChange: (groupIds: string[]) => void;
+}) {
+  const normalizedQuery = props.query.trim().toLowerCase();
+  const filteredGroups = useMemo(
+    () =>
+      props.permissionGroups.filter((group) =>
+        !normalizedQuery
+          ? true
+          : [group.name, group.key, group.description ?? ""].some((value) =>
+              value.toLowerCase().includes(normalizedQuery),
+            ),
+      ),
+    [normalizedQuery, props.permissionGroups],
+  );
+  const filteredPoints = useMemo(
+    () =>
+      props.permissionPoints.filter((point) =>
+        !normalizedQuery
+          ? true
+          : [point.name, point.key, point.description ?? ""].some((value) =>
+              value.toLowerCase().includes(normalizedQuery),
+            ),
+      ),
+    [normalizedQuery, props.permissionPoints],
+  );
+  const compareGroups = props.permissionGroups.filter((group) =>
+    props.compareGroupIds.includes(group.id),
+  );
+  const compareRows = buildPermissionAssetCompareRows(compareGroups);
+
+  function toggleCompareGroup(groupId: string) {
+    props.onCompareGroupIdsChange(
+      props.compareGroupIds.includes(groupId)
+        ? props.compareGroupIds.filter((id) => id !== groupId)
+        : [...props.compareGroupIds, groupId],
+    );
+  }
+
+  return (
+    <div className="grid gap-5">
+      <Section title="权限资产查询">
+        <Field label="搜索权限组或权限点">
+          <Input
+            aria-label="搜索权限资产"
+            placeholder="搜索权限组 / 权限点名称或 key"
+            value={props.query}
+            onChange={(event) => {
+              props.onQueryChange(event.target.value);
+            }}
+          />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricCard label="权限组" value={props.permissionGroups.length} />
+          <MetricCard label="权限点" value={props.permissionPoints.length} />
+          <MetricCard label="当前匹配" value={filteredGroups.length + filteredPoints.length} />
+        </div>
+      </Section>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Section title="权限组">
+          {filteredGroups.length === 0 ? (
+            <p className="rounded-md border border-dashed px-3 py-8 text-center text-sm text-muted-foreground">
+              暂无匹配的权限组。
+            </p>
+          ) : (
+            <div className="grid max-h-[420px] gap-2 overflow-y-auto rounded-md border p-2">
+              {filteredGroups.map((group) => (
+                <label
+                  className="flex min-w-0 items-start gap-3 rounded-md border bg-background p-3 text-sm"
+                  key={group.id}
+                >
+                  <input
+                    checked={props.compareGroupIds.includes(group.id)}
+                    className="mt-1"
+                    type="checkbox"
+                    onChange={() => {
+                      toggleCompareGroup(group.id);
+                    }}
+                  />
+                  <span className="grid min-w-0 gap-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <strong>{group.name}</strong>
+                      <StatusBadge tone={group.status === "active" ? "success" : "muted"}>
+                        {formatEntityStatus(group.status)}
+                      </StatusBadge>
+                    </span>
+                    <code className="break-all text-xs text-muted-foreground">{group.key}</code>
+                    <span className="text-xs text-muted-foreground">{group.description ?? "暂无描述"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      权限点：{String(group.permissionPoints?.length ?? 0)} 个
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="权限点">
+          {filteredPoints.length === 0 ? (
+            <p className="rounded-md border border-dashed px-3 py-8 text-center text-sm text-muted-foreground">
+              暂无匹配的权限点。
+            </p>
+          ) : (
+            <div className="grid max-h-[420px] gap-2 overflow-y-auto rounded-md border p-2">
+              {filteredPoints.map((point) => (
+                <article className="grid min-w-0 gap-1 rounded-md border bg-background p-3 text-sm" key={point.id}>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <strong>{point.name}</strong>
+                    <StatusBadge tone={point.status === "active" ? "success" : "muted"}>
+                      {formatEntityStatus(point.status)}
+                    </StatusBadge>
+                  </span>
+                  <code className="break-all text-xs text-muted-foreground">{point.key}</code>
+                  <span className="text-xs text-muted-foreground">{point.description ?? "暂无描述"}</span>
+                </article>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+
+      <Section title="权限点对比">
+        {compareGroups.length === 0 ? (
+          <p className="rounded-md border border-dashed px-3 py-8 text-center text-sm text-muted-foreground">
+            在权限组列表中勾选 2 个或更多权限组后，可对比权限点覆盖差异。
+          </p>
+        ) : compareRows.length === 0 ? (
+          <p className="rounded-md border border-dashed px-3 py-8 text-center text-sm text-muted-foreground">
+            已选权限组暂无可对比的权限点明细。
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="min-w-full text-sm">
+              <thead className="bg-muted/60 text-xs text-muted-foreground">
+                <tr>
+                  <th className="w-[240px] px-3 py-2 text-left font-medium">权限点</th>
+                  {compareGroups.map((group) => (
+                    <th className="min-w-[140px] px-3 py-2 text-center font-medium" key={group.id}>
+                      {group.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {compareRows.map((row) => (
+                  <tr className="border-t" key={row.key}>
+                    <td className="px-3 py-2">
+                      <span className="block font-medium">{row.name}</span>
+                      <code className="break-all text-xs text-muted-foreground">{row.key}</code>
+                    </td>
+                    {compareGroups.map((group) => (
+                      <td className="px-3 py-2 text-center" key={group.id}>
+                        {row.groupIds.has(group.id) ? (
+                          <StatusBadge tone="success">包含</StatusBadge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+function MetricCard(props: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <dt className="text-xs text-muted-foreground">{props.label}</dt>
+      <dd className="mt-1 text-lg font-semibold text-foreground">{props.value}</dd>
+    </div>
+  );
+}
+
+function buildPermissionAssetCompareRows(groups: PermissionGroup[]): Array<{
+  key: string;
+  name: string;
+  groupIds: Set<string>;
+}> {
+  const rows = new Map<string, { key: string; name: string; groupIds: Set<string> }>();
+  for (const group of groups) {
+    for (const point of group.permissionPoints ?? []) {
+      const current = rows.get(point.key) ?? {
+        key: point.key,
+        name: point.name,
+        groupIds: new Set<string>(),
+      };
+      current.groupIds.add(group.id);
+      rows.set(point.key, current);
+    }
+  }
+  return [...rows.values()].sort((left, right) => left.key.localeCompare(right.key));
 }
 
 function Section(props: { children: ReactNode; title: string }) {

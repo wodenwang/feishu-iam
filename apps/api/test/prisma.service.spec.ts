@@ -60,13 +60,25 @@ describe('v0.9.0 migration', () => {
 });
 
 describe('PrismaService ready check', () => {
-  it('保留历史核心表并要求 v0.8.1 新表', () => {
+  it('保留历史核心表并要求 v1.0.5 角色应用绑定表', () => {
     expect(REQUIRED_TABLES).toEqual(
-      expect.arrayContaining(['system_settings', 'iam_role_subjects', 'application_developer_credentials']),
+      expect.arrayContaining([
+        'system_settings',
+        'iam_role_subjects',
+        'application_developer_credentials',
+        'iam_role_applications',
+      ]),
+    );
+    expect(REQUIRED_COLUMNS).toEqual(
+      expect.arrayContaining([
+        ['iam_role_applications', 'iam_role_id'],
+        ['iam_role_applications', 'application_id'],
+        ['iam_role_applications', 'status'],
+      ]),
     );
   });
 
-  it('要求数据库至少迁移到 v0.9.0', async () => {
+  it('要求数据库至少迁移到 v1.0.5', async () => {
     const service = new PrismaService();
     const query = vi
       .spyOn(service, '$queryRaw')
@@ -74,7 +86,7 @@ describe('PrismaService ready check', () => {
       .mockResolvedValueOnce([{ existing_count: BigInt(REQUIRED_TABLES.length) }] as never)
       .mockResolvedValueOnce([{ exists: false }] as never);
 
-    await expect(service.isReady()).rejects.toThrow('Database schema v0.9.0 version is not ready');
+    await expect(service.isReady()).rejects.toThrow('Database schema v1.0.5 version is not ready');
     expect(query).toHaveBeenCalledTimes(3);
 
     await service.$disconnect();
@@ -87,13 +99,13 @@ describe('PrismaService ready check', () => {
       .mockResolvedValueOnce([] as never)
       .mockResolvedValueOnce([{ existing_count: BigInt(4) }] as never);
 
-    await expect(service.isReady()).rejects.toThrow('Database schema v0.9.0 tables are not ready');
+    await expect(service.isReady()).rejects.toThrow('Database schema v1.0.5 tables are not ready');
     expect(query).toHaveBeenCalledTimes(2);
 
     await service.$disconnect();
   });
 
-  it('要求 v0.9.0 应用接入列契约存在', async () => {
+  it('要求 v1.0.5 应用接入与角色应用绑定列契约存在', async () => {
     const service = new PrismaService();
     const query = vi
       .spyOn(service, '$queryRaw')
@@ -102,13 +114,13 @@ describe('PrismaService ready check', () => {
       .mockResolvedValueOnce([{ exists: true }] as never)
       .mockResolvedValueOnce([{ existing_count: BigInt(REQUIRED_COLUMNS.length - 1) }] as never);
 
-    await expect(service.isReady()).rejects.toThrow('Database schema v0.9.0 columns are not ready');
+    await expect(service.isReady()).rejects.toThrow('Database schema v1.0.5 columns are not ready');
     expect(query).toHaveBeenCalledTimes(4);
 
     await service.$disconnect();
   });
 
-  it('v0.9.0 schema version、核心表和列契约都就绪时返回 true', async () => {
+  it('v1.0.5 schema version、核心表和列契约都就绪时返回 true', async () => {
     const service = new PrismaService();
     const query = vi
       .spyOn(service, '$queryRaw')

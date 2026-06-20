@@ -43,6 +43,8 @@ export type PermissionSort = 'key:asc' | 'updatedAt:desc' | 'updatedAt:asc';
 export type PermissionSearchState = {
   appKey?: string;
   q?: string;
+  code?: string;
+  authStatus: 'all' | 'configured' | 'unconfigured';
   status: 'all' | 'enabled' | 'disabled';
   page: number;
   pageSize: 20 | 50 | 100;
@@ -76,6 +78,7 @@ const defaultRecordSort: RecordSort = 'createdAt:desc';
 const defaultApplicationStatus: ApplicationSearchState['status'] = 'all';
 const defaultApplicationSort: ApplicationSort = 'updatedAt:desc';
 const defaultPermissionStatus: PermissionSearchState['status'] = 'all';
+const defaultPermissionAuthStatus: PermissionSearchState['authStatus'] = 'all';
 const defaultPermissionSort: PermissionSort = 'key:asc';
 const defaultPermissionPageSize: PermissionSearchState['pageSize'] = 20;
 const defaultAdminUserRole: AdminUserRoleFilter = 'all';
@@ -90,6 +93,7 @@ const applicationStatuses: Array<ApplicationSearchState['status']> = ['all', 'ac
 const applicationSorts: ApplicationSort[] = ['updatedAt:desc', 'updatedAt:asc', 'appKey:asc'];
 const applicationSheetPrefixes = ['app', 'client', 'rotate', 'prompt'] as const;
 const permissionStatuses: Array<PermissionSearchState['status']> = ['all', 'enabled', 'disabled'];
+const permissionAuthStatuses: Array<PermissionSearchState['authStatus']> = ['all', 'configured', 'unconfigured'];
 const permissionSorts: PermissionSort[] = ['key:asc', 'updatedAt:desc', 'updatedAt:asc'];
 const permissionPageSizes: Array<PermissionSearchState['pageSize']> = [20, 50, 100];
 const permissionSheetPrefixes = ['role'] as const;
@@ -210,6 +214,8 @@ export function parsePermissionSearch(params: URLSearchParams): PermissionSearch
   return {
     appKey: clean(params.get('appKey')),
     q: clean(params.get('q')),
+    code: clean(params.get('code')),
+    authStatus: parseEnum(params.get('authStatus'), permissionAuthStatuses, defaultPermissionAuthStatus),
     status: parseEnum(params.get('status'), permissionStatuses, defaultPermissionStatus),
     page: parsePositiveInt(params.get('page'), defaultPage),
     pageSize: parsePermissionPageSize(params.get('pageSize')),
@@ -222,6 +228,8 @@ export function serializePermissionSearch(state: PermissionSearchState): URLSear
   const params = new URLSearchParams();
   const appKey = clean(state.appKey);
   const q = clean(state.q);
+  const code = clean(state.code);
+  const authStatus = parseEnum(state.authStatus, permissionAuthStatuses, defaultPermissionAuthStatus);
   const status = parseEnum(state.status, permissionStatuses, defaultPermissionStatus);
   const page = normalizePositiveInt(state.page, defaultPage);
   const pageSize = normalizePermissionPageSize(state.pageSize);
@@ -230,6 +238,10 @@ export function serializePermissionSearch(state: PermissionSearchState): URLSear
 
   setCleanParam(params, 'appKey', appKey);
   setCleanParam(params, 'q', q);
+  setCleanParam(params, 'code', code);
+  if (authStatus !== defaultPermissionAuthStatus) {
+    params.set('authStatus', authStatus);
+  }
   if (status !== defaultPermissionStatus) {
     params.set('status', status);
   }

@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Feishu IAM v1.0.5 权限管理原型</title>
+    <style>
+      :root {
+        --background: hsl(210 33% 97%);
+        --foreground: hsl(25 17% 14%);
+        --card: hsl(0 0% 100%);
+        --muted: hsl(210 24% 94%);
+        --muted-foreground: hsl(215 16% 42%);
+        --accent: hsl(201 76% 94%);
+        --accent-foreground: hsl(203 86% 27%);
+        --primary: hsl(203 86% 37%);
+        --primary-hover: hsl(203 86% 31%);
+        --primary-foreground: hsl(0 0% 100%);
+        --border: hsl(214 20% 86%);
+        --input: hsl(214 20% 86%);
+        --sidebar: hsl(211 76% 15%);
+        --sidebar-accent: hsl(211 52% 24%);
+        --success: hsl(156 55% 33%);
+        --warning: hsl(43 86% 42%);
+        --danger: hsl(0 72% 51%);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .prototype-nav {
+        position: fixed;
+        right: 20px;
+        bottom: 18px;
+        z-index: 10;
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      }
+
+      .prototype-nav a {
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
+      .prototype-nav a:hover,
+      .prototype-nav a.active {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .screen {
+        display: none;
+      }
+
+      .screen.active {
+        display: block;
+      }
+
+      .app-shell {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 232px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        background: var(--sidebar);
+        color: hsl(210 33% 97%);
+        padding: 20px 14px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 8px 12px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, var(--primary), hsl(198 70% 50%));
+      }
+
+      .nav-group {
+        display: grid;
+        gap: 4px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 8px;
+        color: hsl(210 30% 88%);
+      }
+
+      .nav-item.active {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .nav-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+      }
+
+      .main {
+        min-width: 0;
+        background: var(--background);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+        border-bottom: 1px solid var(--border);
+        background: var(--card);
+        padding: 0 24px;
+      }
+
+      .topbar-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 16px;
+        font-weight: 650;
+      }
+
+      .global-search {
+        width: 360px;
+        height: 34px;
+        border: 1px solid var(--input);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--muted-foreground);
+        padding: 0 12px;
+        font-size: 13px;
+      }
+
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+        padding: 20px 24px 18px;
+      }
+
+      .breadcrumbs {
+        color: var(--muted-foreground);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.25;
+      }
+
+      .description {
+        margin-top: 6px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+
+      .page-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .content {
+        display: grid;
+        gap: 16px;
+        padding: 18px 24px 28px;
+      }
+
+      .panel {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 48px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        font-weight: 650;
+      }
+
+      .panel-subtitle {
+        margin-top: 3px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
+      .filter-grid {
+        display: grid;
+        grid-template-columns: 170px 1.2fr 160px 140px 170px auto auto;
+        gap: 10px;
+        padding: 14px 16px;
+      }
+
+      .input,
+      .select {
+        display: flex;
+        align-items: center;
+        height: 34px;
+        border: 1px solid var(--input);
+        border-radius: 8px;
+        background: #fff;
+        padding: 0 10px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+        min-width: 76px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--foreground);
+        font-weight: 560;
+        font-size: 13px;
+      }
+
+      .button.primary {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .button.primary:hover {
+        background: var(--primary-hover);
+      }
+
+      .button.danger {
+        border-color: hsl(0 72% 51% / 0.28);
+        color: var(--danger);
+      }
+
+      .button.ghost {
+        border-color: transparent;
+        background: transparent;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+        padding: 10px 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--border);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: middle;
+        font-size: 13px;
+      }
+
+      th {
+        background: var(--muted);
+        color: hsl(215 40% 20%);
+        font-weight: 650;
+      }
+
+      .checkbox {
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--input);
+        border-radius: 4px;
+        background: #fff;
+      }
+
+      .checkbox.checked {
+        border-color: var(--primary);
+        background: var(--primary);
+        box-shadow: inset 0 0 0 3px var(--primary);
+      }
+
+      .switch {
+        display: inline-block;
+        vertical-align: middle;
+        width: 38px;
+        height: 22px;
+        border-radius: 999px;
+        background: hsl(215 18% 80%);
+        padding: 2px;
+      }
+
+      .switch::after {
+        display: block;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: #fff;
+        content: "";
+      }
+
+      .switch.on {
+        background: var(--primary);
+      }
+
+      .switch.on::after {
+        transform: translateX(16px);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 560;
+      }
+
+      .badge.success {
+        background: hsl(156 55% 33% / 0.12);
+        color: var(--success);
+      }
+
+      .badge.warning {
+        background: hsl(43 86% 42% / 0.14);
+        color: hsl(35 90% 32%);
+      }
+
+      .badge.neutral {
+        background: var(--muted);
+        color: var(--muted-foreground);
+      }
+
+      .badge.danger {
+        background: hsl(0 72% 51% / 0.12);
+        color: var(--danger);
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+      }
+
+      .meta-item {
+        min-width: 0;
+        padding: 12px 16px;
+        border-right: 1px solid var(--border);
+      }
+
+      .meta-item:last-child {
+        border-right: 0;
+      }
+
+      .meta-label {
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
+      .meta-value {
+        margin-top: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 650;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 6px;
+        border-bottom: 1px solid var(--border);
+        padding: 0 24px;
+        background: var(--background);
+      }
+
+      .tab {
+        padding: 12px 14px;
+        border-bottom: 2px solid transparent;
+        color: var(--muted-foreground);
+        font-weight: 560;
+      }
+
+      .tab.active {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 16px;
+      }
+
+      .subjects-grid {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        min-height: 600px;
+      }
+
+      .tree-pane {
+        border-right: 1px solid var(--border);
+      }
+
+      .tree-search {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tree {
+        padding: 8px 10px 14px;
+      }
+
+      .tree-row {
+        display: grid;
+        grid-template-columns: 20px 18px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 6px;
+        border-radius: 8px;
+      }
+
+      .tree-row:hover,
+      .tree-row.selected {
+        background: var(--accent);
+      }
+
+      .tree-row.child {
+        padding-left: 24px;
+      }
+
+      .node-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        background: hsl(203 86% 37% / 0.1);
+        color: var(--primary);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .user-icon {
+        border-radius: 999px;
+        background: hsl(156 55% 33% / 0.12);
+        color: var(--success);
+      }
+
+      .node-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .selected-pane {
+        min-width: 0;
+      }
+
+      .summary-rail {
+        display: grid;
+        align-content: start;
+        gap: 12px;
+      }
+
+      .rail-section {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        padding: 14px;
+      }
+
+      .rail-title {
+        margin-bottom: 10px;
+        font-weight: 650;
+      }
+
+      .stat-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .stat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted-foreground);
+      }
+
+      .stat-row strong {
+        color: var(--foreground);
+      }
+
+      .app-permission-grid {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        min-height: 640px;
+      }
+
+      .app-switcher {
+        border-right: 1px solid var(--border);
+        padding: 12px;
+      }
+
+      .app-card {
+        display: grid;
+        gap: 6px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .app-card.active {
+        border-color: var(--primary);
+        background: var(--accent);
+      }
+
+      .app-card-title {
+        font-weight: 650;
+      }
+
+      .app-card-meta {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
+      .permission-main {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        min-width: 0;
+      }
+
+      .permission-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 128px auto auto;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .compare-panel {
+        display: block;
+        border-top: 1px solid var(--border);
+        padding: 12px 16px;
+        background: hsl(210 33% 98%);
+      }
+
+      .permission-table th,
+      .permission-table td {
+        padding: 8px 10px;
+      }
+
+      .permission-table td,
+      .permission-table th {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .compare-box {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .compare-title {
+        margin-bottom: 8px;
+        font-weight: 650;
+        font-size: 12px;
+      }
+
+      .compare-table th,
+      .compare-table td {
+        padding: 7px 10px;
+        white-space: nowrap;
+      }
+
+      .point-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .point {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 8px;
+        background: #fff;
+        font-size: 12px;
+      }
+
+      .point.only-left {
+        border-color: hsl(203 86% 37% / 0.35);
+        background: hsl(203 86% 37% / 0.08);
+        color: var(--primary);
+      }
+
+      .point.only-right {
+        border-color: hsl(43 86% 42% / 0.35);
+        background: hsl(43 86% 42% / 0.12);
+        color: hsl(35 90% 32%);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 16px;
+      }
+
+      .form-body {
+        display: grid;
+        gap: 16px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: 160px minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .field-label {
+        color: var(--muted-foreground);
+        font-weight: 560;
+      }
+
+      .textarea {
+        min-height: 86px;
+        border: 1px solid var(--input);
+        border-radius: 8px;
+        background: #fff;
+        padding: 10px;
+        color: var(--foreground);
+      }
+
+      .danger-zone {
+        border-color: hsl(0 72% 51% / 0.24);
+        background: hsl(0 72% 51% / 0.04);
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+      }
+
+      .nowrap {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="prototype-nav" aria-label="原型页面切换">
+      <a href="#role-list">角色列表</a>
+      <a href="#role-subjects">组织/用户绑定</a>
+      <a href="#role-permissions">应用权限绑定</a>
+      <a href="#role-edit">角色编辑</a>
+    </nav>
+
+    <section id="role-list" class="screen active">
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand"><span class="brand-mark"></span>RIVERSOFT</div>
+          <nav class="nav-group">
+            <a class="nav-item"><span class="nav-dot"></span>工作台</a>
+            <a class="nav-item"><span class="nav-dot"></span>应用管理</a>
+            <a class="nav-item active"><span class="nav-dot"></span>权限管理</a>
+            <a class="nav-item"><span class="nav-dot"></span>系统管理</a>
+          </nav>
+        </aside>
+        <main class="main">
+          <div class="topbar">
+            <div class="topbar-title">飞书 IAM</div>
+            <div class="global-search">搜索菜单、应用、角色或权限点</div>
+          </div>
+          <header class="page-header">
+            <div>
+              <div class="breadcrumbs">后台 / 权限管理</div>
+              <h1>权限管理</h1>
+              <div class="description">独立 IAM 角色列表，用于维护角色状态，并进入角色配置页绑定组织、用户和应用权限。</div>
+            </div>
+            <div class="page-actions">
+              <button class="button">导出角色</button>
+              <button class="button primary">新增角色</button>
+            </div>
+          </header>
+          <div class="content">
+            <section class="panel">
+              <div class="filter-grid">
+                <div class="select">应用：全部应用</div>
+                <div class="input">搜索角色名称、key 或描述</div>
+                <div class="input">角色编号</div>
+                <div class="select">状态：全部</div>
+                <div class="select">授权状态：全部</div>
+                <button class="button primary">查询</button>
+                <button class="button">重置</button>
+              </div>
+              <div class="toolbar">
+                <div>已选择 <strong>2</strong> 个角色</div>
+                <div class="page-actions">
+                  <button class="button">批量启用</button>
+                  <button class="button danger">批量停用</button>
+                </div>
+              </div>
+              <table aria-label="权限管理角色列表">
+                <thead>
+                  <tr>
+                    <th style="width:42px"><span class="checkbox"></span></th>
+                    <th style="width:180px">角色名称</th>
+                    <th style="width:180px">角色 key</th>
+                    <th style="width:150px">角色编号</th>
+                    <th style="width:90px">状态</th>
+                    <th style="width:92px">启用</th>
+                    <th style="width:110px">关联应用</th>
+                    <th>授权摘要</th>
+                    <th style="width:140px">最近更新</th>
+                    <th style="width:120px">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="checkbox checked"></span></td>
+                    <td><strong>应用运维负责人</strong></td>
+                    <td class="mono">ROLE_APP_OPS</td>
+                    <td class="mono">ROLE-2026-001</td>
+                    <td><span class="badge success">启用</span></td>
+                    <td><span class="switch on"></span></td>
+                    <td>3 个</td>
+                    <td class="nowrap">2 组织 / 5 用户 / 7 权限组</td>
+                    <td>2026-06-20</td>
+                    <td><a class="button" href="#role-subjects">配置</a></td>
+                  </tr>
+                  <tr>
+                    <td><span class="checkbox checked"></span></td>
+                    <td><strong>审批管理员</strong></td>
+                    <td class="mono">ROLE_APPROVAL_ADMIN</td>
+                    <td class="mono">ROLE-2026-002</td>
+                    <td><span class="badge success">启用</span></td>
+                    <td><span class="switch on"></span></td>
+                    <td>2 个</td>
+                    <td class="nowrap">1 组织 / 8 用户 / 4 权限组</td>
+                    <td>2026-06-18</td>
+                    <td><a class="button" href="#role-subjects">配置</a></td>
+                  </tr>
+                  <tr>
+                    <td><span class="checkbox"></span></td>
+                    <td><strong>只读审计员</strong></td>
+                    <td class="mono">ROLE_AUDIT_VIEWER</td>
+                    <td class="mono">ROLE-2026-003</td>
+                    <td><span class="badge neutral">停用</span></td>
+                    <td><span class="switch"></span></td>
+                    <td>1 个</td>
+                    <td class="nowrap">0 组织 / 2 用户 / 1 权限组</td>
+                    <td>2026-06-12</td>
+                    <td><a class="button" href="#role-edit">编辑</a></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="toolbar">
+                <span>共 38 条，每页 10 条</span>
+                <span>1 / 4</span>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section id="role-subjects" class="screen">
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand"><span class="brand-mark"></span>RIVERSOFT</div>
+          <nav class="nav-group">
+            <a class="nav-item"><span class="nav-dot"></span>工作台</a>
+            <a class="nav-item"><span class="nav-dot"></span>应用管理</a>
+            <a class="nav-item active"><span class="nav-dot"></span>权限管理</a>
+            <a class="nav-item"><span class="nav-dot"></span>系统管理</a>
+          </nav>
+        </aside>
+        <main class="main">
+          <div class="topbar">
+            <div class="topbar-title">飞书 IAM</div>
+            <div class="global-search">搜索菜单、应用、角色或权限点</div>
+          </div>
+          <header class="page-header">
+            <div>
+              <div class="breadcrumbs">权限管理 / 角色配置</div>
+              <h1>角色配置工作台</h1>
+              <div class="description">独立页面配置角色授权，分工作区保存组织用户与应用权限。</div>
+            </div>
+            <div class="page-actions">
+              <a class="button" href="#role-list">返回角色列表</a>
+              <a class="button" href="#role-edit">编辑基础信息</a>
+            </div>
+          </header>
+          <div class="content">
+            <section class="meta-grid">
+              <div class="meta-item"><div class="meta-label">角色名称</div><div class="meta-value">应用运维负责人</div></div>
+              <div class="meta-item"><div class="meta-label">角色 key</div><div class="meta-value mono">ROLE_APP_OPS</div></div>
+              <div class="meta-item"><div class="meta-label">角色编号</div><div class="meta-value mono">ROLE-2026-001</div></div>
+              <div class="meta-item"><div class="meta-label">状态</div><div class="meta-value"><span class="badge success">启用</span></div></div>
+              <div class="meta-item"><div class="meta-label">关联应用</div><div class="meta-value">3 个</div></div>
+              <div class="meta-item"><div class="meta-label">未保存</div><div class="meta-value"><span class="badge warning">组织与用户</span></div></div>
+            </section>
+            <nav class="tabs">
+              <a class="tab active" href="#role-subjects">组织与用户</a>
+              <a class="tab" href="#role-permissions">应用权限</a>
+              <a class="tab">变更记录</a>
+            </nav>
+            <div class="workspace">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <div class="panel-title">组织 / 用户与角色绑定</div>
+                    <div class="panel-subtitle">同一棵组织树中勾选组织节点或用户节点，选择组织不等于展开保存所有用户。</div>
+                  </div>
+                  <button class="button primary">添加授权对象</button>
+                </div>
+                <div class="subjects-grid">
+                  <div class="tree-pane">
+                    <div class="tree-search">
+                      <div class="input">搜索组织、用户、路径或 user_id</div>
+                    </div>
+                    <div class="tree">
+                      <div class="tree-row selected"><span class="checkbox checked"></span><span class="node-icon">组</span><span class="node-title">研发中心</span><span class="badge success">已选</span></div>
+                      <div class="tree-row child"><span class="checkbox"></span><span class="node-icon">组</span><span class="node-title">平台组</span><span></span></div>
+                      <div class="tree-row child selected"><span class="checkbox checked"></span><span class="node-icon user-icon">人</span><span class="node-title">张三 / user_zhangsan</span><span class="badge success">已选</span></div>
+                      <div class="tree-row child"><span class="checkbox"></span><span class="node-icon user-icon">人</span><span class="node-title">李四 / user_lisi</span><span></span></div>
+                      <div class="tree-row selected"><span class="checkbox checked"></span><span class="node-icon">组</span><span class="node-title">运维中心</span><span class="badge success">已选</span></div>
+                      <div class="tree-row child selected"><span class="checkbox checked"></span><span class="node-icon user-icon">人</span><span class="node-title">王五 / user_wangwu</span><span class="badge success">已选</span></div>
+                      <div class="tree-row"><span class="checkbox"></span><span class="node-icon">组</span><span class="node-title">财务中心</span><span></span></div>
+                      <div class="tree-row"><span class="checkbox"></span><span class="node-icon">组</span><span class="node-title">孤立部门-测试组</span><span class="badge warning">异常</span></div>
+                    </div>
+                  </div>
+                  <div class="selected-pane">
+                    <div class="panel-header">
+                      <div>
+                        <div class="panel-title">已选授权对象</div>
+                        <div class="panel-subtitle">组织和用户进入同一个列表，可按类型筛选，但不拆成两个选择器。</div>
+                      </div>
+                      <div class="select">类型：全部</div>
+                    </div>
+                    <table aria-label="已选组织和用户">
+                      <thead>
+                        <tr>
+                          <th style="width:90px">类型</th>
+                          <th>名称</th>
+                          <th>路径 / 所属部门</th>
+                          <th style="width:92px">状态</th>
+                          <th style="width:90px">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>组织</td><td>研发中心</td><td>总部 / 技术体系</td><td><span class="badge success">正常</span></td><td><button class="button">移除</button></td></tr>
+                        <tr><td>组织</td><td>运维中心</td><td>总部 / 技术体系</td><td><span class="badge success">正常</span></td><td><button class="button">移除</button></td></tr>
+                        <tr><td>用户</td><td>张三</td><td>研发中心 / 平台组</td><td><span class="badge success">正常</span></td><td><button class="button">移除</button></td></tr>
+                        <tr><td>用户</td><td>王五</td><td>运维中心 / 值班组</td><td><span class="badge success">正常</span></td><td><button class="button">移除</button></td></tr>
+                        <tr><td>组织</td><td>孤立部门-测试组</td><td class="mono">dept_orphan_1009</td><td><span class="badge warning">未同步</span></td><td><button class="button">移除</button></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+              <aside class="summary-rail">
+                <div class="rail-section">
+                  <div class="rail-title">当前授权对象</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>组织</span><strong>2 个</strong></div>
+                    <div class="stat-row"><span>用户</span><strong>5 人</strong></div>
+                    <div class="stat-row"><span>异常对象</span><strong>1 个</strong></div>
+                  </div>
+                </div>
+                <div class="rail-section">
+                  <div class="rail-title">变更与保存</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>新增组织</span><strong>1 个</strong></div>
+                    <div class="stat-row"><span>移除用户</span><strong>1 人</strong></div>
+                    <div class="stat-row"><span>审计</span><strong>写入操作记录</strong></div>
+                  </div>
+                  <div style="display:grid;gap:8px;margin-top:14px">
+                    <button class="button primary">保存组织与用户</button>
+                    <button class="button">放弃更改</button>
+                  </div>
+                </div>
+                <a class="button" href="#role-permissions">继续配置应用权限</a>
+              </aside>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section id="role-permissions" class="screen">
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand"><span class="brand-mark"></span>RIVERSOFT</div>
+          <nav class="nav-group">
+            <a class="nav-item"><span class="nav-dot"></span>工作台</a>
+            <a class="nav-item"><span class="nav-dot"></span>应用管理</a>
+            <a class="nav-item active"><span class="nav-dot"></span>权限管理</a>
+            <a class="nav-item"><span class="nav-dot"></span>系统管理</a>
+          </nav>
+        </aside>
+        <main class="main">
+          <div class="topbar">
+            <div class="topbar-title">飞书 IAM</div>
+            <div class="global-search">搜索菜单、应用、角色或权限点</div>
+          </div>
+          <header class="page-header">
+            <div>
+              <div class="breadcrumbs">权限管理 / 角色配置</div>
+              <h1>角色配置工作台</h1>
+              <div class="description">当前工作区：应用权限与角色绑定。权限点只读展示，权限点对比保留在主界面。</div>
+            </div>
+            <div class="page-actions">
+              <a class="button" href="#role-list">返回角色列表</a>
+              <a class="button" href="#role-edit">编辑基础信息</a>
+            </div>
+          </header>
+          <div class="content">
+            <section class="meta-grid">
+              <div class="meta-item"><div class="meta-label">角色名称</div><div class="meta-value">应用运维负责人</div></div>
+              <div class="meta-item"><div class="meta-label">角色 key</div><div class="meta-value mono">ROLE_APP_OPS</div></div>
+              <div class="meta-item"><div class="meta-label">角色编号</div><div class="meta-value mono">ROLE-2026-001</div></div>
+              <div class="meta-item"><div class="meta-label">状态</div><div class="meta-value"><span class="badge success">启用</span></div></div>
+              <div class="meta-item"><div class="meta-label">当前应用</div><div class="meta-value">Base Portal</div></div>
+              <div class="meta-item"><div class="meta-label">未保存</div><div class="meta-value"><span class="badge warning">应用权限</span></div></div>
+            </section>
+            <nav class="tabs">
+              <a class="tab" href="#role-subjects">组织与用户</a>
+              <a class="tab active" href="#role-permissions">应用权限</a>
+              <a class="tab">变更记录</a>
+            </nav>
+            <div class="workspace">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <div class="panel-title">应用权限与角色绑定</div>
+                    <div class="panel-subtitle">切换应用后，只能绑定当前应用下的权限组；权限点为只读结果。</div>
+                  </div>
+                  <button class="button primary">关联应用</button>
+                </div>
+                <div class="app-permission-grid">
+                  <div class="app-switcher">
+                    <div class="app-card active">
+                      <div class="app-card-title">Base Portal</div>
+                      <div class="app-card-meta"><span>权限组 3</span><span>权限点 17</span></div>
+                      <span class="badge warning">有变更</span>
+                    </div>
+                    <div class="app-card">
+                      <div class="app-card-title">SSO Demo</div>
+                      <div class="app-card-meta"><span>权限组 2</span><span>权限点 8</span></div>
+                    </div>
+                    <div class="app-card">
+                      <div class="app-card-title">HR Portal</div>
+                      <div class="app-card-meta"><span>权限组 1</span><span>权限点 5</span></div>
+                      <span class="badge warning">停用组</span>
+                    </div>
+                  </div>
+                  <div class="permission-main">
+                    <div class="permission-toolbar">
+                      <div class="input">搜索权限组名称或 key</div>
+                      <div class="select">状态：全部</div>
+                      <button class="button">仅看已选</button>
+                      <button class="button">仅看有变更</button>
+                    </div>
+                    <table class="permission-table" aria-label="权限组绑定">
+                      <thead>
+                        <tr>
+                          <th style="width:44px"></th>
+                          <th style="width:168px">权限组名称</th>
+                          <th style="width:160px">权限组 key</th>
+                          <th style="width:90px">权限点</th>
+                          <th style="width:90px">状态</th>
+                          <th style="width:110px">已选</th>
+                          <th style="width:110px">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td><span class="checkbox checked"></span></td><td>应用运维管理员</td><td class="mono">BP_OPS_ADMIN</td><td>18</td><td><span class="badge success">启用</span></td><td>已绑定</td><td><button class="button">查看权限</button></td></tr>
+                        <tr><td><span class="checkbox checked"></span></td><td>系统监控查看组</td><td class="mono">BP_MONITOR_VIEW</td><td>12</td><td><span class="badge success">启用</span></td><td>已绑定</td><td><button class="button">查看权限</button></td></tr>
+                        <tr><td><span class="checkbox"></span></td><td>工单处理组</td><td class="mono">BP_TICKET_HANDLER</td><td>9</td><td><span class="badge success">启用</span></td><td>未绑定</td><td><button class="button">查看权限</button></td></tr>
+                        <tr><td><span class="checkbox"></span></td><td>报表查看组</td><td class="mono">BP_REPORT_VIEW</td><td>6</td><td><span class="badge success">启用</span></td><td>未绑定</td><td><button class="button">查看权限</button></td></tr>
+                      </tbody>
+                    </table>
+                    <div class="compare-panel" aria-label="权限点对比">
+                      <div class="compare-title">权限点对比（已选择 2 个权限组）</div>
+                      <table class="compare-table" aria-label="权限点差异表">
+                        <thead>
+                          <tr>
+                            <th style="width:180px">权限点 key</th>
+                            <th>权限名称</th>
+                            <th style="width:130px">应用运维管理员</th>
+                            <th style="width:130px">系统监控查看组</th>
+                            <th style="width:86px">状态</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">bp.system.manage</td><td>系统管理</td><td><span class="badge success">有</span></td><td><span class="badge success">有</span></td><td><span class="badge success">两组都有</span></td></tr>
+                          <tr><td class="mono">bp.config.manage</td><td>配置管理</td><td><span class="badge success">有</span></td><td>-</td><td><span class="badge neutral">仅左侧</span></td></tr>
+                          <tr><td class="mono">bp.user.manage</td><td>用户管理</td><td><span class="badge success">有</span></td><td>-</td><td><span class="badge neutral">仅左侧</span></td></tr>
+                          <tr><td class="mono">bp.log.view</td><td>日志查看</td><td>-</td><td><span class="badge success">有</span></td><td><span class="badge warning">仅右侧</span></td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <aside class="summary-rail">
+                <div class="rail-section">
+                  <div class="rail-title">当前应用最终权限</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>应用</span><strong>Base Portal</strong></div>
+                    <div class="stat-row"><span>权限组</span><strong>3 个</strong></div>
+                    <div class="stat-row"><span>最终权限点</span><strong>17 个</strong></div>
+                  </div>
+                </div>
+                <div class="rail-section">
+                  <div class="rail-title">跨应用摘要</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>Base Portal</span><strong>有变更</strong></div>
+                    <div class="stat-row"><span>SSO Demo</span><strong>无变更</strong></div>
+                    <div class="stat-row"><span>HR Portal</span><strong>有风险</strong></div>
+                  </div>
+                </div>
+                <div class="rail-section">
+                  <div class="rail-title">变更与保存</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>新增权限组</span><strong>2 个</strong></div>
+                    <div class="stat-row"><span>移除权限组</span><strong>0 个</strong></div>
+                    <div class="stat-row"><span>权限点变化</span><strong>+8</strong></div>
+                  </div>
+                  <div style="display:grid;gap:8px;margin-top:14px">
+                    <button class="button primary">保存应用权限</button>
+                    <button class="button">放弃更改</button>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section id="role-edit" class="screen">
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand"><span class="brand-mark"></span>RIVERSOFT</div>
+          <nav class="nav-group">
+            <a class="nav-item"><span class="nav-dot"></span>工作台</a>
+            <a class="nav-item"><span class="nav-dot"></span>应用管理</a>
+            <a class="nav-item active"><span class="nav-dot"></span>权限管理</a>
+            <a class="nav-item"><span class="nav-dot"></span>系统管理</a>
+          </nav>
+        </aside>
+        <main class="main">
+          <div class="topbar">
+            <div class="topbar-title">飞书 IAM</div>
+            <div class="global-search">搜索菜单、应用、角色或权限点</div>
+          </div>
+          <header class="page-header">
+            <div>
+              <div class="breadcrumbs">权限管理 / 角色配置 / 编辑基础信息</div>
+              <h1>编辑角色</h1>
+              <div class="description">维护角色基础信息、启用状态和删除操作；授权绑定仍回到角色配置工作区完成。</div>
+            </div>
+            <div class="page-actions">
+              <a class="button" href="#role-list">返回角色列表</a>
+              <a class="button" href="#role-subjects">返回角色配置</a>
+            </div>
+          </header>
+          <div class="content">
+            <div class="form-grid">
+              <div class="form-body">
+                <section class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">基础信息</div>
+                      <div class="panel-subtitle">角色是独立资源；key 创建后原则上不建议修改。</div>
+                    </div>
+                  </div>
+                  <div class="field-grid"><div class="field-label">角色名称</div><div class="input">应用运维负责人</div></div>
+                  <div class="field-grid"><div class="field-label">角色 key</div><div class="input mono">ROLE_APP_OPS</div></div>
+                  <div class="field-grid"><div class="field-label">角色编号</div><div class="input mono">ROLE-2026-001</div></div>
+                  <div class="field-grid"><div class="field-label">描述</div><div class="textarea">负责 Base Portal、SSO Demo 等应用的日常运维、配置发布和监控查看。</div></div>
+                </section>
+                <section class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">可用状态</div>
+                      <div class="panel-subtitle">停用后不再参与权限计算，但保留历史绑定和审计。</div>
+                    </div>
+                    <span class="switch on"></span>
+                  </div>
+                  <div class="field-grid"><div class="field-label">当前状态</div><div><span class="badge success">启用</span></div></div>
+                  <div class="field-grid"><div class="field-label">影响范围</div><div>2 个组织、5 个用户、3 个应用、7 个权限组</div></div>
+                </section>
+                <section class="panel danger-zone">
+                  <div class="panel-header">
+                    <div>
+                      <div class="panel-title">危险操作</div>
+                      <div class="panel-subtitle">删除角色需要确认没有有效授权；默认优先软删除。</div>
+                    </div>
+                    <button class="button danger">删除角色</button>
+                  </div>
+                  <div class="field-grid"><div class="field-label">删除校验</div><div>存在有效组织 / 用户绑定时，需要先移除绑定或确认软删除影响。</div></div>
+                </section>
+              </div>
+              <aside class="summary-rail">
+                <div class="rail-section">
+                  <div class="rail-title">角色摘要</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>关联应用</span><strong>3 个</strong></div>
+                    <div class="stat-row"><span>授权对象</span><strong>7 个</strong></div>
+                    <div class="stat-row"><span>权限组</span><strong>7 个</strong></div>
+                  </div>
+                </div>
+                <div class="rail-section">
+                  <div class="rail-title">保存</div>
+                  <div class="stat-list">
+                    <div class="stat-row"><span>角色名称</span><strong>已修改</strong></div>
+                    <div class="stat-row"><span>描述</span><strong>已修改</strong></div>
+                    <div class="stat-row"><span>状态</span><strong>无变化</strong></div>
+                  </div>
+                  <div style="display:grid;gap:8px;margin-top:14px">
+                    <button class="button primary">保存基础信息</button>
+                    <button class="button">放弃更改</button>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <script>
+      const screens = Array.from(document.querySelectorAll(".screen"));
+      const links = Array.from(document.querySelectorAll(".prototype-nav a"));
+      function activate() {
+        const target = window.location.hash || "#role-list";
+        screens.forEach((screen) => screen.classList.toggle("active", `#${screen.id}` === target));
+        links.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === target));
+      }
+      window.addEventListener("hashchange", activate);
+      activate();
+    </script>
+  </body>
+</html>

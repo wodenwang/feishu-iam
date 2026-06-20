@@ -9,6 +9,8 @@ import {
   fetchApplications,
   fetchIamRoles,
   fetchPermissionGroups,
+  disableIamRole,
+  enableIamRole,
   replaceIamRolePermissionGroups,
   replaceIamRoleSubjects,
 } from "../../api/permission";
@@ -18,6 +20,8 @@ vi.mock("../../api/permission", () => ({
   fetchApplications: vi.fn(),
   fetchPermissionGroups: vi.fn(),
   fetchIamRoles: vi.fn(),
+  disableIamRole: vi.fn(),
+  enableIamRole: vi.fn(),
   replaceIamRolePermissionGroups: vi.fn(),
   replaceIamRoleSubjects: vi.fn(),
 }));
@@ -131,6 +135,8 @@ describe("PermissionManagementView", () => {
     vi.mocked(fetchApplications).mockResolvedValue([application]);
     vi.mocked(fetchPermissionGroups).mockResolvedValue([group, groupTwo]);
     vi.mocked(fetchIamRoles).mockResolvedValue([role]);
+    vi.mocked(disableIamRole).mockResolvedValue({ ...role, status: "disabled" });
+    vi.mocked(enableIamRole).mockResolvedValue(role);
     vi.mocked(replaceIamRolePermissionGroups).mockResolvedValue(undefined);
     vi.mocked(replaceIamRoleSubjects).mockResolvedValue(undefined);
     vi.mocked(fetchApplicationFeishuUsers).mockResolvedValue({
@@ -165,11 +171,11 @@ describe("PermissionManagementView", () => {
     const table = screen.getByRole("table", { name: "IAM 角色清单" });
     const actionsHeader = within(table).getByRole("columnheader", { name: "操作" });
     expect(actionsHeader).toHaveStyle({
-      width: "88px",
-      minWidth: "88px",
+      width: "132px",
+      minWidth: "132px",
     });
 
-    const detailButton = screen.getByRole("button", { name: "查看 crm.operator 详情" });
+    const detailButton = screen.getByRole("button", { name: "配置 crm.operator" });
     const actionBar = detailButton.parentElement;
     if (!actionBar) {
       throw new Error("未找到 IAM 角色操作按钮容器");
@@ -178,11 +184,11 @@ describe("PermissionManagementView", () => {
     expect(actionBar).not.toHaveClass("flex-wrap");
 
     expect(detailButton).toHaveClass("h-8", "w-8", "min-h-8", "p-0");
-    expect(detailButton).toHaveAttribute("title", "详情");
-    expect(screen.queryByRole("button", { name: "编辑" })).not.toBeInTheDocument();
+    expect(detailButton).toHaveAttribute("title", "配置");
+    expect(screen.getByRole("button", { name: "编辑 crm.operator" })).toHaveAttribute("title", "编辑");
     expect(screen.queryByRole("button", { name: "权限组" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "成员" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "停用" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "停用 crm.operator" })).toHaveAttribute("title", "停用");
   });
 
   it("updates url when filtering and resetting roles", async () => {
@@ -200,194 +206,40 @@ describe("PermissionManagementView", () => {
     expect(window.location.search).toBe("?appKey=crm");
   });
 
-  it("opens detail sheet from url and keeps filters when closing", async () => {
+  it("navigates to independent role workbench instead of opening a sheet", async () => {
     const user = userEvent.setup();
-    window.history.pushState({}, "", "/admin/permissions?appKey=crm&q=CRM&status=enabled&page=2&pageSize=50&sheet=role%3Arole-1");
 
     renderView();
 
-    const dialog = await screen.findByRole("dialog", { name: "角色详情" });
-    expect(within(dialog).getByText(/销售权限组/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "配置 crm.operator" }));
 
-    await user.keyboard("{Escape}");
-
-    await waitFor(() => {
-      expect(window.location.search).not.toContain("sheet=");
-    });
-    expect(window.location.search).toContain("q=CRM");
-    expect(window.location.search).toContain("status=enabled");
-    expect(window.location.search).toContain("page=2");
-    expect(window.location.search).toContain("pageSize=50");
+    expect(window.location.pathname).toBe("/admin/permissions/roles/role-1");
+    expect(window.location.search).toContain("appKey=crm");
+    expect(window.location.search).toContain("from=");
+    expect(screen.queryByRole("dialog", { name: "角色详情" })).not.toBeInTheDocument();
   });
 
-  it("does not expose role metadata creation from permission management", async () => {
+  it("exposes role metadata creation from permission management", async () => {
     renderView();
 
     await screen.findByText("CRM 操作员");
-    expect(screen.queryByRole("button", { name: "创建角色" })).not.toBeInTheDocument();
-    expect(screen.getByText(/角色元数据在应用管理维护/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "创建角色" })).toBeInTheDocument();
+    expect(screen.getByText(/统一管理角色资源/)).toBeInTheDocument();
   });
 
-  it("binds permission groups from the role detail workspace after a diff confirmation", async () => {
-    const user = userEvent.setup();
-    window.history.pushState({}, "", "/admin/permissions?appKey=crm&sheet=role%3Arole-1");
-
-    renderView();
-
-    const detail = await screen.findByRole("dialog", { name: "角色详情" });
-    await user.click(within(detail).getByRole("tab", { name: "权限组绑定" }));
-    await user.click(within(detail).getByLabelText("搜索权限组"));
-    await user.click(within(detail).getByLabelText("搜索权限组"));
-    await user.click(within(detail).getByText("审计权限组"));
-    await user.click(within(detail).getByRole("button", { name: "保存权限组绑定" }));
-
-    const confirm = await screen.findByRole("alertdialog", { name: "确认保存权限组绑定" });
-    expect(confirm).toHaveTextContent("新增 1 个权限组");
-    await user.click(within(confirm).getByRole("button", { name: "确认" }));
-
-    await waitFor(() => {
-      expect(replaceIamRolePermissionGroups).toHaveBeenCalledWith("crm", "role-1", ["group-1", "group-2"]);
+  it("disables global role metadata actions for application admins", async () => {
+    renderView({
+      ...admin,
+      roles: ["application_admin"],
+      applicationIds: ["app-1"],
     });
-  });
 
-  it("shows permission group points and searchable effective permission points", async () => {
-    const user = userEvent.setup();
-    window.history.pushState({}, "", "/admin/permissions?appKey=crm&sheet=role%3Arole-1");
-
-    renderView();
-
-    const detail = await screen.findByRole("dialog", { name: "角色详情" });
-    await user.click(within(detail).getByRole("tab", { name: "权限组绑定" }));
-    await user.click(within(detail).getAllByRole("button", { name: "查看权限点" })[0] as HTMLElement);
-
-    expect(within(detail).getAllByText("查看客户")).toHaveLength(2);
-    expect(within(detail).getAllByText("导出客户")).toHaveLength(2);
-    expect(within(detail).getByText("最终权限点")).toBeInTheDocument();
-    const effectivePoints = within(detail).getByLabelText("最终权限点清单");
-    expect(within(effectivePoints).getByText("crm.customer.read")).toBeInTheDocument();
-    expect(within(effectivePoints).getByText("crm.customer.export")).toBeInTheDocument();
-    expect(within(effectivePoints).getByText("直接 + 权限组")).toBeInTheDocument();
-    expect(within(effectivePoints).getByText("权限组")).toBeInTheDocument();
-
-    await user.type(within(detail).getByLabelText("搜索最终权限点"), "导出");
-
-    const filteredEffectivePoints = within(detail).getByLabelText("最终权限点清单");
-    expect(within(filteredEffectivePoints).queryByText("crm.customer.read")).not.toBeInTheDocument();
-    expect(within(filteredEffectivePoints).getByText("crm.customer.export")).toBeInTheDocument();
-  });
-
-  it("searches and binds users and departments from the detail workspace", async () => {
-    const user = userEvent.setup();
-    window.history.pushState({}, "", "/admin/permissions?appKey=crm&sheet=role%3Arole-1");
-
-    renderView();
-
-    const detail = await screen.findByRole("dialog", { name: "角色详情" });
-    await user.click(within(detail).getByRole("tab", { name: "组织与用户绑定" }));
-    await waitFor(() => {
-      expect(fetchApplicationFeishuDepartments).toHaveBeenCalledWith(
-        "crm",
-        expect.objectContaining({ parentDepartmentId: null, page: 1, pageSize: 20 }),
-      );
-    });
-    expect(fetchApplicationFeishuUsers).not.toHaveBeenCalledWith(
-      "crm",
-      expect.objectContaining({ departmentId: undefined, keyword: undefined }),
-    );
-    expect(within(detail).getAllByRole("region", { name: "待选组织用户列表" }).length).toBeGreaterThan(0);
-    expect(within(detail).getAllByText("组织").length).toBeGreaterThan(0);
-    expect(within(detail).queryByRole("button", { name: "选择用户" })).not.toBeInTheDocument();
-    const orgButtons = await within(detail).findAllByRole("button", { name: "选择组织" });
-    expect(orgButtons[0]).toBeDefined();
-    await user.click(orgButtons[0] as HTMLElement);
-    await user.click(within(detail).getByRole("button", { name: "进入组织 惠州唐群" }));
-    await waitFor(() => {
-      expect(fetchApplicationFeishuUsers).toHaveBeenCalledWith(
-        "crm",
-        expect.objectContaining({ departmentId: "od_huizhou", page: 1, pageSize: 20 }),
-      );
-    });
-    const userButtons = await within(detail).findAllByRole("button", { name: "选择用户" });
-    expect(userButtons[0]).toBeDefined();
-    await user.click(userButtons[0] as HTMLElement);
-    const searchInputs = within(detail).getAllByLabelText("搜索组织或用户");
-    const searchInput = searchInputs[searchInputs.length - 1] as HTMLElement;
-    await user.clear(searchInput);
-    await user.type(searchInput, "王文哲");
-    const searchButtons = within(detail).getAllByRole("button", { name: "搜索" });
-    await user.click(searchButtons[searchButtons.length - 1] as HTMLElement);
-    await waitFor(() => {
-      expect(fetchApplicationFeishuUsers).toHaveBeenCalledWith(
-        "crm",
-        expect.objectContaining({ departmentId: undefined, keyword: "王文哲", page: 1, pageSize: 20 }),
-      );
-    });
-    await user.click(within(detail).getByRole("button", { name: "保存主体绑定" }));
-
-    const confirm = await screen.findByRole("alertdialog", { name: "确认保存组织与用户绑定" });
-    expect(confirm).toHaveTextContent("新增 2 个主体");
-    await user.click(within(confirm).getByRole("button", { name: "确认" }));
-
-    await waitFor(() => {
-      expect(replaceIamRoleSubjects).toHaveBeenCalledWith("crm", "role-1", expect.arrayContaining([
-        expect.objectContaining({ type: "feishu_user", id: "ou_user" }),
-        expect.objectContaining({
-          type: "feishu_department",
-          id: "od_huizhou",
-          displayName: "惠州唐群",
-          displayPath: "顶层组织 / 惠州唐群",
-        }),
-        expect.objectContaining({
-          type: "feishu_user",
-          id: "ou_new",
-          displayName: "王文哲",
-          displayPath: "顶层组织 / 惠州唐群",
-        }),
-      ]));
-    });
-  });
-
-  it("shows selected subject names, avatar labels, types, paths and orphaned state", async () => {
-    vi.mocked(fetchIamRoles).mockResolvedValueOnce([
-      {
-        ...role,
-        subjects: [
-          {
-            type: "feishu_department",
-            id: "od_finance",
-            displayName: "财务部",
-            avatarLabel: "财",
-            subjectKindLabel: "组织",
-            displayPath: "唐群座椅 / 财务部",
-          },
-          {
-            type: "feishu_user",
-            id: "ou_missing",
-            displayName: "离职用户",
-            avatarLabel: "离",
-            subjectKindLabel: "用户",
-            displayPath: "已失效或未同步",
-            isOrphaned: true,
-          },
-        ],
-      },
-    ]);
-    const user = userEvent.setup();
-    window.history.pushState({}, "", "/admin/permissions?appKey=crm&sheet=role%3Arole-1");
-
-    renderView();
-
-    const detail = await screen.findByRole("dialog", { name: "角色详情" });
-    await user.click(within(detail).getByRole("tab", { name: "组织与用户绑定" }));
-
-    expect(within(detail).getByText("财务部")).toBeInTheDocument();
-    expect(within(detail).getByText("财")).toBeInTheDocument();
-    expect(within(detail).getAllByText("组织").length).toBeGreaterThan(0);
-    expect(within(detail).getByText("唐群座椅 / 财务部")).toBeInTheDocument();
-    expect(within(detail).getByText("离职用户")).toBeInTheDocument();
-    expect(within(detail).getByText("离")).toBeInTheDocument();
-    expect(within(detail).getAllByText("用户").length).toBeGreaterThan(0);
-    expect(within(detail).getAllByText("已失效或未同步").length).toBeGreaterThan(0);
+    await screen.findByText("CRM 操作员");
+    expect(screen.getByRole("button", { name: "创建角色" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "编辑 crm.operator" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "停用 crm.operator" })).toBeDisabled();
+    expect(screen.getByLabelText("选择 crm.operator")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "配置 crm.operator" })).toBeEnabled();
   });
 
   it("shows forbidden state for 403 role responses instead of empty state", async () => {
@@ -398,12 +250,31 @@ describe("PermissionManagementView", () => {
     expect(await screen.findByText("没有权限")).toBeInTheDocument();
     expect(screen.queryByText("暂无 IAM 角色")).not.toBeInTheDocument();
   });
+
+  it("bulk disables selected roles after confirmation and reloads the role list", async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    await user.click(await screen.findByLabelText("选择 crm.operator"));
+    await user.click(screen.getByRole("button", { name: "批量停用" }));
+
+    const confirm = await screen.findByRole("alertdialog", { name: "确认停用角色" });
+    expect(confirm).toHaveTextContent("确认批量停用 1 个角色");
+    const callsBeforeConfirm = vi.mocked(fetchIamRoles).mock.calls.length;
+    await user.click(within(confirm).getByRole("button", { name: "确认" }));
+
+    await waitFor(() => {
+      expect(disableIamRole).toHaveBeenCalledWith("crm", "role-1");
+      expect(vi.mocked(fetchIamRoles).mock.calls.length).toBeGreaterThan(callsBeforeConfirm);
+    });
+    expect(screen.getByText("已选择 0 个角色")).toBeInTheDocument();
+  });
 });
 
-function renderView() {
+function renderView(overrides?: AdminMe) {
   render(
     <BrowserRouter>
-      <PermissionManagementView admin={admin} />
+      <PermissionManagementView admin={overrides ?? admin} />
     </BrowserRouter>,
   );
 }

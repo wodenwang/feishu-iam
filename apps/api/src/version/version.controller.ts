@@ -1,6 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
 
-const FALLBACK_VERSION = "1.0.1-dev";
+const FALLBACK_VERSION = "1.0.5-dev";
 
 type VersionResponse = {
   name: "feishu-iam-api";

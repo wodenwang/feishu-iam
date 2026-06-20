@@ -46,31 +46,31 @@ model FeishuDepartment {
 }
 
 model FeishuUser {
-  userId             String                   @id @map("user_id")
-  openId             String?                  @unique @map("open_id")
-  unionId            String?                  @unique @map("union_id")
-  name               String
-  enName             String?                  @map("en_name")
-  email              String?
-  mobile             String?
-  mobileVisible      Boolean?                 @map("mobile_visible")
-  avatar             Json?
-  employeeNo         String?                  @map("employee_no")
-  employeeType       Int?                     @map("employee_type")
-  jobTitle           String?                  @map("job_title")
-  leaderUserId       String?                  @map("leader_user_id")
-  status             Json                     @default("{}")
-  rawPayload         Json                     @map("raw_payload")
-  lastSyncedAt       DateTime                 @map("last_synced_at") @db.Timestamptz(6)
-  isActive           Boolean                  @default(false) @map("is_active")
-  isDeleted          Boolean                  @default(false) @map("is_deleted")
-  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  userDepartments    FeishuUserDepartment[]
-  authorizationCodes OauthAuthorizationCode[]
-  accessTokens       OauthAccessToken[]
+  userId               String                   @id @map("user_id")
+  openId               String?                  @unique @map("open_id")
+  unionId              String?                  @unique @map("union_id")
+  name                 String
+  enName               String?                  @map("en_name")
+  email                String?
+  mobile               String?
+  mobileVisible        Boolean?                 @map("mobile_visible")
+  avatar               Json?
+  employeeNo           String?                  @map("employee_no")
+  employeeType         Int?                     @map("employee_type")
+  jobTitle             String?                  @map("job_title")
+  leaderUserId         String?                  @map("leader_user_id")
+  status               Json                     @default("{}")
+  rawPayload           Json                     @map("raw_payload")
+  lastSyncedAt         DateTime                 @map("last_synced_at") @db.Timestamptz(6)
+  isActive             Boolean                  @default(false) @map("is_active")
+  isDeleted            Boolean                  @default(false) @map("is_deleted")
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userDepartments      FeishuUserDepartment[]
+  authorizationCodes   OauthAuthorizationCode[]
+  accessTokens         OauthAccessToken[]
   oauthBrowserSessions OauthBrowserSession[]
-  adminUsers         AdminUser[]
+  adminUsers           AdminUser[]
 
   @@index([isActive])
   @@index([isDeleted])
@@ -133,12 +133,12 @@ model Application {
   ownerUserId             String?                          @map("owner_user_id")
   status                  String                           @default("active")
   silentSsoEnabled        Boolean                          @default(false) @map("silent_sso_enabled")
-  silentSsoAllowedOrigins String[]                          @default([]) @map("silent_sso_allowed_origins")
+  silentSsoAllowedOrigins String[]                         @default([]) @map("silent_sso_allowed_origins")
   createdAt               DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   permissionGroups        PermissionGroup[]
   permissionPoints        PermissionPoint[]
-  iamRoles                IamRole[]
+  roleApplications        IamRoleApplication[]
   auditLogs               AuditLog[]
   permissionGroupPoints   PermissionGroupPoint[]
   iamRolePermissionGroups IamRolePermissionGroup[]
@@ -397,22 +397,35 @@ model PermissionGroupPoint {
 
 model IamRole {
   id               String                   @id
-  applicationId    String                   @map("application_id")
-  key              String
+  key              String                   @unique
   name             String
   description      String?
   status           String                   @default("active")
   createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  application      Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  applications     IamRoleApplication[]
   subjects         IamRoleSubject[]
   permissionGroups IamRolePermissionGroup[]
   permissionPoints IamRolePermissionPoint[]
 
-  @@unique([applicationId, key])
-  @@unique([applicationId, id])
-  @@index([applicationId])
   @@map("iam_roles")
+}
+
+model IamRoleApplication {
+  iamRoleId        String                   @map("iam_role_id")
+  applicationId    String                   @map("application_id")
+  status           String                   @default("active")
+  createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  iamRole          IamRole                  @relation(fields: [iamRoleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  application      Application              @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionGroups IamRolePermissionGroup[]
+  permissionPoints IamRolePermissionPoint[]
+
+  @@id([iamRoleId, applicationId])
+  @@index([applicationId])
+  @@index([status])
+  @@map("iam_role_applications")
 }
 
 model IamRoleSubject {
@@ -431,30 +444,32 @@ model IamRoleSubject {
 }
 
 model IamRolePermissionGroup {
-  applicationId     String          @map("application_id")
-  iamRoleId         String          @map("iam_role_id")
-  permissionGroupId String          @map("permission_group_id")
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  iamRole           IamRole         @relation(fields: [applicationId, iamRoleId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
-  permissionGroup   PermissionGroup @relation(fields: [applicationId, permissionGroupId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  applicationId     String             @map("application_id")
+  iamRoleId         String             @map("iam_role_id")
+  permissionGroupId String             @map("permission_group_id")
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  application       Application        @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  roleApplication   IamRoleApplication @relation(fields: [iamRoleId, applicationId], references: [iamRoleId, applicationId], onDelete: Restrict, onUpdate: Cascade)
+  iamRole           IamRole            @relation(fields: [iamRoleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionGroup   PermissionGroup    @relation(fields: [applicationId, permissionGroupId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@id([iamRoleId, permissionGroupId])
+  @@id([applicationId, iamRoleId, permissionGroupId])
   @@index([applicationId])
   @@index([permissionGroupId])
   @@map("iam_role_permission_groups")
 }
 
 model IamRolePermissionPoint {
-  applicationId     String          @map("application_id")
-  iamRoleId         String          @map("iam_role_id")
-  permissionPointId String          @map("permission_point_id")
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  application       Application     @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  iamRole           IamRole         @relation(fields: [applicationId, iamRoleId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
-  permissionPoint   PermissionPoint @relation(fields: [applicationId, permissionPointId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
+  applicationId     String             @map("application_id")
+  iamRoleId         String             @map("iam_role_id")
+  permissionPointId String             @map("permission_point_id")
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  application       Application        @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  roleApplication   IamRoleApplication @relation(fields: [iamRoleId, applicationId], references: [iamRoleId, applicationId], onDelete: Restrict, onUpdate: Cascade)
+  iamRole           IamRole            @relation(fields: [iamRoleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  permissionPoint   PermissionPoint    @relation(fields: [applicationId, permissionPointId], references: [applicationId, id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@id([iamRoleId, permissionPointId])
+  @@id([applicationId, iamRoleId, permissionPointId])
   @@index([applicationId])
   @@index([permissionPointId])
   @@map("iam_role_permission_points")

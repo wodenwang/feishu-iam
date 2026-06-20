@@ -19,6 +19,7 @@ export type OrgUserSelectorProps = {
   originalSubjects: IamRoleSubject[];
   subjects: IamRoleSubject[];
   disabled?: boolean;
+  readOnlyReason?: string;
   saving?: boolean;
   error?: string;
   loadDepartments: OrgBrowserLoadDepartments;
@@ -77,7 +78,9 @@ export function OrgUserSelector(props: OrgUserSelectorProps) {
       loadUsers={props.loadUsers}
       readonly={props.disabled}
       readonlyListDescription={
-        props.disabled ? "当前绑定不可编辑；组织和用户在同一列表中仅用于核对可选主体。" : undefined
+        props.disabled
+          ? props.readOnlyReason ?? "当前绑定不可编辑；组织和用户在同一列表中仅用于核对可选主体。"
+          : undefined
       }
       selectedDepartmentIds={orgSubjects.map((subject) => subject.id)}
       selectedUserIds={userSubjects.map((subject) => subject.id)}
@@ -263,7 +266,7 @@ function SummaryPanel(props: {
         </div>
       ) : null}
       <Button disabled={props.disabled} type="button" onClick={props.onSave}>
-        {props.saving ? "保存中" : "保存主体绑定"}
+        {props.saving ? "保存中" : "保存组织与用户"}
       </Button>
     </section>
   );

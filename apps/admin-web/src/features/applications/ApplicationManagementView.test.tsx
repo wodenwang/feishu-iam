@@ -1,6 +1,5 @@
 import "@testing-library/jest-dom/vitest";
 import {
-  cleanup,
   render,
   screen,
   waitFor,
@@ -19,6 +18,8 @@ import {
   enableIamRole,
   fetchApplicationPage,
   fetchIamRoles,
+  fetchPermissionGroups,
+  fetchPermissionPoints,
   updateApplication,
   updateIamRole,
 } from "../../api/permission";
@@ -41,6 +42,8 @@ vi.mock("../../api/permission", () => ({
   enableApplication: vi.fn(),
   disableApplication: vi.fn(),
   fetchIamRoles: vi.fn(),
+  fetchPermissionGroups: vi.fn(),
+  fetchPermissionPoints: vi.fn(),
   createIamRole: vi.fn(),
   updateIamRole: vi.fn(),
   enableIamRole: vi.fn(),
@@ -139,6 +142,42 @@ describe("ApplicationManagementPage v0.11.2", () => {
         key: "crm.admin",
         name: "CRM 管理员",
         description: "管理 CRM",
+        status: "active",
+        createdAt: "2026-05-24T10:00:00.000Z",
+        updatedAt: "2026-05-24T11:00:00.000Z",
+      },
+    ]);
+    vi.mocked(fetchPermissionGroups).mockResolvedValue([
+      {
+        id: "group-1",
+        applicationId: "app-1",
+        key: "crm.customer.viewer",
+        name: "客户查看员",
+        description: "查看客户资料",
+        status: "active",
+        permissionPoints: [
+          {
+            id: "point-1",
+            applicationId: "app-1",
+            key: "crm.customer.read",
+            name: "客户查看",
+            description: "查看客户",
+            status: "active",
+            createdAt: "2026-05-24T10:00:00.000Z",
+            updatedAt: "2026-05-24T11:00:00.000Z",
+          },
+        ],
+        createdAt: "2026-05-24T10:00:00.000Z",
+        updatedAt: "2026-05-24T11:00:00.000Z",
+      },
+    ]);
+    vi.mocked(fetchPermissionPoints).mockResolvedValue([
+      {
+        id: "point-1",
+        applicationId: "app-1",
+        key: "crm.customer.read",
+        name: "客户查看",
+        description: "查看客户",
         status: "active",
         createdAt: "2026-05-24T10:00:00.000Z",
         updatedAt: "2026-05-24T11:00:00.000Z",
@@ -266,7 +305,7 @@ describe("ApplicationManagementPage v0.11.2", () => {
 
     expect(await screen.findByText("接入配置完整")).toBeInTheDocument();
     expect(screen.getByText(/回调 1\/1/)).toBeInTheDocument();
-    expect(screen.getByText(/角色 1\/1/)).toBeInTheDocument();
+    expect(screen.getByText(/关联角色 1\/1/)).toBeInTheDocument();
   });
 
   it("keeps application list row actions as accessible icon buttons", async () => {
@@ -299,8 +338,8 @@ describe("ApplicationManagementPage v0.11.2", () => {
       within(dialog).getByRole("tab", { name: "详细资料", selected: true }),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("tab", { name: "角色管理" }),
-    ).toBeInTheDocument();
+      within(dialog).queryByRole("tab", { name: "角色管理" }),
+    ).not.toBeInTheDocument();
     expect(
       within(dialog).getByRole("tab", { name: "开发信息" }),
     ).toBeInTheDocument();
@@ -322,6 +361,7 @@ describe("ApplicationManagementPage v0.11.2", () => {
     expect(window.location.search).toContain("page=2");
     expect(window.location.search).toContain("pageSize=10");
     expect(window.location.search).toContain("sort=appKey%3Aasc");
+    expect(fetchIamRoles).not.toHaveBeenCalled();
   });
 
   it("shows one-time secrets after create without serializing them into url", async () => {
@@ -521,144 +561,22 @@ describe("ApplicationManagementPage v0.11.2", () => {
     });
   });
 
-  it("creates and edits application role metadata without entering authorization binding", async () => {
-    const user = userEvent.setup();
+  it("does not expose role management inside application detail", async () => {
     window.history.pushState({}, "", "/admin/applications?sheet=app%3Acrm");
 
     renderApplicationPage();
 
     const dialog = await screen.findByRole("dialog", { name: /应用详情/ });
-    await user.click(within(dialog).getByRole("tab", { name: "角色管理" }));
-    expect(await within(dialog).findByText("CRM 管理员")).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("tab", { name: "角色管理", selected: true }),
-    ).toBeInTheDocument();
-    const roleTable = within(dialog).getByRole("table", {
-      name: "应用角色清单",
-    });
+      within(dialog).queryByRole("tab", { name: "角色管理" }),
+    ).not.toBeInTheDocument();
     expect(
-      within(roleTable).getByRole("columnheader", { name: "角色名称" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("table", { name: "应用角色清单" }),
+    ).not.toBeInTheDocument();
     expect(
-      within(roleTable).getByRole("columnheader", { name: "角色 key" }),
-    ).toBeInTheDocument();
-    expect(
-      within(roleTable).getByRole("columnheader", { name: "操作" }),
-    ).toHaveStyle({
-      width: "132px",
-      minWidth: "132px",
-    });
-    expect(
-      within(roleTable).getByRole("button", { name: "查看 crm.admin" }),
-    ).toBeInTheDocument();
-    expect(
-      within(roleTable).getByRole("button", { name: "编辑 crm.admin" }),
-    ).toBeInTheDocument();
-    expect(
-      within(roleTable).getByRole("button", { name: "停用 crm.admin" }),
-    ).toHaveClass("h-8", "w-8", "p-0");
-    expect(
-      within(roleTable).getByRole("button", { name: "停用 crm.admin" }),
-    ).toHaveAttribute("title", "停用");
-    expect(
-      within(roleTable).getByRole("button", { name: "停用 crm.admin" }),
-    ).not.toHaveTextContent("停用");
-    expect(screen.queryByText("后续 v0.11.3")).not.toBeInTheDocument();
-
-    await user.click(within(dialog).getByRole("button", { name: "新增角色" }));
-    await user.type(within(dialog).getByLabelText("角色 key"), "crm.viewer");
-    await user.type(within(dialog).getByLabelText("角色名称"), "CRM 查看员");
-    await user.click(within(dialog).getByRole("button", { name: "创建角色" }));
-    await waitFor(() => {
-      expect(createIamRole).toHaveBeenCalledWith("crm", {
-        key: "crm.viewer",
-        name: "CRM 查看员",
-        description: undefined,
-      });
-    });
-
-    await user.click(
-      within(dialog).getByRole("button", { name: "编辑 crm.admin" }),
-    );
-    await user.clear(within(dialog).getByLabelText("角色名称"));
-    await user.type(
-      within(dialog).getByLabelText("角色名称"),
-      "CRM 超级管理员",
-    );
-    await user.click(within(dialog).getByRole("button", { name: "保存角色" }));
-    await waitFor(() => {
-      expect(updateIamRole).toHaveBeenCalledWith("crm", "role-1", {
-        name: "CRM 超级管理员",
-        description: "管理 CRM",
-      });
-    });
-  });
-
-  it("shows role empty, no-permission, failed and readonly states", async () => {
-    const user = userEvent.setup();
-    vi.mocked(fetchIamRoles).mockResolvedValueOnce([]);
-    window.history.pushState({}, "", "/admin/applications?sheet=app%3Acrm");
-
-    renderApplicationPage();
-
-    let dialog = await screen.findByRole("dialog", { name: /应用详情/ });
-    await user.click(within(dialog).getByRole("tab", { name: "角色管理" }));
-    expect(await screen.findByText(/暂无应用角色/)).toBeInTheDocument();
-
-    cleanup();
-    vi.mocked(fetchApplicationPage).mockResolvedValueOnce({
-      items: [{ ...application, status: "disabled" }],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-    });
-    vi.mocked(fetchIamRoles).mockRejectedValueOnce(
-      Object.assign(new Error("forbidden"), { status: 403 }),
-    );
-    window.history.pushState({}, "", "/admin/applications?sheet=app%3Acrm");
-    renderApplicationPage();
-    dialog = await screen.findByRole("dialog", { name: /应用详情/ });
-    await user.click(within(dialog).getByRole("tab", { name: "角色管理" }));
-    expect(
-      await screen.findByText("当前管理员无权查看该应用角色。"),
-    ).toBeInTheDocument();
-
-    cleanup();
-    vi.mocked(fetchApplicationPage).mockResolvedValueOnce({
-      items: [{ ...application, status: "disabled" }],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-    });
-    vi.mocked(fetchIamRoles).mockResolvedValueOnce([
-      {
-        id: "role-1",
-        applicationId: "app-1",
-        appKey: "crm",
-        key: "crm.admin",
-        name: "CRM 管理员",
-        description: "管理 CRM",
-        status: "active",
-        createdAt: "2026-05-24T10:00:00.000Z",
-        updatedAt: "2026-05-24T11:00:00.000Z",
-      },
-    ]);
-    window.history.pushState({}, "", "/admin/applications?sheet=app%3Acrm");
-    renderApplicationPage();
-    const dialogs = await screen.findAllByRole("dialog", { name: /应用详情/ });
-    const latestDialog = dialogs[dialogs.length - 1];
-    if (!latestDialog) {
-      throw new Error("未找到应用详情弹窗");
-    }
-    await user.click(
-      within(latestDialog).getByRole("tab", { name: "角色管理" }),
-    );
-    expect(
-      await within(latestDialog).findByText(/角色元数据保持只读/),
-    ).toBeInTheDocument();
-    expect(
-      within(latestDialog).getByRole("button", { name: "新增角色" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "新增角色" }),
+    ).not.toBeInTheDocument();
+    expect(fetchIamRoles).not.toHaveBeenCalled();
   });
 
   it("shows no-permission state for 403 list responses instead of empty state", async () => {

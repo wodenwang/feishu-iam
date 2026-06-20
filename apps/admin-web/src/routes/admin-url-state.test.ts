@@ -140,11 +140,12 @@ describe('admin url state', () => {
       new URLSearchParams('status=active&page=0&pageSize=10&sort=name:desc&sheet=group:pg-1')
     );
     expect(parsed).toMatchObject({ status: 'all', page: 1, pageSize: 20, sort: 'key:asc' });
+    expect(parsed.authStatus).toBe('all');
     expect(parsed.sheet).toBeUndefined();
   });
 
   it('serializes permission defaults without noisy query params', () => {
-    expect(serializePermissionSearch({ status: 'all', page: 1, pageSize: 20, sort: 'key:asc' }).toString()).toBe('');
+    expect(serializePermissionSearch({ authStatus: 'all', status: 'all', page: 1, pageSize: 20, sort: 'key:asc' }).toString()).toBe('');
   });
 
   it('allows permission create and role detail sheets', () => {
@@ -164,6 +165,8 @@ describe('admin url state', () => {
     const unsafeState = {
       appKey: 'crm',
       q: 'operator',
+      code: 'crm.admin',
+      authStatus: 'configured',
       status: 'enabled',
       page: 1,
       pageSize: 20,
@@ -172,7 +175,7 @@ describe('admin url state', () => {
       roleNameDraft: '敏感草稿'
     } satisfies PermissionSearchState & { roleNameDraft: string };
     const params = serializePermissionSearch(unsafeState);
-    expect(params.toString()).toBe('appKey=crm&q=operator&status=enabled&sheet=role%3Arole-1');
+    expect(params.toString()).toBe('appKey=crm&q=operator&code=crm.admin&authStatus=configured&status=enabled&sheet=role%3Arole-1');
     expect(params.toString()).not.toContain('Draft');
     expect(params.toString()).not.toContain('敏感草稿');
   });

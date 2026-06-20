@@ -39,6 +39,9 @@ type PermissionPointSummary = {
 };
 
 export type IamRoleWithBindings = IamRole & {
+  applications: IamRoleApplicationSummary[];
+  applicationIds: string[];
+  appKeys: string[];
   permissionGroups: Array<PermissionGroup & { permissionPoints: PermissionPointSummary[] }>;
   permissionGroupIds: string[];
   permissionPoints: PermissionPointSummary[];
@@ -53,6 +56,14 @@ export type IamRoleWithBindings = IamRole & {
   }>;
 };
 
+export type IamRoleApplicationSummary = {
+  applicationId: string;
+  appKey: string;
+  name: string;
+  status: string;
+  bindingStatus: string;
+};
+
 const SYSTEM_ACTOR = {
   actorType: 'platform_token',
   actorId: 'platform-admin-token',
@@ -64,6 +75,7 @@ const IAM_SUBJECT_TYPES: readonly IamSubjectType[] = ['feishu_user', 'feishu_dep
 type IamRoleClient = Pick<
   Prisma.TransactionClient,
   | 'iamRole'
+  | 'iamRoleApplication'
   | 'iamRoleSubject'
   | 'iamRolePermissionGroup'
   | 'iamRolePermissionPoint'
@@ -89,14 +101,24 @@ export class IamRoleService {
       const created = await tx.iamRole.create({
         data: {
           id: randomUUID(),
-          applicationId: application.id,
           key: input.key,
           name: input.name,
           description: input.description ?? null
         }
       });
 
-      await this.recordAudit(application.id, created.id, 'create', undefined, created, tx, auditContext);
+      await tx.iamRoleApplication.create({
+        data: {
+          iamRoleId: created.id,
+          applicationId: application.id,
+          status: 'active'
+        }
+      });
+
+      await this.recordAudit(application.id, created.id, 'create', undefined, {
+        ...created,
+        appKey
+      }, tx, auditContext);
       return created;
     });
   }
@@ -105,10 +127,25 @@ export class IamRoleService {
     const application = await this.applications.getApplicationByKey(appKey);
     const roles = await this.prisma.iamRole.findMany({
       where: {
-        applicationId: application.id
+        applications: {
+          some: {
+            applicationId: application.id
+          }
+        }
       },
       include: {
+        applications: {
+          include: {
+            application: true
+          },
+          orderBy: {
+            applicationId: 'asc'
+          }
+        },
         permissionGroups: {
+          where: {
+            applicationId: application.id
+          },
           include: {
             permissionGroup: {
               include: {
@@ -128,6 +165,9 @@ export class IamRoleService {
           }
         },
         permissionPoints: {
+          where: {
+            applicationId: application.id
+          },
           include: {
             permissionPoint: true
           },
@@ -154,6 +194,15 @@ export class IamRoleService {
 
     return roles.map((role) => ({
       ...role,
+      applications: role.applications.map((binding) => ({
+        applicationId: binding.applicationId,
+        appKey: binding.application.appKey,
+        name: binding.application.name,
+        status: binding.application.status,
+        bindingStatus: binding.status
+      })),
+      applicationIds: role.applications.map((binding) => binding.applicationId),
+      appKeys: role.applications.map((binding) => binding.application.appKey),
       permissionGroups: role.permissionGroups.map((binding) => ({
         ...binding.permissionGroup,
         permissionPoints: binding.permissionGroup.permissionPoints.map((pointBinding) => pointBinding.permissionPoint)
@@ -187,10 +236,7 @@ export class IamRoleService {
       const current = await this.getRole(tx, application, roleId);
       const updated = await tx.iamRole.update({
         where: {
-          applicationId_id: {
-            applicationId: application.id,
-            id: roleId
-          }
+          id: roleId
         },
         data: buildUpdateRoleData(input)
       });
@@ -211,10 +257,7 @@ export class IamRoleService {
       const current = await this.getRole(tx, application, roleId);
       const updated = await tx.iamRole.update({
         where: {
-          applicationId_id: {
-            applicationId: application.id,
-            id: roleId
-          }
+          id: roleId
         },
         data: {
           status
@@ -223,6 +266,69 @@ export class IamRoleService {
 
       await this.recordAudit(application.id, roleId, 'set_status', current, updated, tx, auditContext);
       return updated;
+    });
+  }
+
+  async bindRoleToApplication(
+    appKey: string,
+    roleId: string,
+    auditContext?: PermissionAuditContext
+  ): Promise<IamRole> {
+    return this.prisma.$transaction(async (tx) => {
+      const application = await this.applications.getApplicationByKey(appKey, tx);
+      const role = await tx.iamRole.findFirst({
+        where: {
+          id: roleId
+        }
+      });
+
+      if (!role) {
+        throw new PermissionDomainError('IAM_ROLE_NOT_FOUND', 'IAM 角色不存在', 404);
+      }
+
+      const currentBinding = await tx.iamRoleApplication.findUnique({
+        where: {
+          iamRoleId_applicationId: {
+            iamRoleId: roleId,
+            applicationId: application.id
+          }
+        }
+      });
+
+      await tx.iamRoleApplication.upsert({
+        where: {
+          iamRoleId_applicationId: {
+            iamRoleId: roleId,
+            applicationId: application.id
+          }
+        },
+        create: {
+          iamRoleId: roleId,
+          applicationId: application.id,
+          status: 'active'
+        },
+        update: {
+          status: 'active'
+        }
+      });
+
+      await this.recordAudit(
+        application.id,
+        roleId,
+        'bind_application',
+        {
+          applicationId: application.id,
+          bindingStatus: currentBinding?.status ?? null
+        },
+        {
+          applicationId: application.id,
+          bindingStatus: 'active'
+        },
+        tx,
+        auditContext
+      );
+
+      return role;
     });
   }
 
@@ -424,7 +530,11 @@ export class IamRoleService {
     const role = await client.iamRole.findFirst({
       where: {
         id: roleId,
-        applicationId: application.id
+        applications: {
+          some: {
+            applicationId: application.id
+          }
+        }
       }
     });
 

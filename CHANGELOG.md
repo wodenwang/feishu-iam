@@ -2,7 +2,7 @@
 
 ## v1.0.5 - 权限管理角色配置工作台
 
-`v1.0.5` 是 `v1.0.4` 后的权限管理流程重构版本，范围锁定角色独立化、角色与应用多对多绑定、权限管理首屏角色列表、独立角色配置工作台、组织 / 用户同树绑定、应用权限绑定和权限点对比。本条目记录 release commit 的产品、工程和本地验证内容；生产镜像 digest、升级备份和线上验收结果会在 step15 部署完成后追加记录。
+`v1.0.5` 是 `v1.0.4` 后的权限管理流程重构版本，范围锁定角色独立化、角色与应用多对多绑定、权限管理首屏角色列表、独立角色配置工作台、组织 / 用户同树绑定、应用权限绑定和权限点对比。
 
 ### 新增与调整
 
@@ -28,6 +28,15 @@
 - 已完成 step13 Git 收口预检：`git diff --check` 通过，版本号一致性检查通过，敏感信息扫描未发现真实 secret 阻塞项。
 - 已完成 step14 ship 验证：`pnpm check` 通过，后端 41 个测试文件 484 个用例、前端 18 个测试文件 159 个用例通过；`pnpm build` 通过，Vite chunk size warning 为既有构建提示。
 - ship 覆盖率审计从 72% 基线补测到约 80%：新增前端 API 层跨应用角色合并、`groupIds` 请求体、角色列表批量停用，以及后端权限计算 Prisma 查询形状断言。
+
+### 线上验收
+
+- 已创建 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5`。
+- 已完成 linux/amd64 离线镜像构建、传输和远端停机升级：线上运行 `feishu-iam:v1.0.5`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260620-235502`。
+- 生产健康检查通过：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`/version` 返回 `1.0.5 / ed98409`。
+- 生产迁移验证通过：`schema_versions` 包含 `1.0.5`，旧 `iam_roles.application_id` 已移除，`iam_role_applications` 表存在且包含 3 条绑定，未绑定角色数为 0。
+- 生产数据一致性验证通过：`iam_role_permission_groups` 和 `iam_role_permission_points` 均存在角色-应用绑定外键，权限组 / 权限点绑定中脱离 `iam_role_applications` 的记录数均为 0，未发现重复角色 key。
+- 生产路由 smoke 通过：`/admin/permissions`、旧 `/admin/permissions/:appKey/roles/:roleId?tab=subjects` 和旧 `/admin/applications/:appKey?tab=roles` 均返回 `200 OK` 并交由管理后台前端承接。
 
 ## v1.0.4 - OAuth silent SSO 与 iframe 安全边界
 

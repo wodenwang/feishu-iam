@@ -18,11 +18,11 @@
 
 ## 当前阶段
 
-已完成到 step14：gstack `/ship`。
+已完成到 step15：gstack `/land-and-deploy`。
 
-step14 已完成覆盖率审计、计划完成审计、pre-landing review、focused tests、`pnpm check`、`pnpm build`、`git diff --check`、release commit、main push、`v1.0.5` tag 和 GitHub Release。当前下一步是 step15：`gstack /land-and-deploy`，执行远端部署和线上健康检查。
+step15 已完成 linux/amd64 离线镜像构建、远端传输、生产停机升级、数据库迁移、健康检查、版本读回、迁移一致性检查和路由 smoke。`v1.0.5` 发布、release 和远端部署闭环已完成。
 
-最后更新时间：2026-06-20 23:37 CST。
+最后更新时间：2026-06-20 23:59 CST。
 
 ## 版本号
 
@@ -52,7 +52,7 @@ step14 已完成覆盖率审计、计划完成审计、pre-landing review、focu
 | ✅ | 12 | gstack `/review` | 已完成 | `.gstack/review-reports/v1.0.5-step12-review.md`；发现 2 个文档一致性问题并已修复 |
 | ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/step13-git-closeout-preflight.md` |
 | ✅ | 14 | gstack `/ship` | 已完成 | commit `ed98409`；tag `v1.0.5`；GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5` |
-| 🎯 | 15 | gstack `/land-and-deploy` | 当前下一步 | 构建 linux/amd64 镜像、远端升级、线上健康检查和生产验证 |
+| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 线上运行 `feishu-iam:v1.0.5`；`/ready` ready；`/version` 返回 `1.0.5 / ed98409`；迁移和路由 smoke 通过 |
 
 ## 验证证据
 
@@ -111,6 +111,19 @@ Step14 ship 证据：
 - `pnpm build`
 - `git diff --check`
 
+Step15 land-and-deploy 证据：
+
+- `.my-harness/step15-land-and-deploy.md`
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5`
+- 生产部署目录：`bpmt@120.24.236.92:/home/bpmt/feishu-iam`
+- 生产升级备份目录：`/home/bpmt/feishu-iam/backups/20260620-235502`
+- 生产容器：`feishu-iam-web-1` 运行 `feishu-iam:v1.0.5`
+- 生产 `/ready`：`{"status":"ready","checks":{"database":"ok"}}`
+- 生产 `/version`：`{"name":"feishu-iam-api","version":"1.0.5","commit":"ed98409","node_env":"production"}`
+- 生产迁移：`schema_versions` 包含 `1.0.5`；`iam_role_applications` 存在且包含 3 条绑定；旧 `iam_roles.application_id` 已移除。
+- 生产一致性：未绑定角色数 0；权限组 / 权限点绑定脱离 `iam_role_applications` 的记录数均为 0；两个角色-应用绑定外键存在。
+- 生产路由 smoke：`/admin/permissions`、旧 `tab=subjects` 角色 deep link、旧应用详情 `tab=roles` deep link 均返回 `200 OK`。
+
 浏览器报告关键结果：
 
 ```json
@@ -134,19 +147,18 @@ Step14 ship 证据：
 
 ## 下一步
 
-下一步必须执行 step15 `gstack /land-and-deploy`。不要重复执行 step11-step14，除非部署前发现 release/tag/main 不一致。
+`v1.0.5` 的 my-harness 15 步已完成。后续如继续推进，应另起新的版本或进入独立的生产 canary / 问题修复任务。
 
 推荐提示词：
 
 ```text
-继续按 my-harness 推进 Feishu IAM v1.0.5「权限管理角色配置工作台」，从 step15 gstack /land-and-deploy 开始。
+继续按 my-harness 处理 Feishu IAM 的下一个任务。当前 v1.0.5「权限管理角色配置工作台」已经完成 step1-step15、GitHub Release 和远端部署。
 
 要求：
-- 继续按部就班，不跳步。
+- 先确认新任务目标和版本号，不要重复执行 v1.0.5 step11-step15。
 - 不进入 Plan mode。
 - 不调用 AskUserQuestion、request_user_input 或任何交互式选择工具。
-- 执行 step15 land-and-deploy：构建 v1.0.5 linux/amd64 镜像、推送或离线传输到远端、执行停机升级、验证迁移和线上健康状态。
-- 本次目标已明确要求推进到发布、release 和远端部署，因此可以继续完成 release 所需的 Git 操作；仍需避免记录或输出任何 secret、token、cookie、authorization、授权码或敏感 raw payload。
-- 完成 step14 后继续进入 step15 land-and-deploy，不要在 step14 完成后停止。
-- 使用现有 step8-step14 证据作为输入，并补充远端部署、健康检查、版本读回和生产验证记录。
+- 使用 `.my-harness/status.md` 和 `.my-harness/runs/2026-06-20-v1.0.5-permission-workbench.md` 作为 v1.0.5 已完成证据。
+- 仍需避免记录或输出任何 secret、token、cookie、authorization、授权码或敏感 raw payload。
+- 如果是新版本开发，请从 my-harness step1 开始；如果是生产问题，请先做只读诊断并给出风险分级。
 ```

@@ -1,164 +1,110 @@
-# Feishu IAM v1.0.5 my-harness 状态
+# Feishu IAM v1.0.6 my-harness 状态
 
 ## 当前目标
 
-推进 `v1.0.5 - 权限管理角色配置工作台` 到发布、release 和远端部署完成。
+推进 `v1.0.6 - 权限管理 UI/UX 小版本`，修复生产权限管理模块中已标注和本地调研发现的前端体验问题。
 
 本版本目标：
 
-- 角色作为独立资源，不再附属于应用。
-- 角色与应用支持多对多绑定。
-- `权限管理` 首屏为角色列表。
-- 角色配置工作台为独立页面，不是抽屉。
-- `组织与用户`、`应用权限` 拆成两个工作区，避免单页过重。
-- 组织和用户必须在同一个组织树选择器中勾选。
-- 应用权限工作区支持应用切换、权限组绑定、权限点查看和权限点对比。
-- 原 `应用管理` 中的角色管理能力必须移除。
-- 应用管理保留应用详情、密钥、回调、Codex 提示词、权限组/权限点查看、查询和比对。
+- `组织与用户` 待选区不再被右侧内容撑高。
+- `应用权限` 可选权限组区域不再被右侧内容撑高。
+- 当前应用切换使用纵向 tab，而不是下拉框。
+- 角色工作台减少重复标题。
+- `绑定结果预览` 和权限点对比有稳定滚动边界。
 
 ## 当前阶段
 
-已完成到 step15：gstack `/land-and-deploy`。
+已完成 step1-step13 和 step14 `/ship` 本地提交授权收口。当前只授权 stage / commit；push、tag、GitHub Release、上传镜像和 deploy 仍需用户另行授权。
 
-step15 已完成 linux/amd64 离线镜像构建、远端传输、生产停机升级、数据库迁移、健康检查、版本读回、迁移一致性检查和路由 smoke。`v1.0.5` 发布、release 和远端部署闭环已完成。
-
-最后更新时间：2026-06-20 23:59 CST。
+最后更新时间：2026-06-21 03:04 CST。
 
 ## 版本号
 
-本次迭代版本号：`v1.0.5`。
+本次迭代版本号：`v1.0.6`。
 
 ## 关键决策
 
-- D1=A：新增显式 `iam_role_applications` / role-application binding 模型。
-- D2=B：旧深链迁移到独立角色工作台，并做兼容跳转 / Tab 映射。
-- D3=B：低成本干净切换，优先服务当前 demo 与 base-portal，不为尚未接入的第三方体验过度设计。
+- D1：本版本只做前端 UI/UX 修复，不新增 DDL。
+- D2：Product Design 专用工具当前不可用，使用用户生产标注、`DESIGN.md`、v1.0.5 定稿规格和 Playwright 三视口审计作为替代设计证据。
+- D3：应用切换采用纵向 tab，并保留添加应用下拉作为次级动作。
+- D4：权限点对比保留在主界面，不降级为弹窗。
+- D5：`v1.0.6` README / CHANGELOG / package version 已按 release prep 口径补齐，但 GitHub Release、镜像上传和生产部署仍待授权，不写成已完成事实。
 
 ## 流程执行情况一览
 
 | 状态 | 步骤 | Harness 动作 | 判断 | 证据/原因 |
 |---|---:|---|---|---|
-| ✅ | 1 | Discovery / Brainstorm gate | 已完成 | 用户明确角色独立、应用多对多、权限管理首屏角色列表、应用管理移除角色管理 |
-| ✅ | 2 | Product Design planning review | 已完成 | Product Design 静态原型覆盖角色列表、组织/用户绑定、应用权限绑定和角色编辑 |
-| ✅ | 3 | Design artifact / visual target | 已完成 | Pencil 弃用；锁定 `design/prototypes/v1.0.5-permission-management/index.html` |
-| ✅ | 4 | Product Design review of selected design artifact | 已完成 | 用户确认“可以，就这么定稿吧” |
-| ✅ | 5 | gstack `/plan-eng-review` | 已完成 | 用户确认 D1=A、D2=B、D3=B；版本号锁定为 `v1.0.5` |
-| ✅ | 6 | Superpowers `writing-plans` | 已完成 | `docs/superpowers/plans/2026-06-20-feishu-iam-v1.0.5-permission-workbench.md` |
-| ✅ | 7 | Superpowers `executing-plans` / `subagent-driven-development` | 已完成 | 已完成后端 role-application 绑定、权限计算、前端角色列表、独立工作台、应用详情权限资产和兼容路由 |
-| ✅ | 8 | Superpowers `verification-before-completion` | 已完成 | `prisma:validate`、focused tests、`pnpm check`、`pnpm build` 已通过 |
-| ✅ | 9 | Browser verification | 已完成 | `output/playwright/v1.0.5-permission-workbench/browser-report.json`；无 console error、无失败请求、无响应错误 |
-| ✅ | 10 | Product Design visual QA / design review | 已完成 | `docs/design-audits/2026-06-20-permission-management-ux/v1.0.5-implementation-design-qa.md` |
-| ✅ | 11 | gstack `/qa` | 已完成 | `.gstack/qa-reports/v1.0.5-step11/report.md`；`pnpm check`、临时 PostgreSQL 迁移复跑、浏览器 QA 均通过 |
-| ✅ | 12 | gstack `/review` | 已完成 | `.gstack/review-reports/v1.0.5-step12-review.md`；发现 2 个文档一致性问题并已修复 |
-| ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/step13-git-closeout-preflight.md` |
-| ✅ | 14 | gstack `/ship` | 已完成 | commit `ed98409`；tag `v1.0.5`；GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5` |
-| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 线上运行 `feishu-iam:v1.0.5`；`/ready` ready；`/version` 返回 `1.0.5 / ed98409`；迁移和路由 smoke 通过 |
+| ✅ | 1 | Discovery / Brainstorm gate | 已完成 | 用户给出生产截图标注并要求权限管理 UI/UX 小版本 |
+| ✅ | 2 | Product Design planning review | 已完成 | `docs/design-audits/2026-06-21-permission-management-uiux/v1.0.6-product-design-audit.md` |
+| ✅ | 3 | Design artifact / visual target | 已完成 | 以生产标注和 Playwright 三视口截图作为视觉目标 |
+| ✅ | 4 | Product Design review of selected design artifact | 已完成 | P0/P1 范围已锁定，不扩大到模型和后端 |
+| ✅ | 5 | gstack `/plan-eng-review` | 已完成 | 工程边界锁定为前端布局、可访问 tab、标题层级和预览滚动 |
+| ✅ | 6 | Superpowers `writing-plans` | 已完成 | `docs/superpowers/plans/2026-06-21-feishu-iam-v1.0.6-permission-uiux.md` |
+| ✅ | 7 | Superpowers `executing-plans` | 已完成 | 已修改权限管理相关前端组件和 focused tests |
+| ✅ | 8 | Superpowers `verification-before-completion` | 已完成 | Focused tests、typecheck、lint、build、`git diff --check` 均通过 |
+| ✅ | 9 | Browser verification | 已完成 | `output/playwright/v1.0.6-permission-uiux-audit/uiux-audit.json`；5 条权限管理路径 x 3 个视口通过 |
+| ✅ | 10 | Product Design visual QA / design review | 已完成 | 生产标注项和追加发现均在截图/report 中复核；无横向溢出、无 console error、无失败请求 |
+| ✅ | 11 | gstack `/qa` | 已完成 | 本小版本执行 focused QA：权限管理路径、布局、可访问 tab、滚动边界 |
+| ✅ | 12 | gstack `/review` | 已完成 | diff 仅涉及权限管理前端、测试、计划和验证证据；未发现需继续修复的 P0/P1 |
+| ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/step13-v1.0.6-git-closeout-preflight.md`；已整理提交边界、版本文档缺口和授权动作，未 stage/commit/push |
+| ✅ | 14 | gstack `/ship` | 本地提交收口 | 已获授权 stage/commit；version、README、CHANGELOG 和 fresh verification 已补齐；未 push/tag/release/deploy |
+| ⏸️ | 15 | gstack `/land-and-deploy` | 未授权 | 需用户授权 |
 
-## 验证证据
+## 当前验证证据
 
 已通过：
 
 ```bash
-DATABASE_URL='postgresql://<user>:<password>@localhost:5432/feishu_iam' pnpm --filter @feishu-iam/api prisma:validate
+pnpm --filter @feishu-iam/admin-web test -- src/features/permissions/PermissionRoleDetailSheet.test.tsx src/features/org-browser/org-user-selector.test.tsx
+pnpm --filter @feishu-iam/api test -- test/version.controller.e2e-spec.ts
 pnpm --filter @feishu-iam/admin-web typecheck
-pnpm --filter @feishu-iam/admin-web test -- src/features/permissions/PermissionManagementView.test.tsx src/App.test.tsx
-pnpm check
-pnpm build
+pnpm --filter @feishu-iam/admin-web lint
+pnpm --filter @feishu-iam/admin-web build
+git diff --check
 ```
 
 浏览器证据：
 
-- `output/playwright/v1.0.5-permission-workbench/01-role-list.png`
-- `output/playwright/v1.0.5-permission-workbench/02-role-workbench-overview.png`
-- `output/playwright/v1.0.5-permission-workbench/03-role-workbench-subjects.png`
-- `output/playwright/v1.0.5-permission-workbench/04-role-workbench-app-permissions-compare.png`
-- `output/playwright/v1.0.5-permission-workbench/05-direct-role-without-appkey.png`
-- `output/playwright/v1.0.5-permission-workbench/06-application-permission-assets.png`
-- `output/playwright/v1.0.5-permission-workbench/browser-report.json`
-
-Step11 QA 证据：
-
-- `.gstack/qa-reports/v1.0.5-step11/report.md`
-- `.gstack/qa-reports/v1.0.5-step11/browser-report.json`
-- `.gstack/qa-reports/v1.0.5-step11/browser-qa.cjs`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/01-role-list-platform.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/02-role-list-actions.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/03-workbench-subjects.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/04-workbench-app-permissions.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/05-old-deep-links.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/06-application-permission-assets.png`
-- `.gstack/qa-reports/v1.0.5-step11/screenshots/07-application-admin-boundary.png`
-
-Step12 review 证据：
-
-- `.gstack/review-reports/v1.0.5-step12-review.md`
-- `docs/permission-model.md`
-- `README.md`
-
-Step13 preflight 证据：
-
-- `.my-harness/step13-git-closeout-preflight.md`
-
-Step14 ship 证据：
-
-- `.my-harness/step14-ship.md`
-- commit：`ed98409 feat: add permission role workbench v1.0.5`
-- tag：`v1.0.5`
-- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5`
-- `pnpm --filter @feishu-iam/admin-web test -- src/api/permission.test.ts src/features/permissions/PermissionManagementView.test.tsx`
-- `pnpm --filter @feishu-iam/api test -- test/permission-calculation.service.spec.ts`
-- `pnpm check`
-- `pnpm build`
-- `git diff --check`
-
-Step15 land-and-deploy 证据：
-
-- `.my-harness/step15-land-and-deploy.md`
-- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5`
-- 生产部署目录：`bpmt@120.24.236.92:/home/bpmt/feishu-iam`
-- 生产升级备份目录：`/home/bpmt/feishu-iam/backups/20260620-235502`
-- 生产容器：`feishu-iam-web-1` 运行 `feishu-iam:v1.0.5`
-- 生产 `/ready`：`{"status":"ready","checks":{"database":"ok"}}`
-- 生产 `/version`：`{"name":"feishu-iam-api","version":"1.0.5","commit":"ed98409","node_env":"production"}`
-- 生产迁移：`schema_versions` 包含 `1.0.5`；`iam_role_applications` 存在且包含 3 条绑定；旧 `iam_roles.application_id` 已移除。
-- 生产一致性：未绑定角色数 0；权限组 / 权限点绑定脱离 `iam_role_applications` 的记录数均为 0；两个角色-应用绑定外键存在。
-- 生产路由 smoke：`/admin/permissions`、旧 `tab=subjects` 角色 deep link、旧应用详情 `tab=roles` deep link 均返回 `200 OK`。
+- `output/playwright/v1.0.6-permission-uiux-audit/uiux-audit.json`
+- `output/playwright/v1.0.6-permission-uiux-audit/role-subjects-1440.png`
+- `output/playwright/v1.0.6-permission-uiux-audit/role-permissions-1440.png`
+- `output/playwright/v1.0.6-permission-uiux-audit/role-overview-1440.png`
 
 浏览器报告关键结果：
 
 ```json
 {
   "consoleErrors": [],
-  "requestFailures": [],
-  "responseErrors": [],
-  "hasRoleManagementTab": 0
+  "failedRequests": []
 }
 ```
 
+关键复核数据：
+
+- `组织与用户` 桌面待选区：`content-start`，高度 470px；右侧已选区高度 406px，未被异常撑开。
+- `应用权限` 当前应用：`aria-orientation="vertical"`，tab 数 2，当前应用下拉框不存在。
+- `绑定结果预览` 桌面高度 788px，包含 `lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`。
+- `权限点对比` 包含 `max-h-[420px] overflow-auto`。
+- `总览` 桌面 `角色配置工作台` 标题计数为 1，存在 `角色上下文` 和 `基础信息概览`。
+
 ## 关键制品
 
-- v1.0.5 设计说明：`docs/superpowers/specs/2026-06-20-feishu-iam-v1.0.5-permission-workbench.md`
-- v1.0.5 实施计划：`docs/superpowers/plans/2026-06-20-feishu-iam-v1.0.5-permission-workbench.md`
-- v1.0.5 SOP：`design/v1.0.5-permission-management-sop.md`
-- Product Design 静态原型：`design/prototypes/v1.0.5-permission-management/index.html`
-- Product Design 原型说明：`design/prototypes/v1.0.5-permission-management/README.md`
-- step10 设计 QA：`docs/design-audits/2026-06-20-permission-management-ux/v1.0.5-implementation-design-qa.md`
-- run 记录：`.my-harness/runs/2026-06-20-v1.0.5-permission-workbench.md`
+- v1.0.6 设计调研：`docs/design-audits/2026-06-21-permission-management-uiux/v1.0.6-product-design-audit.md`
+- v1.0.6 规格：`docs/superpowers/specs/2026-06-21-feishu-iam-v1.0.6-permission-uiux.md`
+- v1.0.6 实施计划：`docs/superpowers/plans/2026-06-21-feishu-iam-v1.0.6-permission-uiux.md`
+- v1.0.6 run：`.my-harness/runs/2026-06-21-v1.0.6-permission-uiux.md`
+- v1.0.6 step13 preflight：`.my-harness/step13-v1.0.6-git-closeout-preflight.md`
+- v1.0.6 step14 ship prep：`.my-harness/step14-v1.0.6-ship-prep.md`
+- v1.0.6 CHANGELOG：`CHANGELOG.md`
+- v1.0.6 README：`README.md`
+- v1.0.6 ship prep 会话归档：`docs/codex-sessions/2026-06-21-0301-v1.0.6-ship-prep.md`
 
 ## 下一步
 
-`v1.0.5` 的 my-harness 15 步已完成。后续如继续推进，应另起新的版本或进入独立的生产 canary / 问题修复任务。
+等待用户授权继续远端发布动作。未经授权不 push、tag、GitHub Release、上传镜像或部署。
 
 推荐提示词：
 
 ```text
-继续按 my-harness 处理 Feishu IAM 的下一个任务。当前 v1.0.5「权限管理角色配置工作台」已经完成 step1-step15、GitHub Release 和远端部署。
-
-要求：
-- 先确认新任务目标和版本号，不要重复执行 v1.0.5 step11-step15。
-- 不进入 Plan mode。
-- 不调用 AskUserQuestion、request_user_input 或任何交互式选择工具。
-- 使用 `.my-harness/status.md` 和 `.my-harness/runs/2026-06-20-v1.0.5-permission-workbench.md` 作为 v1.0.5 已完成证据。
-- 仍需避免记录或输出任何 secret、token、cookie、authorization、授权码或敏感 raw payload。
-- 如果是新版本开发，请从 my-harness step1 开始；如果是生产问题，请先做只读诊断并给出风险分级。
+请继续完成 Feishu IAM v1.0.6 的远端发布准备：我授权你在当前本地 commit 基础上执行必要的 push、tag 和 GitHub Release 创建，但不要上传镜像或 deploy，除非我另行明确授权。执行前请复核 `git status`、当前 commit、tag 是否已存在、GitHub Release 是否已存在、README/CHANGELOG 口径和敏感信息边界；执行后输出 release URL、tag、commit hash 和下一步 Step 15 land-and-deploy 所需的推荐提示词。执行完毕后，请按照 my-harness 规定的流程输出 `流程执行情况一览：` 15 步进度表，并在末尾继续给出下一步可直接复制执行的 `推荐提示词`。如果项目已经在使用 my-harness，请创建或更新 `.my-harness/` 快速索引，记录步骤状态、关键决策、证据链接、验证命令和下一步提示词。Superpowers、gstack、Product Design、Pencil 等第三方技能生成的文档必须继续保留在其规范目录中，`.my-harness/` 只保存链接和简短摘要。这个末尾提示词必须同时包含本句要求，让用户后续只需要复制末尾提示词继续推进，不需要重新询问 next action。
 ```

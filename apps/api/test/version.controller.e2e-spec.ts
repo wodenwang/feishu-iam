@@ -21,7 +21,7 @@ describe("VersionController", () => {
     await app.close();
   });
 
-  it("默认开发版本为 1.0.5-dev", async () => {
+  it("默认开发版本为 1.0.6-dev", async () => {
     const hadOriginalVersion = Object.prototype.hasOwnProperty.call(
       process.env,
       "APP_VERSION",
@@ -37,7 +37,7 @@ describe("VersionController", () => {
 
       expect(response.body).toEqual({
         name: "feishu-iam-api",
-        version: "1.0.5-dev",
+        version: "1.0.6-dev",
         commit: process.env.GIT_COMMIT ?? "local",
         node_env: process.env.NODE_ENV ?? "development",
       });

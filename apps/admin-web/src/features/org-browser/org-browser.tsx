@@ -124,7 +124,7 @@ export function OrgBrowser(props: OrgBrowserProps) {
   }
 
   return (
-    <section className="grid gap-3 rounded-md border bg-background p-4" aria-label={props.title}>
+    <section className="grid content-start gap-3 rounded-md border bg-background p-4" aria-label={props.title}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-base font-semibold">{props.title}</h3>

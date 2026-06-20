@@ -1,0 +1,484 @@
+{
+  "outDir": "/Users/wenzhewang/workspace/dev_project/feishu-iam/output/playwright/v1.0.6-permission-uiux-audit",
+  "consoleErrors": [],
+  "failedRequests": [],
+  "results": [
+    {
+      "name": "role-list",
+      "path": "/admin/permissions?appKey=base-portal",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "activeTab": null,
+      "navVisible": true,
+      "menuButtonVisible": false,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 0,
+      "contextHeading": false,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-list",
+      "path": "/admin/permissions?appKey=base-portal",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "activeTab": null,
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 0,
+      "contextHeading": false,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-list",
+      "path": "/admin/permissions?appKey=base-portal",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "activeTab": null,
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 0,
+      "contextHeading": false,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-overview",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=overview",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "activeTab": "总览",
+      "navVisible": true,
+      "menuButtonVisible": false,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": true,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-overview",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=overview",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "activeTab": "总览",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": true,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-overview",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=overview",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "activeTab": "总览",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": true,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-subjects",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=subjects",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "activeTab": "组织与用户",
+      "navVisible": true,
+      "menuButtonVisible": false,
+      "availableSubjects": {
+        "top": 394,
+        "width": 666,
+        "height": 470,
+        "text": "待选组织与用户选择部门会保存为组织主体；不会展开成该部门下所有用户。用户可以单独选择。搜索组织路径：顶层组织待选组织与用户组织和用户在同一列表中展示，保存时仍按主体类型区分。制造中心组织od-candidate-1下钻选择组织质量中心组织od-candidate-2下钻选择组织信息中心组织od-candidate-3下钻选择组织",
+        "className": "grid content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "selectedSubjects": {
+        "top": 394,
+        "width": 400,
+        "height": 406,
+        "text": "已选组织与用户部门主体和用户主体分开保存；半选和重复覆盖只影响展示说明。已选组织总总部组织顶层/总部od-root已选用户王王文哲用户顶层/总部/平台组ou-wang",
+        "className": "grid gap-3 rounded-md border bg-background p-4"
+      },
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-subjects",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=subjects",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "activeTab": "组织与用户",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": {
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "text": "待选组织与用户选择部门会保存为组织主体；不会展开成该部门下所有用户。用户可以单独选择。搜索组织路径：顶层组织当前组织暂无下级部门或用户可调整关键词，或返回上级组织继续浏览。待选组织与用户组织和用户在同一列表中展示，保存时仍按主体类型区分。当前范围暂无组织或用户",
+        "className": "grid content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "selectedSubjects": {
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "text": "已选组织与用户部门主体和用户主体分开保存；半选和重复覆盖只影响展示说明。已选组织总总部组织顶层/总部od-root已选用户王王文哲用户顶层/总部/平台组ou-wang",
+        "className": "grid gap-3 rounded-md border bg-background p-4"
+      },
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-subjects",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=subjects",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "activeTab": "组织与用户",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": {
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "text": "待选组织与用户选择部门会保存为组织主体；不会展开成该部门下所有用户。用户可以单独选择。搜索组织路径：顶层组织当前组织暂无下级部门或用户可调整关键词，或返回上级组织继续浏览。待选组织与用户组织和用户在同一列表中展示，保存时仍按主体类型区分。当前范围暂无组织或用户",
+        "className": "grid content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "selectedSubjects": {
+        "top": 0,
+        "width": 0,
+        "height": 0,
+        "text": "已选组织与用户部门主体和用户主体分开保存；半选和重复覆盖只影响展示说明。已选组织总总部组织顶层/总部od-root已选用户王王文哲用户顶层/总部/平台组ou-wang",
+        "className": "grid gap-3 rounded-md border bg-background p-4"
+      },
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-permissions",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=permissions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "activeTab": "应用权限",
+      "navVisible": true,
+      "menuButtonVisible": false,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": {
+        "top": 394,
+        "width": 746,
+        "height": 544,
+        "text": "应用权限先选择当前应用，再绑定该应用下的权限组并核对权限点差异。当前应用基础门户base-portal启用已绑定飞书IAM的SSODEMOfeishu-iam-sso-demo启用已绑定添加应用所有应用均已绑定添加应用搜索权限组SSODemo启用base-portal.demo.embeddedBasePortal菜单查看权限点新窗口恢复入口启用base-portal.demo.new-tab新窗口恢复入口查看权限点",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "permissionPreview": {
+        "top": 394,
+        "width": 320,
+        "height": 788,
+        "text": "绑定结果预览新增0个，移除0个。保存时替换当前角色在当前应用下的应用权限，并写入操作审计。保存应用权限最终权限点汇总直接绑定和权限组带来的有效权限点。搜索最终权限点共16个，当前显示16个。权限点0直接+权限组base-portal.demo.permission-0测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点1直接+权限组base-portal.demo.permission-1测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点10权限组base-portal.demo.permission-10测试权限点来源权限组：SSODemo/ba",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+      },
+      "permissionCompareScroller": {
+        "top": 1217,
+        "width": 286,
+        "height": 420,
+        "text": "权限点SSODemo新窗口恢复入口权限点0base-portal.demo.permission-0包含-权限点1base-portal.demo.permission-1包含-权限点10base-portal.demo.permission-10包含包含权限点11base-portal.demo.permission-11包含包含权限点12base-portal.demo.permission-12-包含权限点13base-portal.demo.permission-13-包含权限点14base-portal.demo.permission-14-包含权限点15base-portal.demo.permission-15-包含权",
+        "className": "max-h-[420px] overflow-auto rounded-md border"
+      },
+      "currentAppCombobox": false,
+      "currentAppTablist": {
+        "ariaOrientation": "vertical",
+        "className": "grid content-start gap-2",
+        "tabCount": 2
+      },
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-permissions",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=permissions",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "activeTab": "应用权限",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": {
+        "top": 446,
+        "width": 670,
+        "height": 764,
+        "text": "应用权限先选择当前应用，再绑定该应用下的权限组并核对权限点差异。当前应用基础门户base-portal启用已绑定飞书IAM的SSODEMOfeishu-iam-sso-demo启用已绑定添加应用所有应用均已绑定添加应用搜索权限组SSODemo启用base-portal.demo.embeddedBasePortal菜单查看权限点新窗口恢复入口启用base-portal.demo.new-tab新窗口恢复入口查看权限点",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "permissionPreview": {
+        "top": 1226,
+        "width": 670,
+        "height": 1224,
+        "text": "绑定结果预览新增0个，移除0个。保存时替换当前角色在当前应用下的应用权限，并写入操作审计。保存应用权限最终权限点汇总直接绑定和权限组带来的有效权限点。搜索最终权限点共16个，当前显示16个。权限点0直接+权限组base-portal.demo.permission-0测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点1直接+权限组base-portal.demo.permission-1测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点10权限组base-portal.demo.permission-10测试权限点来源权限组：SSODemo/ba",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+      },
+      "permissionCompareScroller": {
+        "top": 2013,
+        "width": 636,
+        "height": 420,
+        "text": "权限点SSODemo新窗口恢复入口权限点0base-portal.demo.permission-0包含-权限点1base-portal.demo.permission-1包含-权限点10base-portal.demo.permission-10包含包含权限点11base-portal.demo.permission-11包含包含权限点12base-portal.demo.permission-12-包含权限点13base-portal.demo.permission-13-包含权限点14base-portal.demo.permission-14-包含权限点15base-portal.demo.permission-15-包含权",
+        "className": "max-h-[420px] overflow-auto rounded-md border"
+      },
+      "currentAppCombobox": false,
+      "currentAppTablist": {
+        "ariaOrientation": "vertical",
+        "className": "grid content-start gap-2",
+        "tabCount": 2
+      },
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-permissions",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=permissions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "activeTab": "应用权限",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": {
+        "top": 466,
+        "width": 292,
+        "height": 829,
+        "text": "应用权限先选择当前应用，再绑定该应用下的权限组并核对权限点差异。当前应用基础门户base-portal启用已绑定飞书IAM的SSODEMOfeishu-iam-sso-demo启用已绑定添加应用所有应用均已绑定添加应用搜索权限组SSODemo启用base-portal.demo.embeddedBasePortal菜单查看权限点新窗口恢复入口启用base-portal.demo.new-tab新窗口恢复入口查看权限点",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4"
+      },
+      "permissionPreview": {
+        "top": 1311,
+        "width": 292,
+        "height": 1260,
+        "text": "绑定结果预览新增0个，移除0个。保存时替换当前角色在当前应用下的应用权限，并写入操作审计。保存应用权限最终权限点汇总直接绑定和权限组带来的有效权限点。搜索最终权限点共16个，当前显示16个。权限点0直接+权限组base-portal.demo.permission-0测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点1直接+权限组base-portal.demo.permission-1测试权限点来源权限组：SSODemo/base-portal.demo.embedded权限点10权限组base-portal.demo.permission-10测试权限点来源权限组：SSODemo/ba",
+        "className": "grid min-w-0 content-start gap-3 rounded-md border bg-background p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+      },
+      "permissionCompareScroller": {
+        "top": 2134,
+        "width": 258,
+        "height": 420,
+        "text": "权限点SSODemo新窗口恢复入口权限点0base-portal.demo.permission-0包含-权限点1base-portal.demo.permission-1包含-权限点10base-portal.demo.permission-10包含包含权限点11base-portal.demo.permission-11包含包含权限点12base-portal.demo.permission-12-包含权限点13base-portal.demo.permission-13-包含权限点14base-portal.demo.permission-14-包含权限点15base-portal.demo.permission-15-包含权",
+        "className": "max-h-[420px] overflow-auto rounded-md border"
+      },
+      "currentAppCombobox": false,
+      "currentAppTablist": {
+        "ariaOrientation": "vertical",
+        "className": "grid content-start gap-2",
+        "tabCount": 2
+      },
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-base",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=base",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "activeTab": "基础信息",
+      "navVisible": true,
+      "menuButtonVisible": false,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-base",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=base",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "activeTab": "基础信息",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    },
+    {
+      "name": "role-base",
+      "path": "/admin/permissions/roles/role-1?appKey=base-portal&from=%2Fadmin%2Fpermissions&tab=base",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "activeTab": "基础信息",
+      "navVisible": false,
+      "menuButtonVisible": true,
+      "availableSubjects": null,
+      "selectedSubjects": null,
+      "availableGroups": null,
+      "permissionPreview": null,
+      "permissionCompareScroller": null,
+      "currentAppCombobox": false,
+      "currentAppTablist": null,
+      "workbenchHeadingCount": 1,
+      "contextHeading": true,
+      "overviewHeading": false,
+      "overflowingSections": [],
+      "failures": []
+    }
+  ]
+}

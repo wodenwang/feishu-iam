@@ -16,6 +16,7 @@ import { StatusBadge } from "../../components/admin/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Tabs, TabsContent, TabsTrigger } from "../../components/ui/tabs";
+import { cn } from "../../lib/utils";
 import { OrgUserSelector } from "../org-browser/org-user-selector";
 import { readBoundPermissionGroupIds } from "./permission-columns";
 import { formatRoleStatus } from "./permission-form";
@@ -166,7 +167,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
       open={props.open}
       presentation={props.presentation}
       sizeStorageKey="feishu-iam:permissions-role-detail-sheet-size"
-      title="角色配置工作台"
+      title={props.presentation === "page" ? "角色上下文" : "角色配置工作台"}
     >
       {role ? (
         <div className="grid gap-4">
@@ -297,10 +298,11 @@ function OverviewTab(props: {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <section className="grid gap-3 rounded-md border bg-background p-4">
         <div>
-          <h3 className="text-base font-semibold">{props.role.name}</h3>
+          <h3 className="text-base font-semibold">基础信息概览</h3>
           <p className="mt-1 text-sm text-muted-foreground">{props.role.description ?? "暂无描述"}</p>
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          <InfoItem label="角色名称" value={props.role.name} />
           <InfoItem label="角色 key" value={props.role.key} code />
           <InfoItem label="状态" value={formatRoleStatus(props.role.status)} />
           <InfoItem label="创建时间" value={formatDateTime(props.role.createdAt)} />
@@ -388,121 +390,160 @@ function GroupsTab(props: {
     );
   }
 
+  const boundApplications = buildBoundApplications(props.role, props.applications, props.appKey);
+  const currentAppKey = props.appKey ?? boundApplications[0]?.appKey ?? "";
+
   return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="grid min-w-0 gap-3 rounded-md border bg-background p-4" aria-label="可选权限组">
+    <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid min-w-0 content-start gap-3 rounded-md border bg-background p-4" aria-label="可选权限组">
         <div>
           <h3 className="text-base font-semibold">应用权限</h3>
           <p className="text-sm text-muted-foreground">先选择当前应用，再绑定该应用下的权限组并核对权限点差异。</p>
         </div>
-        <div className="grid gap-1.5 text-sm font-medium">
-          <span>当前应用</span>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <select
+
+        <div className="grid min-w-0 content-start gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="grid content-start gap-2 text-sm font-medium">
+            <span>当前应用</span>
+            <div
               aria-label="当前应用"
-              className="flex h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              disabled={props.disabled || !props.onAppKeyChange}
-              value={props.appKey ?? ""}
-              onChange={(event) => {
-                props.onAppKeyChange?.(event.target.value);
-              }}
+              aria-orientation="vertical"
+              className="grid content-start gap-2"
+              role="tablist"
             >
-              {(props.role.applications ?? []).map((application) => (
-                <option key={application.appKey} value={application.appKey}>
-                  {application.name} / {application.appKey}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="grid gap-1.5 text-sm font-medium">
-          <span>添加应用</span>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <select
-              aria-label="选择要添加的应用"
-              className="flex h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              disabled={!props.canBindApplications || props.disabled || props.bindingPending || unboundApplications.length === 0}
-              value={props.bindingAppKey}
-              onChange={(event) => {
-                props.onBindingAppKeyChange(event.target.value);
-              }}
-            >
-              {unboundApplications.length === 0 ? (
-                <option value="">所有应用均已绑定</option>
-              ) : null}
-              {unboundApplications.map((application) => (
-                <option key={application.appKey} value={application.appKey}>
-                  {application.name} / {application.appKey}
-                </option>
-              ))}
-            </select>
-            <Button
-              disabled={!canSubmitApplicationBinding}
-              size="sm"
-              title={props.canBindApplications ? "将当前角色绑定到选中的应用" : "只有平台管理员可以为角色添加应用"}
-              type="button"
-              variant="outline"
-              onClick={props.onBindApplication}
-            >
-              {props.bindingPending ? "添加中..." : "添加应用"}
-            </Button>
-          </div>
-        </div>
-        <label className="grid gap-1.5 text-sm font-medium">
-          <span>搜索权限组</span>
-          <Input
-            aria-label="搜索权限组"
-            disabled={props.disabled}
-            placeholder="搜索权限组名称 / key / 描述"
-            value={props.groupQuery}
-            onChange={(event) => { props.onGroupQueryChange(event.target.value); }}
-          />
-        </label>
-        <div className="grid max-h-[520px] gap-2 overflow-y-auto rounded-md border p-2">
-          {props.filteredGroups.length === 0 ? (
-            <p className="px-2 py-10 text-center text-sm text-muted-foreground">暂无可绑定权限组</p>
-          ) : (
-            props.filteredGroups.map((group) => (
-              <label className="flex min-w-0 items-start gap-3 rounded-md border bg-background p-3 text-sm" key={group.id}>
-                <input
-                  className="mt-1"
-                  checked={props.selectedGroupIds.includes(group.id)}
-                  disabled={props.disabled || (group.status !== "active" && !props.selectedGroupIds.includes(group.id))}
-                  type="checkbox"
-                  onChange={() => { props.onToggleGroup(group.id); }}
-                />
-                <span className="grid min-w-0 flex-1 gap-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <strong>{group.name}</strong>
-                    <StatusBadge tone={group.status === "active" ? "success" : "muted"}>{formatRoleStatus(group.status)}</StatusBadge>
-                  </span>
-                  <code className="break-all text-xs text-muted-foreground">{group.key}</code>
-                  <span className="text-xs text-muted-foreground">{group.description ?? "暂无描述"}</span>
-                  <Button
-                    className="mt-1 w-fit px-2"
-                    size="sm"
+              {boundApplications.map((application) => {
+                const selected = application.appKey === currentAppKey;
+                return (
+                  <button
+                    aria-selected={selected}
+                    className={cn(
+                      "grid min-w-0 gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      selected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "bg-background text-muted-foreground hover:border-primary/40 hover:bg-muted/50 hover:text-foreground",
+                    )}
+                    disabled={props.disabled || !props.onAppKeyChange}
+                    key={application.appKey}
+                    role="tab"
+                    title={`切换到 ${application.name}`}
                     type="button"
-                    variant="ghost"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      toggleExpandedGroup(group.id);
+                    onClick={() => {
+                      if (!selected) {
+                        props.onAppKeyChange?.(application.appKey);
+                      }
                     }}
                   >
-                    {expandedGroupIds.includes(group.id) ? "收起权限点" : "查看权限点"}
-                  </Button>
-                  {expandedGroupIds.includes(group.id) ? (
-                    <PermissionPointMiniList
-                      emptyText="该权限组暂无权限点"
-                      permissionPoints={group.permissionPoints ?? []}
-                    />
+                    <span className="truncate font-medium">{application.name}</span>
+                    <code className="break-all text-xs">{application.appKey}</code>
+                    <span className="flex flex-wrap gap-1.5">
+                      <StatusBadge tone={application.status === "active" ? "success" : "muted"}>
+                        {formatRoleStatus(application.status)}
+                      </StatusBadge>
+                      <StatusBadge tone={application.bindingStatus === "active" ? "success" : "muted"}>
+                        {application.bindingStatus === "active" ? "已绑定" : "绑定停用"}
+                      </StatusBadge>
+                    </span>
+                  </button>
+                );
+              })}
+              {boundApplications.length === 0 ? (
+                <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+                  当前角色暂无已绑定应用。
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid min-w-0 content-start gap-3">
+            <div className="grid gap-1.5 text-sm font-medium">
+              <span>添加应用</span>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  aria-label="选择要添加的应用"
+                  className="flex h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled={!props.canBindApplications || props.disabled || props.bindingPending || unboundApplications.length === 0}
+                  value={props.bindingAppKey}
+                  onChange={(event) => {
+                    props.onBindingAppKeyChange(event.target.value);
+                  }}
+                >
+                  {unboundApplications.length === 0 ? (
+                    <option value="">所有应用均已绑定</option>
                   ) : null}
-                </span>
-              </label>
-            ))
-          )}
+                  {unboundApplications.map((application) => (
+                    <option key={application.appKey} value={application.appKey}>
+                      {application.name} / {application.appKey}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  disabled={!canSubmitApplicationBinding}
+                  size="sm"
+                  title={props.canBindApplications ? "将当前角色绑定到选中的应用" : "只有平台管理员可以为角色添加应用"}
+                  type="button"
+                  variant="outline"
+                  onClick={props.onBindApplication}
+                >
+                  {props.bindingPending ? "添加中..." : "添加应用"}
+                </Button>
+              </div>
+            </div>
+            <label className="grid gap-1.5 text-sm font-medium">
+              <span>搜索权限组</span>
+              <Input
+                aria-label="搜索权限组"
+                disabled={props.disabled}
+                placeholder="搜索权限组名称 / key / 描述"
+                value={props.groupQuery}
+                onChange={(event) => { props.onGroupQueryChange(event.target.value); }}
+              />
+            </label>
+            <div className="grid max-h-[520px] gap-2 overflow-y-auto rounded-md border p-2">
+              {props.filteredGroups.length === 0 ? (
+                <p className="px-2 py-10 text-center text-sm text-muted-foreground">暂无可绑定权限组</p>
+              ) : (
+                props.filteredGroups.map((group) => (
+                  <label className="flex min-w-0 items-start gap-3 rounded-md border bg-background p-3 text-sm" key={group.id}>
+                    <input
+                      className="mt-1"
+                      checked={props.selectedGroupIds.includes(group.id)}
+                      disabled={props.disabled || (group.status !== "active" && !props.selectedGroupIds.includes(group.id))}
+                      type="checkbox"
+                      onChange={() => { props.onToggleGroup(group.id); }}
+                    />
+                    <span className="grid min-w-0 flex-1 gap-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <strong>{group.name}</strong>
+                        <StatusBadge tone={group.status === "active" ? "success" : "muted"}>{formatRoleStatus(group.status)}</StatusBadge>
+                      </span>
+                      <code className="break-all text-xs text-muted-foreground">{group.key}</code>
+                      <span className="text-xs text-muted-foreground">{group.description ?? "暂无描述"}</span>
+                      <Button
+                        className="mt-1 w-fit px-2"
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          toggleExpandedGroup(group.id);
+                        }}
+                      >
+                        {expandedGroupIds.includes(group.id) ? "收起权限点" : "查看权限点"}
+                      </Button>
+                      {expandedGroupIds.includes(group.id) ? (
+                        <PermissionPointMiniList
+                          emptyText="该权限组暂无权限点"
+                          permissionPoints={group.permissionPoints ?? []}
+                        />
+                      ) : null}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </section>
-      <section className="grid min-w-0 content-start gap-3 rounded-md border bg-background p-4" aria-label="绑定结果预览">
+      <section className="grid min-w-0 content-start gap-3 rounded-md border bg-background p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" aria-label="绑定结果预览">
         <h3 className="text-base font-semibold">绑定结果预览</h3>
         <DiffNote text={`新增 ${String(props.groupDiff.added.length)} 个，移除 ${String(props.groupDiff.removed.length)} 个。`} />
         <p className="text-sm text-muted-foreground">
@@ -550,6 +591,52 @@ type EffectivePermissionPoint = PermissionPoint & {
   sourceGroups: PermissionGroup[];
   sourceLabel: "直接绑定" | "权限组" | "直接 + 权限组";
 };
+
+type BoundApplicationTab = {
+  appKey: string;
+  bindingStatus: Application["status"];
+  name: string;
+  status: Application["status"];
+};
+
+function buildBoundApplications(
+  role: IamRole,
+  applications: Application[],
+  currentAppKey?: string,
+): BoundApplicationTab[] {
+  const applicationsByKey = new Map(applications.map((application) => [application.appKey, application]));
+  const bound = role.applications && role.applications.length > 0
+    ? role.applications
+    : [
+        {
+          appKey: role.appKey,
+          bindingStatus: "active" as const,
+          name: role.appKey,
+          status: "active" as const,
+        },
+      ];
+  const tabs = bound.map((application) => {
+    const fullApplication = applicationsByKey.get(application.appKey);
+    return {
+      appKey: application.appKey,
+      bindingStatus: application.bindingStatus,
+      name: fullApplication?.name ?? application.name,
+      status: fullApplication?.status ?? application.status,
+    };
+  });
+
+  if (currentAppKey && !tabs.some((application) => application.appKey === currentAppKey)) {
+    const currentApplication = applicationsByKey.get(currentAppKey);
+    tabs.unshift({
+      appKey: currentAppKey,
+      bindingStatus: "active",
+      name: currentApplication?.name ?? currentAppKey,
+      status: currentApplication?.status ?? "active",
+    });
+  }
+
+  return tabs;
+}
 
 function PermissionPointMiniList(props: { permissionPoints: PermissionPoint[]; emptyText: string }) {
   if (props.permissionPoints.length === 0) {
@@ -632,7 +719,7 @@ function PermissionPointComparePanel(props: {
           选择权限组后展示权限点对比。
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <div className="max-h-[420px] overflow-auto rounded-md border">
           <table className="min-w-full text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground">
               <tr>

@@ -112,7 +112,7 @@ export function OrgUserSelector(props: OrgUserSelectorProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="hidden gap-4 xl:grid xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
+      <div className="hidden items-start gap-4 xl:grid xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
         {desktopBrowser}
         <div className="grid content-start gap-4">
           {selected}

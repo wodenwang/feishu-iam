@@ -1,5 +1,38 @@
 # 变更日志
 
+## v1.0.6 - 权限管理 UI/UX 小版本
+
+`v1.0.6` 是 `v1.0.5` 后的权限管理 UI/UX 小版本，范围锁定角色配置工作台的布局、应用切换、标题层级和滚动边界。本版本不新增 DDL，不改变权限模型、权限计算、管理员 session 或生产部署拓扑。
+
+### 修复与调整
+
+- 修复 `组织与用户` 工作区待选组织与用户区域被右侧已选区撑高的问题，桌面双栏保持各自内容高度。
+- 修复 `应用权限` 工作区可选权限组区域被右侧绑定结果预览撑高的问题，左侧配置区不再出现异常大空白。
+- 将当前应用切换从下拉选择改为纵向 tab，管理员可以直接比较每个已绑定应用的状态、`app_key` 和绑定情况。
+- 优化角色配置工作台标题层级，避免页面标题和卡片标题重复造成信息噪声。
+- 为 `绑定结果预览` 和权限点对比设置稳定滚动边界，避免长权限组或权限点列表挤压主配置区。
+
+### 安全与边界
+
+- 本版本只改管理后台前端 UI/UX，不新增数据库迁移。
+- 不改变角色与应用多对多绑定模型，不改变权限组、权限点或用户/组织主体绑定语义。
+- 不恢复权限管理中的角色元数据管理；角色元数据仍按 `v1.0.5` 后的边界归属角色列表和配置工作台。
+- 不记录或展示 secret、token、cookie、authorization、授权码、token hash、state hash 或 raw payload。
+
+### 本地验收
+
+- 已通过 focused 前端测试：`pnpm --filter @feishu-iam/admin-web test -- src/features/permissions/PermissionRoleDetailSheet.test.tsx src/features/org-browser/org-user-selector.test.tsx`。
+- 已通过前端类型检查：`pnpm --filter @feishu-iam/admin-web typecheck`。
+- 已通过前端 lint：`pnpm --filter @feishu-iam/admin-web lint`。
+- 已通过前端生产构建：`pnpm --filter @feishu-iam/admin-web build`；Vite chunk size warning 为既有构建提示。
+- 已通过 ship preflight 格式检查：`git diff --check`。
+- 已完成 Playwright 浏览器审计：`output/playwright/v1.0.6-permission-uiux-audit/uiux-audit.json`，覆盖 5 条权限管理路径 x 3 个视口，结果为 `results=15`、`consoleErrors=0`、`failedRequests=0`、`failures=0`。
+
+### 发布状态
+
+- 当前已完成本地 `/ship` prep：版本号、README、CHANGELOG、计划、my-harness 索引和验证证据已补齐。
+- 尚未执行 stage、commit、push、tag、GitHub Release、上传镜像或生产 deploy；这些动作需要用户另行授权。
+
 ## v1.0.5 - 权限管理角色配置工作台
 
 `v1.0.5` 是 `v1.0.4` 后的权限管理流程重构版本，范围锁定角色独立化、角色与应用多对多绑定、权限管理首屏角色列表、独立角色配置工作台、组织 / 用户同树绑定、应用权限绑定和权限点对比。

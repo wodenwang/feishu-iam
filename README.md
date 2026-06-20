@@ -131,10 +131,12 @@ GitHub Release：
 https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.4
 ```
 
-`v1.0.4` 是 `v1.0.3` 之后的第三方 iframe 接入补丁版本，新增 OAuth `prompt=none` silent SSO、应用级 allowlist 和严格 frame policy。本版本本地候选已通过以下检查：
+`v1.0.4` 是 `v1.0.3` 之后的第三方 iframe 接入补丁版本，新增 OAuth `prompt=none` silent SSO、应用级 allowlist 和严格 frame policy。本版本已通过以下检查：
 
-- `pnpm check` 通过：类型检查、lint、后端 41 个测试文件 471 个用例、前端 17 个测试文件 160 个用例通过。
+- `pnpm check` 通过：类型检查、lint、后端 41 个测试文件 475 个用例、前端 17 个测试文件 160 个用例通过。
 - `pnpm build` 通过：后端 NestJS 构建完成，前端 Vite 生产构建完成。
+- 生产健康检查通过：`/ready` 返回 ready，`/version` 返回 `1.0.4 / fa7c261`。
+- 生产 silent SSO no-cookie 验证通过：SSO Demo active callback 收到 `error=login_required` 和原始 `state`，未渲染 IAM 登录页。
 - 后台未登录统一问题提示页可展示 request id 和飞书登录入口。
 - `/admin/auth/login` 可进入飞书登录跳转。
 - `/oauth/feishu/callback` 和兼容旧路径 `/api/auth/feishu/callback` 都返回 Feishu IAM 业务错误页或业务跳转，不再返回框架默认 `Cannot GET ...`。
@@ -172,7 +174,7 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.4
 - developer API token 仍不长期明文保存；需要完整提示词时通过轮换生成，旧 token 立即失效。
 - 不新增 DDL，不改变 OAuth 协议、管理员 session、权限模型、redirect_uri 精确匹配规则或部署拓扑。
 - GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.3`。
-- 生产部署：`bpmt@120.24.236.92:/home/bpmt/feishu-iam` 已运行 `feishu-iam:v1.0.3`，`/ready` ready，`/version` 返回 `1.0.3 / 53f94b0`。
+- 生产部署：`bpmt@120.24.236.92:/home/bpmt/feishu-iam` 曾运行 `feishu-iam:v1.0.3`，`/ready` ready，`/version` 返回 `1.0.3 / 53f94b0`。
 
 #### v1.0.2
 

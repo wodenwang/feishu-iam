@@ -20,9 +20,9 @@
 | ⏭️ | 10 | Product Design visual QA / design review | 不适用 | 本版本无新 UI |
 | ✅ | 11 | gstack `/qa` | 已完成 | API 41 个测试文件 475 个用例、Admin Web 17 个测试文件 160 个用例通过 |
 | ✅ | 12 | gstack `/review` | 已完成 | diff 范围锁定 OAuth silent SSO、应用策略、frame policy、部署和文档 |
-| ⏳ | 13 | Git closeout / `/ship` preflight | 待完成 | 待测试、文档和会话归档完成 |
-| ⏳ | 14 | gstack `/ship` | 待完成 | 需要 commit、tag、GitHub Release |
-| ⏳ | 15 | gstack `/land-and-deploy` | 待完成 | 需要构建镜像、远端升级和生产验证 |
+| ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | 工作区干净，commit、tag 和 release 已完成 |
+| ✅ | 14 | gstack `/ship` | 已完成 | `main` 已推送，GitHub Release `v1.0.4` 已创建 |
+| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 远端运行 `feishu-iam:v1.0.4`，`/ready` 和 `/version` 验证通过，silent SSO no-cookie canary 返回 `login_required` |
 
 ## 关键制品
 
@@ -32,4 +32,4 @@
 
 ## 下一步
 
-完成 commit、release、镜像构建、远端升级和生产验证后更新最终状态。
+本轮已完成 release、部署和生产验证。下一步由 SSO Demo 项目消费 `prompt=none` 接口并在 iframe 内完成已登录态实测。

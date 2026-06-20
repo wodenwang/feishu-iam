@@ -88,7 +88,7 @@ SSO Demo 可在 iframe 初始化阶段构造：
 GET https://feishu-iam.riversoft.com.cn/oauth/authorize
   ?response_type=code
   &client_id=<client_id>
-  &redirect_uri=https%3A%2F%2Ffeishu-iam-sso-demo.riversoft.com.cn%2F
+  &redirect_uri=https%3A%2F%2Ffeishu-iam-sso-demo.riversoft.com.cn%2Foauth%2Fcallback
   &state=<csrf_state>
   &scope=openid%20profile%20permissions
   &prompt=none

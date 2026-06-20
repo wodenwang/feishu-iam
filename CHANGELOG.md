@@ -30,6 +30,15 @@
 - 已通过完整检查：`pnpm check`，API 41 个测试文件 475 个用例通过，Admin Web 17 个测试文件 160 个用例通过。
 - 已通过生产构建：`pnpm build`，后端 NestJS 构建完成，前端 Vite 生产构建完成；Vite chunk size warning 为既有构建提示。
 
+### 线上验收
+
+- 已创建 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.4`。
+- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地加载镜像 ID 为 `sha256:e0b09ba6ca4790c97f6331f703fca50327b74c7cd2f772809ee518b5f9b2d260`，线上运行 `feishu-iam:v1.0.4`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260620-112445`。
+- 生产健康检查通过：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`/version` 返回 `1.0.4 / fa7c261`。
+- 生产迁移验证通过：`schema_versions` 包含 `1.0.4`，`feishu-iam-sso-demo` 已启用 silent SSO，允许 origin 为 `https://feishu-iam-sso-demo.riversoft.com.cn`。
+- 生产 frame policy 验证通过：普通 `/oauth/authorize` 错误页返回 `X-Frame-Options: DENY` 和 `Content-Security-Policy: frame-ancestors 'none'`。
+- 生产 silent SSO no-cookie 验证通过：使用 SSO Demo active callback `https://feishu-iam-sso-demo.riversoft.com.cn/oauth/callback` 请求 `/oauth/authorize?prompt=none` 返回 302 到 SSO Demo，并携带 `error=login_required` 与原始 `state`，不渲染 IAM 登录页。
+
 ## v1.0.3 - Base Portal 接入包与完整提示词收敛
 
 `v1.0.3` 是 `v1.0.2` 后的第三方接入体验收敛版本，范围锁定 Base Portal 接入包、完整提示词主流程、secret 按需轮换、接入预检和 iframe 无感 SSO 验收说明。本版本不新增 DDL，不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限或长期明文保存 developer API token。

@@ -9,6 +9,8 @@ export type Application = {
   description?: string | null;
   ownerUserId?: string | null;
   status: EntityStatus;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
   createdAt: string;
   updatedAt: string;
   integrationSummary?: ApplicationIntegrationSummary;
@@ -278,6 +280,8 @@ export async function createApplication(input: {
   name: string;
   description?: string;
   ownerUserId?: string;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
   redirectUris: string[];
 }): Promise<ApplicationOnboardingPackage> {
   return readJson<ApplicationOnboardingPackage>("/api/v1/admin/applications", {
@@ -293,6 +297,8 @@ export async function updateApplication(
     name?: string;
     description?: string | null;
     ownerUserId?: string | null;
+    silentSsoEnabled?: boolean;
+    silentSsoAllowedOrigins?: string[];
   },
 ): Promise<Application> {
   return readJson<Application>(

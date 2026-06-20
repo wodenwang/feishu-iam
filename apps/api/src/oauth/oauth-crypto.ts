@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
-export function createOauthSecret(prefix: 'biac' | 'biad' | 'biat' | 'bics' | 'bils'): string {
+export function createOauthSecret(prefix: 'biac' | 'biad' | 'biat' | 'bics' | 'bils' | 'biss'): string {
   return `${prefix}_${randomBytes(32).toString('base64url')}`;
 }
 

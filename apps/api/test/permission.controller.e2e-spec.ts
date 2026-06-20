@@ -284,7 +284,9 @@ describe('权限平台 API', () => {
         ownerUserId: null,
         status: 'active',
         createdAt: new Date('2026-05-17T01:00:00.000Z'),
-        updatedAt: new Date('2026-05-17T01:00:00.000Z')
+        updatedAt: new Date('2026-05-17T01:00:00.000Z'),
+        silentSsoEnabled: false,
+        silentSsoAllowedOrigins: []
       }
     ]);
     applicationService.getApplicationByKey.mockResolvedValue({ id: 'app-1', appKey: 'finance' } as never);

@@ -120,6 +120,8 @@ export async function createApplication(input: {
   name: string;
   description?: string;
   ownerUserId?: string;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 }): Promise<Application> {
   return readJson<Application>('/api/v1/admin/applications', {
     method: 'POST',
@@ -130,7 +132,13 @@ export async function createApplication(input: {
 
 export async function updateApplication(
   appKey: string,
-  input: { name?: string; description?: string | null; ownerUserId?: string | null }
+  input: {
+    name?: string;
+    description?: string | null;
+    ownerUserId?: string | null;
+    silentSsoEnabled?: boolean;
+    silentSsoAllowedOrigins?: string[];
+  }
 ): Promise<Application> {
   return readJson<Application>(applicationPath(appKey), {
     method: 'PATCH',

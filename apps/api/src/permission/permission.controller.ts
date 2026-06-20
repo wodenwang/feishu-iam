@@ -15,12 +15,16 @@ type CreateApplicationBody = {
   name: string;
   description?: string;
   ownerUserId?: string;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 type UpdateApplicationBody = {
   name?: string;
   description?: string | null;
   ownerUserId?: string | null;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 type CreateCatalogBody = {

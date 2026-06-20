@@ -64,12 +64,16 @@ type CreateApplicationBody = {
   description?: string;
   ownerUserId?: string;
   redirectUris?: string[];
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 type UpdateApplicationBody = {
   name?: string;
   description?: string | null;
   ownerUserId?: string | null;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 type CreateRoleBody = {
@@ -175,6 +179,8 @@ export class AdminPermissionController {
         name: input.name,
         description: input.description,
         ownerUserId: input.ownerUserId,
+        silentSsoEnabled: input.silentSsoEnabled,
+        silentSsoAllowedOrigins: input.silentSsoAllowedOrigins,
         redirectUris: input.redirectUris,
       },
       buildPermissionAuditContext(request, context),
@@ -725,6 +731,20 @@ function readOptionalStringArray(
   return readStringArray(values, code, message);
 }
 
+function readOptionalBoolean(
+  value: unknown,
+  code: string,
+  message: string,
+): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    throw new PermissionDomainError(code, message, 422);
+  }
+  return value;
+}
+
 function readObjectBody(
   body: unknown,
   code: string,
@@ -765,6 +785,16 @@ function readCreateApplicationBody(body: unknown): CreateApplicationBody {
       "APPLICATION_BODY_INVALID",
       "应用请求体不合法",
     ),
+    silentSsoEnabled: readOptionalBoolean(
+      input.silentSsoEnabled,
+      "APPLICATION_BODY_INVALID",
+      "应用请求体不合法",
+    ),
+    silentSsoAllowedOrigins: readOptionalStringArray(
+      input.silentSsoAllowedOrigins,
+      "APPLICATION_BODY_INVALID",
+      "应用请求体不合法",
+    ),
   };
 }
 
@@ -784,6 +814,16 @@ function readUpdateApplicationBody(body: unknown): UpdateApplicationBody {
     ...readOptionalNullableBodyStrings(
       input,
       ["description", "ownerUserId"],
+      "APPLICATION_BODY_INVALID",
+      "应用请求体不合法",
+    ),
+    silentSsoEnabled: readOptionalBoolean(
+      input.silentSsoEnabled,
+      "APPLICATION_BODY_INVALID",
+      "应用请求体不合法",
+    ),
+    silentSsoAllowedOrigins: readOptionalStringArray(
+      input.silentSsoAllowedOrigins,
       "APPLICATION_BODY_INVALID",
       "应用请求体不合法",
     ),

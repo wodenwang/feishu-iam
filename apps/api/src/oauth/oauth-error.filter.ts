@@ -22,6 +22,8 @@ export class OauthErrorFilter implements ExceptionFilter {
     const stableError = toStableOauthError(exception);
 
     if (shouldRenderHtmlError(request.path)) {
+      response.setHeader('X-Frame-Options', 'DENY');
+      response.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
       response.status(stableError.status).type('html').send(renderHtmlError(stableError.message, requestId));
       return;
     }

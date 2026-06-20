@@ -69,6 +69,7 @@ model FeishuUser {
   userDepartments    FeishuUserDepartment[]
   authorizationCodes OauthAuthorizationCode[]
   accessTokens       OauthAccessToken[]
+  oauthBrowserSessions OauthBrowserSession[]
   adminUsers         AdminUser[]
 
   @@index([isActive])
@@ -131,6 +132,8 @@ model Application {
   description             String?
   ownerUserId             String?                          @map("owner_user_id")
   status                  String                           @default("active")
+  silentSsoEnabled        Boolean                          @default(false) @map("silent_sso_enabled")
+  silentSsoAllowedOrigins String[]                          @default([]) @map("silent_sso_allowed_origins")
   createdAt               DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   permissionGroups        PermissionGroup[]
@@ -252,6 +255,21 @@ model OauthLoginState {
 
   @@index([expiresAt])
   @@map("oauth_login_states")
+}
+
+model OauthBrowserSession {
+  id           String     @id
+  sessionHash  String     @unique @map("session_hash")
+  feishuUserId String     @map("feishu_user_id")
+  expiresAt    DateTime   @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime?  @map("revoked_at") @db.Timestamptz(6)
+  lastUsedAt   DateTime?  @map("last_used_at") @db.Timestamptz(6)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  feishuUser   FeishuUser @relation(fields: [feishuUserId], references: [userId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([feishuUserId])
+  @@index([expiresAt])
+  @@map("oauth_browser_sessions")
 }
 
 model OauthAuthorizationCode {

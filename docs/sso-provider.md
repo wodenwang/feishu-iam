@@ -91,6 +91,7 @@ FEISHU_ADMIN_OAUTH_REDIRECT_URI=https://iam.example.internal/admin/auth/feishu/c
 | 参数 | 说明 |
 | --- | --- |
 | `scope` | 默认 `openid profile permissions`，当前版本只支持该最小范围的子集 |
+| `prompt` | 可选。传 `none` 时进入 silent SSO：不渲染 IAM 登录页，只允许通过已有 IAM SSO session 直接签发 code 或回跳稳定错误 |
 
 示例：
 
@@ -105,6 +106,55 @@ https://iam.example.internal/oauth/authorize?response_type=code&client_id=<clien
 - `state` 必须由第三方应用生成、保存并在回调时校验。
 - 不要把 `client_secret` 放进 authorize URL。
 
+## silent SSO / `prompt=none`
+
+`v1.0.4` 起，第三方应用可以在 iframe 嵌入场景中使用标准语义的 `prompt=none` 探测 Feishu IAM 是否已有可用 IAM SSO session。该路径不会展示 IAM 登录页，不要求 Base Portal 传递 token、cookie、authorization code 或 secret。
+
+示例：
+
+```text
+https://iam.example.internal/oauth/authorize?response_type=code&client_id=<client_id>&redirect_uri=https%3A%2F%2Fapp.example.internal%2Fauth%2Fcallback&state=<csrf_state>&scope=openid%20profile%20permissions&prompt=none
+```
+
+成功条件：
+
+- `client_id` 存在且启用。
+- 应用启用 `silent_sso_enabled`。
+- `redirect_uri` 仍与后台登记值完全一致。
+- `redirect_uri` 的 origin 在应用 `silent_sso_allowed_origins` 中。
+- 浏览器请求携带有效的 Feishu IAM SSO session cookie。
+- 飞书用户仍处于可登录状态。
+
+成功响应仍是 302 回第三方 `redirect_uri`：
+
+```text
+https://app.example.internal/auth/callback?code=<authorization_code>&state=<csrf_state>
+```
+
+失败但 `redirect_uri` 已通过精确匹配时，Feishu IAM 不渲染登录页，直接 302 回第三方 `redirect_uri`：
+
+```text
+https://app.example.internal/auth/callback?error=login_required&state=<csrf_state>
+```
+
+第三方应用应处理以下 `error`：
+
+| error | 含义 | 建议处理 |
+| --- | --- | --- |
+| `login_required` | 当前浏览器没有可用 IAM SSO session，或 session 已失效 | iframe 内结束 silent 探测，在顶层窗口或新标签页发起普通 OAuth 登录 |
+| `interaction_required` | 当前策略需要用户交互确认 | 本版本预留；按需要交互处理 |
+| `unauthorized_client` | 应用未启用 silent SSO，或回调 origin 未允许 | 联系 Feishu IAM 管理员检查应用配置 |
+| `invalid_request` | 请求参数不合法 | 修正参数后重试 |
+
+当前生产预置：
+
+```text
+app_key: feishu-iam-sso-demo
+silent_sso_allowed_origin: https://feishu-iam-sso-demo.riversoft.com.cn
+```
+
+Base Portal 生产地址 `https://base-portal.riversoft.com.cn` 只是 iframe 宿主和入口编排方，不作为 OAuth credential 代理；第三方应用仍只与 Feishu IAM 进行 OAuth code flow。
+
 ## 回调处理
 
 Feishu IAM 登录成功后会回调第三方应用登记的 `redirect_uri`：
@@ -116,6 +166,8 @@ https://app.example.internal/auth/callback?code=<authorization_code>&state=<csrf
 第三方应用必须先校验 `state`，再由后端使用 `code` 换取 token。授权码只能使用一次，且有效期较短。
 
 如果授权流程失败，Feishu IAM `v0.4.0` 会展示统一错误页，提示用户返回原系统重新发起登录，并展示 `request id` 供排查使用。当前版本不会把 authorize 错误回调到第三方 `redirect_uri`；第三方应用只需要处理成功回调中的 `code` 和 `state`。
+
+`prompt=none` 是例外：当 `redirect_uri` 已通过精确匹配时，Feishu IAM 会把 silent SSO 的稳定错误回调给第三方应用，让第三方区分 `login_required`、`interaction_required` 和 `unauthorized_client`。如果 `redirect_uri` 不可信，Feishu IAM 不会回跳该地址，只会返回安全错误页。
 
 ## /oauth/token
 
@@ -271,6 +323,7 @@ JSON API 错误结构：
 | `OAUTH_APPLICATION_DISABLED` | 403 | 应用已禁用 | 联系 Feishu IAM 管理员 |
 | `OAUTH_REDIRECT_URI_UNTRUSTED` | 400 | 回调地址未登记或已禁用 | 确认 `redirect_uri` 与后台登记值完全一致 |
 | `OAUTH_STATE_REQUIRED` | 400 | 缺少 `state` | 第三方应用必须生成并传入 `state` |
+| `OAUTH_PROMPT_UNSUPPORTED` | 400 | `prompt` 不支持 | 当前只支持不传或传 `none` |
 | `OAUTH_LOGIN_STATE_INVALID` | 400 | 飞书登录状态失效 | 重新发起授权 |
 | `OAUTH_FEISHU_CLIENT_ERROR` | 500 | 飞书登录服务暂时不可用 | 让用户稍后重试，必要时查看安全事件 |
 | `OAUTH_USER_NOT_ACTIVE` | 403 | 飞书用户不可登录 | 确认用户未禁用、未离职、未删除 |
@@ -292,6 +345,7 @@ JSON API 错误结构：
 - 不要在代码、文档、日志、审计记录、工单、截图或聊天消息中记录或提交 `developer_api_token`。
 - 不要记录或提交 authorization code、access token、Feishu secret、cookie 或密码。
 - authorize URL 中禁止携带 `client_secret`。
+- `prompt=none` 只能用于 silent SSO 探测，不能替代普通交互登录；失败时第三方应用必须按 `error` 分支处理。
 - `/oauth/token`、`/oauth/revoke` 必须由第三方应用后端调用。
 - 回调地址必须精确匹配。配置 HTTP 就只允许该精确 HTTP 回调，配置 HTTPS 就只允许该精确 HTTPS 回调。
 - `state` 必须高强度随机、单次登录会话绑定，并在回调时校验。
@@ -306,6 +360,7 @@ JSON API 错误结构：
 - [ ] 已确认 `redirect_uri` 与 Feishu IAM 后台登记值完全一致。
 - [ ] 已实现 `state` 生成、存储和回调校验。
 - [ ] 已确认 authorize URL 不包含 `client_secret`。
+- [ ] 如使用 iframe silent SSO，已传 `prompt=none`，并处理 `login_required`、`interaction_required`、`unauthorized_client` 和 `invalid_request`。
 - [ ] 已确认 `/oauth/token` 只在服务端调用。
 - [ ] 已确认 `client_secret`、authorization code、access token 和 Feishu secret 不进入仓库。
 - [ ] 已确认 access token 只作为 Bearer token 调用 Feishu IAM。

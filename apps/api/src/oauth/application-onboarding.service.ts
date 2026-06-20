@@ -27,7 +27,9 @@ export class ApplicationOnboardingService {
         appKey: input.appKey,
         name: input.name,
         description: input.description,
-        ownerUserId: input.ownerUserId
+        ownerUserId: input.ownerUserId,
+        silentSsoEnabled: input.silentSsoEnabled,
+        silentSsoAllowedOrigins: input.silentSsoAllowedOrigins
       }, tx, auditContext);
 
       const redirectUris = [];

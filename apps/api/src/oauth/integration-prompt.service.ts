@@ -95,5 +95,7 @@ function buildScenarioPreset(input: IntegrationPromptInput): string {
   - base-portal.admin.sync-permissions
 - Portal 菜单权限点必须通过 developer API 同步到 Feishu IAM，key 必须以 base-portal. 开头。
 - iframe 无感验收必须覆盖：顶层访问、Portal 内嵌访问、未登录自动跳转、已登录无额外交互、失败页只复制 request id。
-- 如果第三方页面不允许 iframe 或 cookie 无法在嵌入场景生效，应把该菜单切换为 new_tab 或让第三方系统调整 frame/cookie 策略；Feishu IAM 本版本不实现 silent SSO、refresh token 或 iframe 专用协议。`;
+- iframe 内优先使用 /oauth/authorize?prompt=none 探测 Feishu IAM SSO session：成功时 302 回 redirect_uri 并携带 code/state；未登录时 302 回 redirect_uri 并携带 error=login_required/state；策略不允许时返回 error=unauthorized_client/state。
+- prompt=none 不能渲染 IAM 登录页，不能要求 Base Portal 传 token、cookie、authorization code 或 secret；普通交互登录应在顶层窗口或 new_tab 发起。
+- 如果第三方页面不允许 iframe 或浏览器 cookie 策略导致第三方自身 session 不可用，应把该菜单切换为 new_tab 或让第三方系统调整 frame/cookie 策略；Feishu IAM 本版本不实现 refresh token 或 iframe 专用 token 代理协议。`;
 }

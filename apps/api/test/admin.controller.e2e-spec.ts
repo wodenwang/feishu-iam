@@ -442,6 +442,8 @@ describe("Admin auth controller", () => {
           status: "active",
           createdAt: new Date("2026-05-17T01:00:00.000Z"),
           updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+          silentSsoEnabled: false,
+          silentSsoAllowedOrigins: [],
         },
         {
           id: "app-hr",
@@ -452,6 +454,8 @@ describe("Admin auth controller", () => {
           status: "active",
           createdAt: new Date("2026-05-17T01:00:00.000Z"),
           updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+          silentSsoEnabled: false,
+          silentSsoAllowedOrigins: [],
         },
       ],
       total: 2,
@@ -467,6 +471,8 @@ describe("Admin auth controller", () => {
       status: "active",
       createdAt: new Date("2026-05-17T01:00:00.000Z"),
       updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+      silentSsoEnabled: false,
+      silentSsoAllowedOrigins: [],
     });
     onboarding.createOnboardingPackage.mockResolvedValue({
       application: {
@@ -478,6 +484,8 @@ describe("Admin auth controller", () => {
         status: "active",
         createdAt: new Date("2026-05-17T01:00:00.000Z"),
         updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+        silentSsoEnabled: false,
+        silentSsoAllowedOrigins: [],
       },
       redirectUris: [
         {
@@ -523,6 +531,8 @@ describe("Admin auth controller", () => {
       status: "active",
       createdAt: new Date("2026-05-17T01:00:00.000Z"),
       updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+      silentSsoEnabled: false,
+      silentSsoAllowedOrigins: [],
     });
     applications.setApplicationStatus.mockImplementation((appKey, status) =>
       Promise.resolve({
@@ -534,6 +544,8 @@ describe("Admin auth controller", () => {
         status,
         createdAt: new Date("2026-05-17T01:00:00.000Z"),
         updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+        silentSsoEnabled: false,
+        silentSsoAllowedOrigins: [],
       }),
     );
     applications.getApplicationByKey.mockImplementation(async (appKey) => {
@@ -2778,6 +2790,8 @@ describe("Admin auth controller", () => {
       status: "active",
       createdAt: new Date("2026-05-17T01:00:00.000Z"),
       updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+      silentSsoEnabled: false,
+      silentSsoAllowedOrigins: [],
     });
     const httpServer = app.getHttpServer() as SupertestApp;
 
@@ -3119,6 +3133,8 @@ describe("Admin auth controller", () => {
             status: "active",
             createdAt: new Date("2026-05-17T01:00:00.000Z"),
             updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+            silentSsoEnabled: false,
+            silentSsoAllowedOrigins: [],
           },
         ],
         total: 1,
@@ -3188,6 +3204,8 @@ describe("Admin auth controller", () => {
           status: "disabled",
           createdAt: new Date("2026-05-17T01:00:00.000Z"),
           updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+          silentSsoEnabled: false,
+          silentSsoAllowedOrigins: [],
         },
       ],
       total: 1,

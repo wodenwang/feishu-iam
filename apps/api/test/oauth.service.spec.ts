@@ -36,6 +36,11 @@ function makePrismaDelegates() {
       update: vi.fn(),
       updateMany: vi.fn()
     },
+    oauthBrowserSession: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn()
+    },
     feishuUser: {
       findUnique: vi.fn()
     },
@@ -77,7 +82,9 @@ function mockActiveClientWithSecret(prisma: Pick<PrismaMock, 'applicationClient'
     application: {
       id: 'app-finance',
       appKey: 'finance',
-      status: 'active'
+      status: 'active',
+      silentSsoEnabled: false,
+      silentSsoAllowedOrigins: []
     },
     environment: {
       id: 'env-dev',
@@ -497,6 +504,137 @@ describe('OauthService', () => {
     }
   });
 
+  it('startAuthorization prompt=none 且没有 IAM SSO session 时回跳 login_required', async () => {
+    const originalRedirectUri = process.env.FEISHU_OAUTH_REDIRECT_URI;
+    delete process.env.FEISHU_OAUTH_REDIRECT_URI;
+    const prisma = makePrisma();
+    mockActiveClient(prisma);
+    prisma.applicationClient.findUnique.mockResolvedValue({
+      id: 'client-row-1',
+      applicationId: 'app-finance',
+      environmentId: null,
+      clientId: 'bic_finance_dev',
+      status: 'active',
+      application: {
+        id: 'app-finance',
+        appKey: 'finance',
+        status: 'active',
+        silentSsoEnabled: true,
+        silentSsoAllowedOrigins: ['https://finance.example.com']
+      },
+      environment: null
+    });
+
+    try {
+      const result = await makeService(prisma).startAuthorization(
+        {
+          responseType: 'code',
+          clientId: 'bic_finance_dev',
+          redirectUri: 'https://finance.example.com/callback',
+          state: 'third-party-state',
+          prompt: 'none'
+        },
+        auditContext
+      );
+
+      const redirectUrl = new URL(result.redirectTo);
+      expect(redirectUrl.origin + redirectUrl.pathname).toBe('https://finance.example.com/callback');
+      expect(redirectUrl.searchParams.get('error')).toBe('login_required');
+      expect(redirectUrl.searchParams.get('state')).toBe('third-party-state');
+      expect(prisma.oauthLoginState.create).not.toHaveBeenCalled();
+      expect(prisma.tx.oauthAuthorizationCode.create).not.toHaveBeenCalled();
+    } finally {
+      if (originalRedirectUri === undefined) {
+        delete process.env.FEISHU_OAUTH_REDIRECT_URI;
+      } else {
+        process.env.FEISHU_OAUTH_REDIRECT_URI = originalRedirectUri;
+      }
+    }
+  });
+
+  it('startAuthorization prompt=none 且应用未启用 silent SSO 时回跳 unauthorized_client', async () => {
+    const prisma = makePrisma();
+    mockActiveClient(prisma);
+
+    const result = await makeService(prisma).startAuthorization(
+      {
+        responseType: 'code',
+        clientId: 'bic_finance_dev',
+        redirectUri: 'https://finance.example.com/callback',
+        state: 'third-party-state',
+        prompt: 'none',
+        ssoSessionSecret: 'biss_existing'
+      },
+      auditContext
+    );
+
+    const redirectUrl = new URL(result.redirectTo);
+    expect(redirectUrl.searchParams.get('error')).toBe('unauthorized_client');
+    expect(redirectUrl.searchParams.get('state')).toBe('third-party-state');
+    expect(prisma.oauthBrowserSession.findUnique).not.toHaveBeenCalled();
+    expect(prisma.tx.oauthAuthorizationCode.create).not.toHaveBeenCalled();
+  });
+
+  it('startAuthorization prompt=none 且 IAM SSO session 有效时直接签发授权码', async () => {
+    const prisma = makePrisma();
+    mockActiveClient(prisma);
+    prisma.applicationClient.findUnique.mockResolvedValue({
+      id: 'client-row-1',
+      applicationId: 'app-finance',
+      environmentId: null,
+      clientId: 'bic_finance_dev',
+      status: 'active',
+      application: {
+        id: 'app-finance',
+        appKey: 'finance',
+        status: 'active',
+        silentSsoEnabled: true,
+        silentSsoAllowedOrigins: ['https://finance.example.com']
+      },
+      environment: null
+    });
+    prisma.oauthBrowserSession.findUnique.mockResolvedValue({
+      id: 'browser-session-1',
+      sessionHash: hashOauthSecret('biss_existing'),
+      feishuUserId: 'u-active',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+      feishuUser: {
+        userId: 'u-active',
+        isActive: true,
+        isDeleted: false
+      }
+    });
+    prisma.tx.oauthBrowserSession.update.mockResolvedValue({});
+    prisma.tx.oauthAuthorizationCode.create.mockResolvedValue({});
+    const feishuClient = makeFeishuClient();
+
+    const result = await makeService(prisma, feishuClient).startAuthorization(
+      {
+        responseType: 'code',
+        clientId: 'bic_finance_dev',
+        redirectUri: 'https://finance.example.com/callback',
+        state: 'third-party-state',
+        prompt: 'none',
+        ssoSessionSecret: 'biss_existing'
+      },
+      auditContext
+    );
+
+    const redirectUrl = new URL(result.redirectTo);
+    const authorizationCode = redirectUrl.searchParams.get('code') ?? '';
+    expect(redirectUrl.origin + redirectUrl.pathname).toBe('https://finance.example.com/callback');
+    expect(authorizationCode).toMatch(/^biac_/);
+    expect(redirectUrl.searchParams.get('state')).toBe('third-party-state');
+    expect(result.redirectTo).not.toContain('accounts.feishu.cn');
+    expect(prisma.oauthLoginState.create).not.toHaveBeenCalled();
+    expect(prisma.oauthBrowserSession.findUnique).toHaveBeenCalledWith({
+      where: { sessionHash: hashOauthSecret('biss_existing') },
+      include: { feishuUser: true }
+    });
+    expect(JSON.stringify(prisma.tx.oauthAuthorizationCode.create.mock.calls)).not.toContain(authorizationCode);
+  });
+
   it('startAuthorization 失败事件写入失败时保留原始 OAuth 错误', async () => {
     const securityEvents = makeSecurityEvents();
     securityEvents.record.mockRejectedValue(new Error('security event unavailable'));
@@ -550,7 +688,7 @@ describe('OauthService', () => {
       isActive: true,
       isDeleted: false
     });
-    prisma.oauthAuthorizationCode.create.mockImplementation((args: { data: { codeHash: string } }) => {
+    prisma.tx.oauthAuthorizationCode.create.mockImplementation((args: { data: { codeHash: string } }) => {
       storedCodeHash = args.data.codeHash;
       return Promise.resolve(args.data);
     });
@@ -620,7 +758,7 @@ describe('OauthService', () => {
       isActive: true,
       isDeleted: false
     });
-    prisma.oauthAuthorizationCode.create.mockResolvedValue({});
+    prisma.tx.oauthAuthorizationCode.create.mockResolvedValue({});
     prisma.oauthLoginState.updateMany.mockResolvedValue({ count: 1 });
     feishuClient.exchangeOAuthCode = vi.fn<FeishuClient['exchangeOAuthCode']>().mockResolvedValue({
       open_id: 'ou-active',
@@ -642,7 +780,7 @@ describe('OauthService', () => {
         openId: 'ou-active'
       }
     });
-    expect(prisma.oauthAuthorizationCode.create).toHaveBeenCalledWith(
+    expect(prisma.tx.oauthAuthorizationCode.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           feishuUserId: 'u-active'
@@ -683,7 +821,7 @@ describe('OauthService', () => {
       isActive: true,
       isDeleted: false
     });
-    prisma.oauthAuthorizationCode.create.mockResolvedValue({});
+    prisma.tx.oauthAuthorizationCode.create.mockResolvedValue({});
     prisma.oauthLoginState.updateMany.mockResolvedValue({ count: 1 });
     feishuClient.exchangeOAuthCode = vi.fn<FeishuClient['exchangeOAuthCode']>().mockResolvedValue({
       sub: 'ou-active',
@@ -727,7 +865,7 @@ describe('OauthService', () => {
     });
 
     expect(exchangeOAuthCode).not.toHaveBeenCalled();
-    expect(prisma.oauthAuthorizationCode.create).not.toHaveBeenCalled();
+    expect(prisma.tx.oauthAuthorizationCode.create).not.toHaveBeenCalled();
   });
 
   it('handleFeishuCallback 失败事件写入失败时保留原始 OAuth 错误', async () => {
@@ -857,7 +995,7 @@ describe('OauthService', () => {
       status: 403
     });
 
-    expect(prisma.oauthAuthorizationCode.create).not.toHaveBeenCalled();
+    expect(prisma.tx.oauthAuthorizationCode.create).not.toHaveBeenCalled();
     expect(securityEvents.record).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'oauth_login',
@@ -901,7 +1039,7 @@ describe('OauthService', () => {
       isActive: true,
       isDeleted: false
     });
-    prisma.oauthAuthorizationCode.create.mockResolvedValue({});
+    prisma.tx.oauthAuthorizationCode.create.mockResolvedValue({});
     securityEvents.record.mockRejectedValue(new Error('security event unavailable'));
 
     const result = await makeService(prisma, makeFeishuClient(), securityEvents).handleFeishuCallback(
@@ -916,7 +1054,7 @@ describe('OauthService', () => {
     expect(callbackUrl.origin + callbackUrl.pathname).toBe('https://finance.example.com/callback');
     expect(callbackUrl.searchParams.get('code')).toMatch(/^biac_/);
     expect(callbackUrl.searchParams.get('state')).toBe('third-party-state');
-    expect(prisma.oauthAuthorizationCode.create).toHaveBeenCalledTimes(1);
+    expect(prisma.tx.oauthAuthorizationCode.create).toHaveBeenCalledTimes(1);
   });
 
   it('code 和 state 明文不会写入 hash 字段', async () => {
@@ -967,7 +1105,7 @@ describe('OauthService', () => {
       isDeleted: false
     });
     prisma.oauthLoginState.updateMany.mockResolvedValue({ count: 1 });
-    prisma.oauthAuthorizationCode.create.mockResolvedValue({});
+    prisma.tx.oauthAuthorizationCode.create.mockResolvedValue({});
 
     const handled = await service.handleFeishuCallback(
       {
@@ -979,7 +1117,7 @@ describe('OauthService', () => {
     const authorizationCode = new URL(handled.redirectTo).searchParams.get('code') ?? '';
     const persisted = JSON.stringify({
       loginState: prisma.oauthLoginState.create.mock.calls,
-      authorizationCode: prisma.oauthAuthorizationCode.create.mock.calls
+      authorizationCode: prisma.tx.oauthAuthorizationCode.create.mock.calls
     });
     expect(persisted).not.toContain(internalState);
     expect(persisted).not.toContain(authorizationCode);

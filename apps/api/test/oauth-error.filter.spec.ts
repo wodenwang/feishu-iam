@@ -8,6 +8,7 @@ type JsonBody = unknown;
 
 type MockResponse = {
   json: ReturnType<typeof vi.fn<(body: JsonBody) => void>>;
+  setHeader: ReturnType<typeof vi.fn<(name: string, value: string) => void>>;
   send: ReturnType<typeof vi.fn<(body: string) => void>>;
   type: ReturnType<typeof vi.fn<(contentType: string) => MockResponse>>;
   status: ReturnType<typeof vi.fn<(statusCode: number) => MockResponse>>;
@@ -16,6 +17,7 @@ type MockResponse = {
 function makeHost(requestId?: string, path = '/api/v1/platform/applications/finance/environments') {
   const response: MockResponse = {
     json: vi.fn<(body: JsonBody) => void>(),
+    setHeader: vi.fn<(name: string, value: string) => void>(),
     send: vi.fn<(body: string) => void>(),
     type: vi.fn<(contentType: string) => MockResponse>(),
     status: vi.fn<(statusCode: number) => MockResponse>()

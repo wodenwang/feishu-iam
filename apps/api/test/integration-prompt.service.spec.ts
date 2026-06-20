@@ -51,7 +51,9 @@ describe('IntegrationPromptService', () => {
     expect(prompt).toContain('base-portal.menu.<menu_key>.open');
     expect(prompt).toContain('iframe、immersive_iframe 或 new_tab');
     expect(prompt).toContain('iframe 无感验收');
-    expect(prompt).toContain('不实现 silent SSO、refresh token 或 iframe 专用协议');
+    expect(prompt).toContain('/oauth/authorize?prompt=none');
+    expect(prompt).toContain('error=login_required');
+    expect(prompt).toContain('不实现 refresh token 或 iframe 专用 token 代理协议');
     expect(prompt).toContain('client_secret: bics_base_secret');
     expect(prompt).toContain('developer_api_token: biad_base_token');
   });

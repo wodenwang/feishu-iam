@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { FEISHU_CLIENT, type FeishuClient } from '../feishu/feishu-client';
 import type { FeishuOAuthUserIdentity } from '../feishu/feishu-oauth.types';
 import { FeishuClientError } from '../feishu/feishu.types';
@@ -24,6 +25,8 @@ type StartAuthorizationInput = {
   redirectUri?: string;
   state?: string;
   scope?: string;
+  prompt?: string;
+  ssoSessionSecret?: string | null;
 };
 
 type FeishuCallbackInput = {
@@ -39,6 +42,7 @@ const DEFAULT_SCOPE = 'openid profile permissions';
 const ALLOWED_SCOPES = ['openid', 'profile', 'permissions'] as const;
 const LOGIN_STATE_TTL_MS = 10 * 60 * 1000;
 const AUTHORIZATION_CODE_TTL_MS = 5 * 60 * 1000;
+const OAUTH_BROWSER_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const ACCESS_TOKEN_TTL_SECONDS = 7200;
 const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_SECONDS * 1000;
 const SUPPORTED_FEISHU_OAUTH_CALLBACK_PATHS = ['/oauth/feishu/callback', '/api/auth/feishu/callback'] as const;
@@ -63,7 +67,11 @@ type OauthClientWithContext = {
   clientId: string;
   clientSecretHash: string;
   status: string;
-  application?: { status: string } | null;
+  application?: {
+    status: string;
+    silentSsoEnabled?: boolean;
+    silentSsoAllowedOrigins?: string[];
+  } | null;
 };
 
 @Injectable()
@@ -82,7 +90,7 @@ export class OauthService {
     context: OauthAuditContext
   ): Promise<RedirectResult> {
     try {
-      return await this.doStartAuthorization(input);
+      return await this.doStartAuthorization(input, context);
     } catch (error) {
       await this.recordFailure('oauth_authorize', error, context);
       throw error;
@@ -92,7 +100,7 @@ export class OauthService {
   async handleFeishuCallback(
     input: FeishuCallbackInput,
     context: OauthAuditContext
-  ): Promise<RedirectResult> {
+  ): Promise<RedirectResult & { ssoSessionSecret: string; ssoSessionMaxAgeMs: number }> {
     try {
       const result = await this.doHandleFeishuCallback(input);
       await this.recordSecurityEventBestEffort({
@@ -107,7 +115,9 @@ export class OauthService {
         requestId: context.requestId
       });
       return {
-        redirectTo: result.redirectTo
+        redirectTo: result.redirectTo,
+        ssoSessionSecret: result.ssoSessionSecret,
+        ssoSessionMaxAgeMs: result.ssoSessionMaxAgeMs
       };
     } catch (error) {
       await this.recordFailure('oauth_login', error, context);
@@ -353,7 +363,10 @@ export class OauthService {
     }
   }
 
-  private async doStartAuthorization(input: StartAuthorizationInput): Promise<RedirectResult> {
+  private async doStartAuthorization(input: StartAuthorizationInput, context: OauthAuditContext): Promise<RedirectResult> {
+    if (input.prompt !== undefined && input.prompt !== 'none') {
+      throw new OauthDomainError('OAUTH_PROMPT_UNSUPPORTED', 'prompt 只支持 none', 400);
+    }
     if (input.responseType !== 'code') {
       throw new OauthDomainError('OAUTH_RESPONSE_TYPE_UNSUPPORTED', 'response_type 只支持 code', 400);
     }
@@ -391,9 +404,20 @@ export class OauthService {
       throw new OauthDomainError('OAUTH_REDIRECT_URI_UNTRUSTED', 'redirect_uri 未登记或已禁用', 400);
     }
 
+    const requestedScope = normalizeScope(input.scope);
+    if (input.prompt === 'none') {
+      return this.startSilentAuthorization({
+        client,
+        redirectUri: input.redirectUri,
+        requestedScope,
+        externalState: input.state,
+        ssoSessionSecret: input.ssoSessionSecret ?? null,
+        auditContext: context
+      });
+    }
+
     const feishuRedirectUri = normalizeFeishuRedirectUri(process.env.FEISHU_OAUTH_REDIRECT_URI);
 
-    const requestedScope = normalizeScope(input.scope);
     const internalState = createOauthSecret('bils');
     await this.prisma.oauthLoginState.create({
       data: {
@@ -417,7 +441,15 @@ export class OauthService {
 
   private async doHandleFeishuCallback(
     input: FeishuCallbackInput
-  ): Promise<RedirectResult & { applicationId: string; clientId: string; feishuUserId: string }> {
+  ): Promise<
+    RedirectResult & {
+      applicationId: string;
+      clientId: string;
+      feishuUserId: string;
+      ssoSessionSecret: string;
+      ssoSessionMaxAgeMs: number;
+    }
+  > {
     if (!input.code) {
       throw new OauthDomainError('OAUTH_FEISHU_CODE_REQUIRED', '飞书回调缺少 code', 400);
     }
@@ -468,31 +500,192 @@ export class OauthService {
       throw new OauthDomainError('OAUTH_USER_NOT_ACTIVE', '当前飞书用户不可登录', 403);
     }
 
-    const authorizationCode = createOauthSecret('biac');
-    await this.prisma.oauthAuthorizationCode.create({
-      data: {
-        id: randomUUID(),
-        codeHash: hashOauthSecret(authorizationCode),
-        applicationId: loginState.client.applicationId,
-        environmentId: loginState.client.environmentId ?? null,
-        clientId: loginState.clientId,
-        redirectUri: loginState.redirectUri,
-        feishuUserId: feishuUser.userId,
-        scope: loginState.requestedScope,
-        state: loginState.externalState,
-        expiresAt: new Date(Date.now() + AUTHORIZATION_CODE_TTL_MS)
-      }
+    const ssoSessionSecret = createOauthSecret('biss');
+    const redirectTo = await this.prisma.$transaction(async (tx) => {
+      await tx.oauthBrowserSession.create({
+        data: {
+          id: randomUUID(),
+          sessionHash: hashOauthSecret(ssoSessionSecret),
+          feishuUserId: feishuUser.userId,
+          expiresAt: new Date(Date.now() + OAUTH_BROWSER_SESSION_TTL_MS)
+        }
+      });
+      return this.issueAuthorizationCode(
+        {
+          applicationId: loginState.client.applicationId,
+          environmentId: loginState.client.environmentId ?? null,
+          clientId: loginState.clientId,
+          redirectUri: loginState.redirectUri,
+          feishuUserId: feishuUser.userId,
+          scope: loginState.requestedScope,
+          externalState: loginState.externalState
+        },
+        tx
+      );
     });
-    const redirectUrl = new URL(loginState.redirectUri);
-    redirectUrl.searchParams.set('code', authorizationCode);
-    redirectUrl.searchParams.set('state', loginState.externalState);
 
     return {
-      redirectTo: redirectUrl.toString(),
+      redirectTo,
+      ssoSessionSecret,
+      ssoSessionMaxAgeMs: OAUTH_BROWSER_SESSION_TTL_MS,
       applicationId: loginState.client.applicationId,
       clientId: loginState.clientId,
       feishuUserId: feishuUser.userId
     };
+  }
+
+  private async startSilentAuthorization(input: {
+    client: {
+      applicationId: string;
+      environmentId: string | null;
+      clientId: string;
+      application?: {
+        silentSsoEnabled?: boolean;
+        silentSsoAllowedOrigins?: string[];
+      } | null;
+    };
+    redirectUri: string;
+    requestedScope: string;
+    externalState: string;
+    ssoSessionSecret: string | null;
+    auditContext: OauthAuditContext;
+  }): Promise<RedirectResult> {
+    if (!input.client.application?.silentSsoEnabled) {
+      await this.recordSilentAuthorizationFailure(input, 'unauthorized_client');
+      return {
+        redirectTo: buildOauthErrorRedirect(input.redirectUri, 'unauthorized_client', input.externalState)
+      };
+    }
+
+    if (!isSilentSsoOriginAllowed(input.redirectUri, input.client.application.silentSsoAllowedOrigins ?? [])) {
+      await this.recordSilentAuthorizationFailure(input, 'unauthorized_client');
+      return {
+        redirectTo: buildOauthErrorRedirect(input.redirectUri, 'unauthorized_client', input.externalState)
+      };
+    }
+
+    if (!input.ssoSessionSecret) {
+      await this.recordSilentAuthorizationFailure(input, 'login_required');
+      return {
+        redirectTo: buildOauthErrorRedirect(input.redirectUri, 'login_required', input.externalState)
+      };
+    }
+
+    const session = await this.prisma.oauthBrowserSession.findUnique({
+      where: {
+        sessionHash: hashOauthSecret(input.ssoSessionSecret)
+      },
+      include: {
+        feishuUser: true
+      }
+    });
+    if (
+      !session ||
+      session.revokedAt ||
+      session.expiresAt <= new Date() ||
+      !session.feishuUser.isActive ||
+      session.feishuUser.isDeleted
+    ) {
+      await this.recordSilentAuthorizationFailure(input, 'login_required');
+      return {
+        redirectTo: buildOauthErrorRedirect(input.redirectUri, 'login_required', input.externalState)
+      };
+    }
+
+    const redirectTo = await this.prisma.$transaction(async (tx) => {
+      await tx.oauthBrowserSession.update({
+        where: {
+          sessionHash: hashOauthSecret(input.ssoSessionSecret as string)
+        },
+        data: {
+          lastUsedAt: new Date()
+        }
+      });
+      return this.issueAuthorizationCode(
+        {
+          applicationId: input.client.applicationId,
+          environmentId: input.client.environmentId ?? null,
+          clientId: input.client.clientId,
+          redirectUri: input.redirectUri,
+          feishuUserId: session.feishuUserId,
+          scope: input.requestedScope,
+          externalState: input.externalState
+        },
+        tx
+      );
+    });
+
+    await this.recordSecurityEventBestEffort({
+      eventType: 'oauth_silent_authorize',
+      applicationId: input.client.applicationId,
+      clientId: input.client.clientId,
+      feishuUserId: session.feishuUserId,
+      result: 'success',
+      summary: 'silent SSO 已使用 IAM 登录态发放授权码',
+      ip: input.auditContext.ip,
+      userAgent: input.auditContext.userAgent,
+      requestId: input.auditContext.requestId
+    });
+
+    return {
+      redirectTo
+    };
+  }
+
+  private async recordSilentAuthorizationFailure(
+    input: {
+      client: {
+        applicationId: string;
+        clientId: string;
+      };
+      auditContext: OauthAuditContext;
+    },
+    reasonCode: 'login_required' | 'interaction_required' | 'unauthorized_client'
+  ): Promise<void> {
+    await this.recordSecurityEventBestEffort({
+      eventType: 'oauth_silent_authorize',
+      applicationId: input.client.applicationId,
+      clientId: input.client.clientId,
+      result: 'failed',
+      reasonCode,
+      summary: `silent SSO 未签发授权码：${reasonCode}`,
+      ip: input.auditContext.ip,
+      userAgent: input.auditContext.userAgent,
+      requestId: input.auditContext.requestId
+    });
+  }
+
+  private async issueAuthorizationCode(
+    input: {
+      applicationId: string;
+      environmentId: string | null;
+      clientId: string;
+      redirectUri: string;
+      feishuUserId: string;
+      scope: string;
+      externalState: string;
+    },
+    tx: Pick<Prisma.TransactionClient, 'oauthAuthorizationCode'>
+  ): Promise<string> {
+    const authorizationCode = createOauthSecret('biac');
+    await tx.oauthAuthorizationCode.create({
+      data: {
+        id: randomUUID(),
+        codeHash: hashOauthSecret(authorizationCode),
+        applicationId: input.applicationId,
+        environmentId: input.environmentId,
+        clientId: input.clientId,
+        redirectUri: input.redirectUri,
+        feishuUserId: input.feishuUserId,
+        scope: input.scope,
+        state: input.externalState,
+        expiresAt: new Date(Date.now() + AUTHORIZATION_CODE_TTL_MS)
+      }
+    });
+    const redirectUrl = new URL(input.redirectUri);
+    redirectUrl.searchParams.set('code', authorizationCode);
+    redirectUrl.searchParams.set('state', input.externalState);
+    return redirectUrl.toString();
   }
 
   private async findFeishuUserByOAuthIdentity(identity: FeishuOAuthUserIdentity) {
@@ -641,6 +834,32 @@ function normalizeScope(scope: string | undefined): string {
   }
 
   return ALLOWED_SCOPES.filter((item) => requestedSet.has(item)).join(' ');
+}
+
+function buildOauthErrorRedirect(
+  redirectUri: string,
+  error: 'login_required' | 'interaction_required' | 'invalid_request' | 'unauthorized_client',
+  state: string
+): string {
+  const redirectUrl = new URL(redirectUri);
+  redirectUrl.searchParams.set('error', error);
+  redirectUrl.searchParams.set('state', state);
+  return redirectUrl.toString();
+}
+
+function isSilentSsoOriginAllowed(redirectUri: string, allowedOrigins: string[]): boolean {
+  if (allowedOrigins.length === 0) {
+    return false;
+  }
+
+  let origin: string;
+  try {
+    origin = new URL(redirectUri).origin;
+  } catch {
+    return false;
+  }
+
+  return allowedOrigins.includes(origin);
 }
 
 function normalizeFeishuRedirectUri(rawRedirectUri: string | undefined): string {

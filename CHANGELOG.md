@@ -1,5 +1,35 @@
 # 变更日志
 
+## v1.0.4 - OAuth silent SSO 与 iframe 安全边界
+
+`v1.0.4` 是 `v1.0.3` 后的第三方 iframe 接入补丁版本，范围锁定 OAuth `prompt=none`、IAM SSO 浏览器 session、应用级 silent SSO 策略、frame policy 和 SSO Demo / Base Portal 嵌入场景。本版本不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限或让 Base Portal 代理第三方鉴权。
+
+### 新增与调整
+
+- `/oauth/authorize` 支持 `prompt=none`。当 IAM SSO session 存在、应用启用 silent SSO 且回调 origin 在 allowlist 中时，服务端直接签发授权码并 302 回第三方 `redirect_uri`。
+- 当 `prompt=none` 但没有 IAM SSO session、session 失效或用户不可用时，Feishu IAM 不渲染登录页，而是 302 回第三方 `redirect_uri`，携带 `error=login_required` 和原始 `state`。
+- 当应用未启用 silent SSO 或回调 origin 未允许时，Feishu IAM 302 回第三方 `redirect_uri`，携带 `error=unauthorized_client` 和原始 `state`。
+- 普通 OAuth 登录成功后设置 httpOnly、Secure 的 IAM SSO cookie；cookie 只由服务端读写，前端不可读写。
+- 新增 `oauth_browser_sessions` 表，只保存 session hash、飞书用户、过期和撤销状态，不保存明文 cookie。
+- `applications` 新增 `silent_sso_enabled` 和 `silent_sso_allowed_origins`。迁移会为 `feishu-iam-sso-demo` 预置 `https://feishu-iam-sso-demo.riversoft.com.cn`。
+- OAuth HTML 错误页新增严格 frame policy：`X-Frame-Options: DENY` 和 `Content-Security-Policy: frame-ancestors 'none'`。
+- Docker Compose 模板新增 `TRUST_PROXY=1`，用于生产反向代理下正确识别 HTTPS 与 Secure cookie 场景。
+
+### 安全与边界
+
+- `redirect_uri` 仍保持逐字精确匹配；未登记或禁用的 `redirect_uri` 不会被用于错误回跳。
+- Base Portal 不传 token、cookie、authorization code 或 secret；Feishu IAM 不要求 Base Portal 代理第三方鉴权。
+- silent SSO 只通过 302 redirect 完成，不输出供 iframe 渲染的 IAM 登录页。
+- 日志和安全事件只记录 client、应用、错误码、阶段和 request id，不记录 code、token、cookie、secret、authorization header、token hash 或 state hash。
+- `prompt=none` 不是授权绕过：token exchange、userinfo、权限查询、授权码 TTL 和一次性使用校验保持不变。
+
+### 本地验收
+
+- 已通过类型检查：`pnpm --filter @feishu-iam/api typecheck`。
+- 已通过 OAuth 定向测试：`pnpm --filter @feishu-iam/api test -- test/oauth.service.spec.ts test/oauth.controller.e2e-spec.ts test/oauth-error.filter.spec.ts`，3 个测试文件 59 个用例通过。
+- 已通过完整检查：`pnpm check`，API 41 个测试文件 475 个用例通过，Admin Web 17 个测试文件 160 个用例通过。
+- 已通过生产构建：`pnpm build`，后端 NestJS 构建完成，前端 Vite 生产构建完成；Vite chunk size warning 为既有构建提示。
+
 ## v1.0.3 - Base Portal 接入包与完整提示词收敛
 
 `v1.0.3` 是 `v1.0.2` 后的第三方接入体验收敛版本，范围锁定 Base Portal 接入包、完整提示词主流程、secret 按需轮换、接入预检和 iframe 无感 SSO 验收说明。本版本不新增 DDL，不实现完整 OIDC、refresh token、SAML、ABAC、资源级权限或长期明文保存 developer API token。

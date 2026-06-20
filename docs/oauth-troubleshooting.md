@@ -54,7 +54,8 @@ Base Portal 接入 Feishu IAM 后，至少按以下矩阵验收：
 |---|---|
 | 顶层直接打开第三方系统 | 未登录时进入 Feishu IAM 授权链路，已登录后进入业务页 |
 | Portal iframe 打开第三方系统 | 已登录用户无需额外点击即可进入业务页 |
-| Portal iframe 未登录 | 允许短暂跳转链路，但不能出现需要用户重复选择或复制信息的流程 |
+| Portal iframe 未登录 | 第三方应用使用 `prompt=none` 时应收到 `error=login_required` 并结束 iframe 内 silent 探测，不能卡死或渲染 IAM 登录页 |
+| Portal iframe 策略不允许 silent SSO | 第三方应用应收到 `error=unauthorized_client`，管理员检查应用 `silent_sso_enabled` 和 `silent_sso_allowed_origins` |
 | 第三方系统禁止 iframe | 菜单应切换为 `new_tab`，或由第三方系统调整 frame 策略 |
 | Cookie 在 iframe 中不可用 | 由第三方系统调整 cookie 策略，或切换 `new_tab` |
 | 授权失败 | 页面只要求用户复制 request id，不能要求复制 token、cookie、authorization、授权码或整段问题信息 |
@@ -84,4 +85,6 @@ client id：
 回调地址：
 第三方系统日志时间：
 是否发生在登录、token、userinfo 或权限查询阶段：
+是否使用 prompt=none：
+收到的 OAuth error：
 ```

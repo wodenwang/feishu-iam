@@ -173,6 +173,11 @@ function createNoEnvOauthPrismaStub() {
         });
       })
     },
+    oauthBrowserSession: {
+      create: vi.fn(({ data }: { data: unknown }) => Promise.resolve(data)),
+      findUnique: vi.fn(),
+      update: vi.fn(({ data }: { data: unknown }) => Promise.resolve(data))
+    },
     oauthAuthorizationCode: {
       create: vi.fn(({ data }: { data: NoEnvAuthorizationCodeRow }) => {
         authorizationCodes.set(data.codeHash, { ...data, usedAt: null });
@@ -531,8 +536,44 @@ describe('OAuth 浏览器授权端点', () => {
         clientId: 'bic_finance_dev',
         redirectUri: 'https://finance.example.com/callback',
         state: 'third-party-state',
-        scope: undefined
+        scope: undefined,
+        prompt: undefined,
+        ssoSessionSecret: null
       },
+      expect.objectContaining({
+        requestId: expect.any(String) as unknown
+      }) as unknown
+    );
+  });
+
+  it('authorize prompt=none 透传 IAM SSO session cookie 且仍只返回 302', async () => {
+    oauthService.startAuthorization.mockResolvedValue({
+      redirectTo: 'https://finance.example.com/callback?code=biac_silent&state=third-party-state'
+    });
+
+    const httpServer = app.getHttpServer() as SupertestApp;
+    await request(httpServer)
+      .get('/oauth/authorize')
+      .set('Cookie', ['feishu_iam_sso_session=biss_existing'])
+      .query({
+        response_type: 'code',
+        client_id: 'bic_finance_dev',
+        redirect_uri: 'https://finance.example.com/callback',
+        state: 'third-party-state',
+        prompt: 'none'
+      })
+      .expect(302)
+      .expect('Location', 'https://finance.example.com/callback?code=biac_silent&state=third-party-state')
+      .expect((response) => {
+        expect(response.text).not.toContain('<html');
+        expect(response.text).not.toContain('无法完成登录');
+      });
+
+    expect(oauthService.startAuthorization).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'none',
+        ssoSessionSecret: 'biss_existing'
+      }) as unknown,
       expect.objectContaining({
         requestId: expect.any(String) as unknown
       }) as unknown
@@ -558,6 +599,8 @@ describe('OAuth 浏览器授权端点', () => {
       .expect(400)
       .expect('Content-Type', /html/)
       .expect((response) => {
+        expect(response.headers['x-frame-options']).toBe('DENY');
+        expect(response.headers['content-security-policy']).toBe("frame-ancestors 'none'");
         expect(response.text).toContain('无法完成登录');
         expect(response.text).toContain('redirect_uri 未登记或已禁用');
         expect(response.text).toContain('req-browser-error');
@@ -595,7 +638,9 @@ describe('OAuth 浏览器授权端点', () => {
 
   it('feishu callback 成功后 302 携带 code/state 回跳第三方', async () => {
     oauthService.handleFeishuCallback.mockResolvedValue({
-      redirectTo: 'https://finance.example.com/callback?code=biac_mock&state=third-party-state'
+      redirectTo: 'https://finance.example.com/callback?code=biac_mock&state=third-party-state',
+      ssoSessionSecret: 'biss_mock_session',
+      ssoSessionMaxAgeMs: 28_800_000
     });
 
     const httpServer = app.getHttpServer() as SupertestApp;
@@ -606,7 +651,8 @@ describe('OAuth 浏览器授权端点', () => {
         state: 'bils_mock'
       })
       .expect(302)
-      .expect('Location', 'https://finance.example.com/callback?code=biac_mock&state=third-party-state');
+      .expect('Location', 'https://finance.example.com/callback?code=biac_mock&state=third-party-state')
+      .expect('set-cookie', /feishu_iam_sso_session=biss_mock_session/);
 
     expect(oauthService.handleFeishuCallback).toHaveBeenCalledWith(
       {
@@ -621,7 +667,9 @@ describe('OAuth 浏览器授权端点', () => {
 
   it('legacy feishu callback 兼容旧配置路径并复用 OAuth 回调处理', async () => {
     oauthService.handleFeishuCallback.mockResolvedValue({
-      redirectTo: 'https://finance.example.com/callback?code=biac_legacy&state=third-party-state'
+      redirectTo: 'https://finance.example.com/callback?code=biac_legacy&state=third-party-state',
+      ssoSessionSecret: 'biss_legacy_session',
+      ssoSessionMaxAgeMs: 28_800_000
     });
 
     const httpServer = app.getHttpServer() as SupertestApp;

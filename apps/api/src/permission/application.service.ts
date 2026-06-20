@@ -15,12 +15,16 @@ type CreateApplicationInput = {
   name: string;
   description?: string;
   ownerUserId?: string;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 type UpdateApplicationInput = {
   name?: string;
   description?: string | null;
   ownerUserId?: string | null;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
 };
 
 export type ListApplicationsInput = {
@@ -80,6 +84,8 @@ export class ApplicationService {
           name: input.name,
           description: input.description ?? null,
           ownerUserId: input.ownerUserId ?? null,
+          silentSsoEnabled: input.silentSsoEnabled ?? false,
+          silentSsoAllowedOrigins: normalizeSilentSsoAllowedOrigins(input.silentSsoAllowedOrigins ?? []),
         },
       });
 
@@ -275,7 +281,41 @@ function buildUpdateApplicationData(
   if (input.ownerUserId !== undefined) {
     data.ownerUserId = input.ownerUserId;
   }
+  if (input.silentSsoEnabled !== undefined) {
+    data.silentSsoEnabled = input.silentSsoEnabled;
+  }
+  if (input.silentSsoAllowedOrigins !== undefined) {
+    data.silentSsoAllowedOrigins = normalizeSilentSsoAllowedOrigins(input.silentSsoAllowedOrigins);
+  }
   return data;
+}
+
+function normalizeSilentSsoAllowedOrigins(origins: string[]): string[] {
+  const normalized = origins.map((origin) => normalizeSilentSsoOrigin(origin));
+  return [...new Set(normalized)].sort();
+}
+
+function normalizeSilentSsoOrigin(origin: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    throw new PermissionDomainError(
+      "APPLICATION_SILENT_SSO_ORIGIN_INVALID",
+      "silent SSO origin 必须是完整 HTTPS origin",
+      422,
+    );
+  }
+
+  if (parsed.protocol !== "https:" || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    throw new PermissionDomainError(
+      "APPLICATION_SILENT_SSO_ORIGIN_INVALID",
+      "silent SSO origin 必须是完整 HTTPS origin",
+      422,
+    );
+  }
+
+  return parsed.origin;
 }
 
 function buildApplicationListWhere(

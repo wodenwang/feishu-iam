@@ -1,5 +1,5 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Query, Redirect, Req, UseFilters, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query, Redirect, Req, Res, UseFilters, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AppTokenGuard, readAppTokenContext } from './app-token.guard';
 import { OauthErrorFilter } from './oauth-error.filter';
 import { getOauthRequestId } from './oauth-request-context';
@@ -20,6 +20,14 @@ type RevokeFormBody = {
   client_secret?: unknown;
 };
 
+export const OAUTH_SSO_SESSION_COOKIE_NAME = 'feishu_iam_sso_session';
+export const OAUTH_SSO_SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax' as const,
+  path: '/'
+};
+
 @Controller('oauth')
 @UseFilters(OauthErrorFilter)
 export class OauthController {
@@ -33,6 +41,7 @@ export class OauthController {
     @Query('redirect_uri') redirectUri: string | undefined,
     @Query('state') state: string | undefined,
     @Query('scope') scope: string | undefined,
+    @Query('prompt') prompt: string | undefined,
     @Req() request: Request
   ): Promise<{ url: string }> {
     const result = await this.oauth.startAuthorization(
@@ -41,7 +50,9 @@ export class OauthController {
         clientId,
         redirectUri,
         state,
-        scope
+        scope,
+        prompt,
+        ssoSessionSecret: readOauthSsoSessionCookie(request)
       },
       buildContext(request)
     );
@@ -51,22 +62,24 @@ export class OauthController {
   }
 
   @Get('feishu/callback')
-  @Redirect(undefined, 302)
   async feishuCallback(
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,
-    @Req() request: Request
-  ): Promise<{ url: string }> {
+    @Req() request: Request,
+    @Res() response: Response
+  ): Promise<void> {
     const result = await this.oauth.handleFeishuCallback(
       {
         code,
         state
       },
-      buildContext(request)
+        buildContext(request)
     );
-    return {
-      url: result.redirectTo
-    };
+    response.cookie(OAUTH_SSO_SESSION_COOKIE_NAME, result.ssoSessionSecret, {
+      ...OAUTH_SSO_SESSION_COOKIE_OPTIONS,
+      maxAge: result.ssoSessionMaxAgeMs
+    });
+    response.redirect(302, result.redirectTo);
   }
 
   @Post('token')
@@ -101,6 +114,29 @@ export class OauthController {
       },
       buildContext(request)
     );
+  }
+}
+
+export function readOauthSsoSessionCookie(request: Request): string | null {
+  const cookieHeader = request.header('cookie');
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const prefix = `${OAUTH_SSO_SESSION_COOKIE_NAME}=`;
+  const cookie = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (!cookie) {
+    return null;
+  }
+
+  try {
+    const value = decodeURIComponent(cookie.slice(prefix.length)).trim();
+    return value.length > 0 ? value : null;
+  } catch {
+    return null;
   }
 }
 

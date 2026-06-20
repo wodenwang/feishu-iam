@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('trust proxy', process.env.TRUST_PROXY ?? 1);
   app.useStaticAssets(getAdminWebDistDir());
   app.enableCors({
     origin: process.env.ADMIN_WEB_BASE_URL ?? 'http://localhost:5173',

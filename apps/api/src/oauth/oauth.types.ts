@@ -76,6 +76,8 @@ export type CreateApplicationOnboardingInput = {
   name: string;
   description?: string;
   ownerUserId?: string;
+  silentSsoEnabled?: boolean;
+  silentSsoAllowedOrigins?: string[];
   redirectUris: string[];
 };
 

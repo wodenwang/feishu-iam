@@ -4,9 +4,18 @@
 
 ## 结论
 
-结论：`READY_FOR_LOCAL_COMMIT`。
+结论：`REMOTE_RELEASE_CREATED`。
 
-本步骤按 gstack `/ship` 口径执行最终收口准备，但遵守本次 Codex 兼容要求：不进入 Plan mode，不调用交互式选择工具。本轮已获得 stage / commit 授权；push、tag、GitHub Release、上传镜像或 deploy 仍未授权。
+本步骤按 gstack `/ship` 口径执行最终收口准备，但遵守本次 Codex 兼容要求：不进入 Plan mode，不调用交互式选择工具。本轮已获得 stage / commit / push / tag / GitHub Release 授权；上传镜像或 deploy 仍未授权。
+
+## 远端发布准备结果
+
+- commit：`31db6aa`
+- branch：`main`
+- tag：`v1.0.6`
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6`
+- 镜像上传：未执行
+- 生产 deploy：未执行
 
 ## 本次补齐的 ship 前缺口
 
@@ -125,5 +134,5 @@ fix: polish permission workbench ui v1.0.6
 ## 下一步推荐提示词
 
 ```text
-请继续完成 Feishu IAM v1.0.6 的远端发布准备：我授权你在当前本地 commit 基础上执行必要的 push、tag 和 GitHub Release 创建，但不要上传镜像或 deploy，除非我另行明确授权。执行前请复核 `git status`、当前 commit、tag 是否已存在、GitHub Release 是否已存在、README/CHANGELOG 口径和敏感信息边界；执行后输出 release URL、tag、commit hash 和下一步 Step 15 land-and-deploy 所需的推荐提示词。执行完毕后，请按照 my-harness 规定的流程输出 `流程执行情况一览：` 15 步进度表，并在末尾继续给出下一步可直接复制执行的 `推荐提示词`。如果项目已经在使用 my-harness，请创建或更新 `.my-harness/` 快速索引，记录步骤状态、关键决策、证据链接、验证命令和下一步提示词。Superpowers、gstack、Product Design、Pencil 等第三方技能生成的文档必须继续保留在其规范目录中，`.my-harness/` 只保存链接和简短摘要。这个末尾提示词必须同时包含本句要求，让用户后续只需要复制末尾提示词继续推进，不需要重新询问 next action。
+请继续完成 Feishu IAM v1.0.6 Step 15 gstack /land-and-deploy：我授权你基于 GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6` 和 commit `31db6aa` 执行镜像构建、上传和生产部署。执行前请复核 `git status`、tag、release、README/CHANGELOG 口径、部署目标、镜像 tag、远端环境和敏感信息边界；执行后必须输出镜像信息、远端部署目录、健康检查 `/ready`、版本读回 `/version`、必要 smoke/canary 证据和回滚信息。执行完毕后，请按照 my-harness 规定的流程输出 `流程执行情况一览：` 15 步进度表，并在末尾继续给出下一步可直接复制执行的 `推荐提示词`。如果项目已经在使用 my-harness，请创建或更新 `.my-harness/` 快速索引，记录步骤状态、关键决策、证据链接、验证命令和下一步提示词。Superpowers、gstack、Product Design、Pencil 等第三方技能生成的文档必须继续保留在其规范目录中，`.my-harness/` 只保存链接和简短摘要。这个末尾提示词必须同时包含本句要求，让用户后续只需要复制末尾提示词继续推进，不需要重新询问 next action。
 ```

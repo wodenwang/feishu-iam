@@ -18,11 +18,11 @@
 
 ## 当前阶段
 
-已完成到 step14：gstack `/ship` release commit 前验证。
+已完成到 step14：gstack `/ship`。
 
-step14 已完成覆盖率审计、计划完成审计、pre-landing review、focused tests、`pnpm check`、`pnpm build` 和 `git diff --check`。当前下一步是完成 step14 剩余 Git release 动作：stage、commit、push、tag 和 GitHub Release，然后进入 step15：`gstack /land-and-deploy`。
+step14 已完成覆盖率审计、计划完成审计、pre-landing review、focused tests、`pnpm check`、`pnpm build`、`git diff --check`、release commit、main push、`v1.0.5` tag 和 GitHub Release。当前下一步是 step15：`gstack /land-and-deploy`，执行远端部署和线上健康检查。
 
-最后更新时间：2026-06-20 23:30 CST。
+最后更新时间：2026-06-20 23:37 CST。
 
 ## 版本号
 
@@ -51,8 +51,8 @@ step14 已完成覆盖率审计、计划完成审计、pre-landing review、focu
 | ✅ | 11 | gstack `/qa` | 已完成 | `.gstack/qa-reports/v1.0.5-step11/report.md`；`pnpm check`、临时 PostgreSQL 迁移复跑、浏览器 QA 均通过 |
 | ✅ | 12 | gstack `/review` | 已完成 | `.gstack/review-reports/v1.0.5-step12-review.md`；发现 2 个文档一致性问题并已修复 |
 | ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/step13-git-closeout-preflight.md` |
-| 🎯 | 14 | gstack `/ship` | 进行中 | `.my-harness/step14-ship.md`；已完成最终验证，待提交、推送、tag 和 GitHub Release |
-| ⏳ | 15 | gstack `/land-and-deploy` | 待执行 | 等 release/部署授权后执行 |
+| ✅ | 14 | gstack `/ship` | 已完成 | commit `ed98409`；tag `v1.0.5`；GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5` |
+| 🎯 | 15 | gstack `/land-and-deploy` | 当前下一步 | 构建 linux/amd64 镜像、远端升级、线上健康检查和生产验证 |
 
 ## 验证证据
 
@@ -102,6 +102,9 @@ Step13 preflight 证据：
 Step14 ship 证据：
 
 - `.my-harness/step14-ship.md`
+- commit：`ed98409 feat: add permission role workbench v1.0.5`
+- tag：`v1.0.5`
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.5`
 - `pnpm --filter @feishu-iam/admin-web test -- src/api/permission.test.ts src/features/permissions/PermissionManagementView.test.tsx`
 - `pnpm --filter @feishu-iam/api test -- test/permission-calculation.service.spec.ts`
 - `pnpm check`
@@ -131,19 +134,19 @@ Step14 ship 证据：
 
 ## 下一步
 
-下一步必须继续完成 step14 `gstack /ship` 的 Git release 动作。不要重复执行 step11-step13，也不要重新跑 step14 已完成的验证部分，除非提交前 diff 又发生代码变化。
+下一步必须执行 step15 `gstack /land-and-deploy`。不要重复执行 step11-step14，除非部署前发现 release/tag/main 不一致。
 
 推荐提示词：
 
 ```text
-继续按 my-harness 推进 Feishu IAM v1.0.5「权限管理角色配置工作台」，继续完成 step14 gstack /ship 的 Git release 动作。
+继续按 my-harness 推进 Feishu IAM v1.0.5「权限管理角色配置工作台」，从 step15 gstack /land-and-deploy 开始。
 
 要求：
 - 继续按部就班，不跳步。
 - 不进入 Plan mode。
 - 不调用 AskUserQuestion、request_user_input 或任何交互式选择工具。
-- 执行 step14 ship 剩余动作：整理 intended diff、复查 staged diff、提交、推送、创建 Git tag 和 GitHub Release。
+- 执行 step15 land-and-deploy：构建 v1.0.5 linux/amd64 镜像、推送或离线传输到远端、执行停机升级、验证迁移和线上健康状态。
 - 本次目标已明确要求推进到发布、release 和远端部署，因此可以继续完成 release 所需的 Git 操作；仍需避免记录或输出任何 secret、token、cookie、authorization、授权码或敏感 raw payload。
 - 完成 step14 后继续进入 step15 land-and-deploy，不要在 step14 完成后停止。
-- 使用现有 step8-step14 证据作为输入，并补充 release commit、tag 和 GitHub Release 记录。
+- 使用现有 step8-step14 证据作为输入，并补充远端部署、健康检查、版本读回和生产验证记录。
 ```

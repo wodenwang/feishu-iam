@@ -557,7 +557,7 @@ export class ApplicationOnboardingService {
     const oauthCredential = await this.oauthConfig.rotatePrimaryApplicationClientSecret(input.appKey, auditContext);
     const developerCredential = await this.developerCredentials.rotateApplicationDeveloperCredential(input.appKey, auditContext);
     const integrationPrompt = this.prompts.buildFullPrompt({
-      baseIamUrl: process.env.PUBLIC_BASE_URL ?? 'http://feishu-iam.dev.tangtring.com',
+      baseIamUrl: process.env.PUBLIC_BASE_URL ?? 'http://feishu-iam.example.com',
       appKey: input.appKey,
       clientId: oauthCredential.clientId,
       clientSecret: oauthCredential.clientSecret,

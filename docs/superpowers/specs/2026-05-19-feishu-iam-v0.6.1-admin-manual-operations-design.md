@@ -5,7 +5,7 @@
 
 ## 1. 版本目标
 
-`v0.6.1` 是 `v0.6.0` 之后的生产管理后台可用性补丁。`v0.6.0` 已经完成 `http://feishu-iam.dev.tangtring.com/` 的生产化 Docker Compose 部署和真实管理员登录；`v0.6.1` 聚焦解决登录后台后可见按钮无真实动作、无法通过页面创建应用和配置权限的问题。
+`v0.6.1` 是 `v0.6.0` 之后的生产管理后台可用性补丁。`v0.6.0` 已经完成 `http://feishu-iam.example.com/` 的生产化 Docker Compose 部署和真实管理员登录；`v0.6.1` 聚焦解决登录后台后可见按钮无真实动作、无法通过页面创建应用和配置权限的问题。
 
 一句话边界：
 
@@ -339,7 +339,7 @@ pnpm check
 
 - `/ready` 通过。
 - `/version` 返回 `0.6.1`。
-- 王文哲可以在 `http://feishu-iam.dev.tangtring.com/` 登录后台。
+- 王文哲可以在 `http://feishu-iam.example.com/` 登录后台。
 - 王文哲可以手工创建 demo 应用。
 - 王文哲可以在 demo 应用下手工创建权限点。
 - 王文哲可以在 demo 应用下手工创建权限组。

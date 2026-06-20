@@ -94,7 +94,7 @@ Tab 展示中文标签：
 
 - 版本元数据更新为 `0.14.1` / `v0.14.1`。
 - 更新 `README.md`、`CHANGELOG.md`、`AGENTS.md` 和会话归档。
-- 构建并推送 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.1`。
+- 构建并推送 `feishu-iam:v0.14.1`。
 - GitLab MR 合并、tag、release 收口。
 - 关闭 GitLab issue `#17`。
 - 在 `192.168.2.112:~/feishu-iam` 完成停机升级。

@@ -313,8 +313,8 @@ Expected: PASS。
 合并后创建 tag/release `v0.16.2`，构建并推送多架构镜像：
 
 ```text
-dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.2
-dockerhub.it.tangtring.com:80/ai/feishu-iam:latest
+feishu-iam:v0.16.2
+feishu-iam:latest
 ```
 
 - [ ] **Step 5: 112 部署验收**

@@ -790,7 +790,7 @@ describe('IntegrationPromptService', () => {
   it('generates a full Codex prompt with one-time secrets', () => {
     const service = new IntegrationPromptService();
     const prompt = service.generateFullPrompt({
-      baseIamUrl: 'http://feishu-iam.dev.tangtring.com',
+      baseIamUrl: 'http://feishu-iam.example.com',
       appKey: 'finance',
       applicationName: '财务系统',
       redirectUris: ['http://localhost:5173/auth/callback'],
@@ -801,7 +801,7 @@ describe('IntegrationPromptService', () => {
 
     expect(prompt).toContain('AGENTS.md');
     expect(prompt).toContain('CLAUDE.md');
-    expect(prompt).toContain('FEISHU_IAM_URL=http://feishu-iam.dev.tangtring.com');
+    expect(prompt).toContain('FEISHU_IAM_URL=http://feishu-iam.example.com');
     expect(prompt).toContain('app_key: finance');
     expect(prompt).toContain('client_id: bic_finance');
     expect(prompt).toContain('client_secret: bics_secret');
@@ -813,7 +813,7 @@ describe('IntegrationPromptService', () => {
   it('generates a safe prompt without plaintext secrets', () => {
     const service = new IntegrationPromptService();
     const prompt = service.generateSafePrompt({
-      baseIamUrl: 'http://feishu-iam.dev.tangtring.com',
+      baseIamUrl: 'http://feishu-iam.example.com',
       appKey: 'finance',
       applicationName: '财务系统',
       redirectUris: ['http://localhost:5173/auth/callback'],
@@ -1741,7 +1741,7 @@ const version = process.env.APP_VERSION ?? '0.8.1-dev';
 In `deploy/docker-compose.yml`, set defaults:
 
 ```yaml
-image: ${FEISHU_IAM_IMAGE:-dockerhub.it.tangtring.com:80/ai/feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v0.8.1}
+image: ${FEISHU_IAM_IMAGE:-feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v0.8.1}
 environment:
   APP_VERSION: ${APP_VERSION:-0.8.1}
 ```
@@ -1816,11 +1816,11 @@ docker buildx build \
   --provenance=false \
   --sbom=false \
   -f deploy/api.Dockerfile \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1 \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:latest \
+  -t feishu-iam:v0.8.1 \
+  -t feishu-iam:latest \
   --push .
 
-docker buildx imagetools inspect dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1
+docker buildx imagetools inspect feishu-iam:v0.8.1
 ```
 
 - [ ] **Step 5: Update SSO documentation**
@@ -2015,8 +2015,8 @@ docker buildx build \
   --provenance=false \
   --sbom=false \
   -f deploy/api.Dockerfile \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1 \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:latest \
+  -t feishu-iam:v0.8.1 \
+  -t feishu-iam:latest \
   --push .
 ```
 
@@ -2027,7 +2027,7 @@ Expected: push succeeds for both platforms.
 Run:
 
 ```bash
-docker buildx imagetools inspect dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1
+docker buildx imagetools inspect feishu-iam:v0.8.1
 ```
 
 Expected: output includes both `linux/amd64` and `linux/arm64`.
@@ -2040,8 +2040,8 @@ Update README image section with:
 ### v0.8.1 镜像下载信息
 
 ```bash
-docker pull dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1
-docker buildx imagetools inspect dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1
+docker pull feishu-iam:v0.8.1
+docker buildx imagetools inspect feishu-iam:v0.8.1
 ```
 
 `v0.8.1` manifest digest should be copied from `docker buildx imagetools inspect`.
@@ -2061,7 +2061,7 @@ Create `docs/codex-sessions/YYYY-MM-DD-HHMM-v0.8.1-镜像发布.md`:
 ## 执行过的关键命令和验证结果
 
 - `docker buildx build --platform linux/amd64,linux/arm64 ... --push .`：执行本计划时记录推送结果。
-- `docker buildx imagetools inspect dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1`：执行本计划时记录 `linux/amd64`、`linux/arm64` 和 manifest digest。
+- `docker buildx imagetools inspect feishu-iam:v0.8.1`：执行本计划时记录 `linux/amd64`、`linux/arm64` 和 manifest digest。
 
 ## 安全说明
 

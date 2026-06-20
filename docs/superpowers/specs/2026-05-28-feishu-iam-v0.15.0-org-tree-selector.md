@@ -143,7 +143,7 @@
 
 - 版本元数据更新为 `0.15.0` / `v0.15.0`。
 - 更新 `README.md`、`CHANGELOG.md`、`AGENTS.md` 和会话归档。
-- 构建并推送 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.15.0`。
+- 构建并推送 `feishu-iam:v0.15.0`。
 - GitLab MR 合并、tag、release 收口。
 - 关闭 GitLab issue `#19/#20/#24`。
 - 保持 GitLab issue `#21` open，并在后续小版本中单独规划。

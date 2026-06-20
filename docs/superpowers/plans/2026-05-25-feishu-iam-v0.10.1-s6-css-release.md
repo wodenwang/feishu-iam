@@ -31,6 +31,6 @@ IMPLEMENTATION_PLAN.md
 - 六个后台一级模块使用新 `components/admin/*` 体系，并通过 1440、1280、768、390 视口 Browser 自检。
 - `package.json`、`apps/api/package.json`、`apps/admin-web/package.json`、`deploy/docker-compose.yml`、`deploy/install.sh`、`/version` fallback、README、CHANGELOG 全部对齐 `0.10.1`。
 - `pnpm check`、admin-web test、admin-web build、responsive overflow check 通过。
-- `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.1` 多架构镜像发布，并在 README 记录 digest。
-- `192.168.2.112:~/feishu-iam` 停机升级验证通过，`http://feishu-iam.dev.tangtring.com/version` 返回 `0.10.1`。
+- `feishu-iam:v0.10.1` 多架构镜像发布，并在 README 记录 digest。
+- `192.168.2.112:~/feishu-iam` 停机升级验证通过，`http://feishu-iam.example.com/version` 返回 `0.10.1`。
 - MR、`v0.10.1` tag、GitLab Release 和中文会话归档完成。

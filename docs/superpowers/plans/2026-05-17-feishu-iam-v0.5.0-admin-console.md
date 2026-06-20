@@ -1768,7 +1768,7 @@ export function fetchAdminSecurityEvents(): Promise<PageResult<unknown>> {
 Create `apps/admin-web/src/theme.ts`:
 
 ```ts
-export const tangtringTheme = {
+export const enterpriseTheme = {
   topbar: '#123445',
   sidebar: '#0d2635',
   accentBlue: '#0b67b2',
@@ -2184,7 +2184,7 @@ Expected: PASS.
 
 ```bash
 git add apps/admin-web/src
-git commit -m "feat: apply tangtring admin theme"
+git commit -m "feat: apply enterprise admin theme"
 ```
 
 ## Task 11: 版本、文档、验证和发布准备

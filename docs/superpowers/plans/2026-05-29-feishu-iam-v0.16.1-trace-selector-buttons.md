@@ -1413,8 +1413,8 @@ Expected: API 和 admin-web 启动成功，本地入口可访问。
 Run:
 
 ```bash
-docker buildx build --platform linux/amd64 -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.1 --load .
-docker save dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.1 | gzip > feishu-iam-v0.16.1-linux-amd64.tar.gz
+docker buildx build --platform linux/amd64 -t feishu-iam:v0.16.1 --load .
+docker save feishu-iam:v0.16.1 | gzip > feishu-iam-v0.16.1-linux-amd64.tar.gz
 ```
 
 Expected: 镜像构建成功，生成 amd64 离线包。

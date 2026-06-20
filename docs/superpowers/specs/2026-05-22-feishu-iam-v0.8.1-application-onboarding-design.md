@@ -106,7 +106,7 @@
 完整提示词至少包含：
 
 - 第三方项目应该把本提示词整理进自身 `AGENTS.md` 或 `CLAUDE.md`。
-- Feishu IAM 服务地址，例如 `FEISHU_IAM_URL=http://feishu-iam.dev.tangtring.com`。
+- Feishu IAM 服务地址，例如 `FEISHU_IAM_URL=http://feishu-iam.example.com`。
 - `app_key`、`client_id`、`client_secret` 的用途。
 - 回调地址必须与 Feishu IAM 中登记值完全一致。
 - OAuth 授权码流程：`/oauth/authorize`、`/oauth/token`、`/oauth/userinfo`。
@@ -272,8 +272,8 @@ docker buildx build \
   --provenance=false \
   --sbom=false \
   -f deploy/api.Dockerfile \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.8.1 \
-  -t dockerhub.it.tangtring.com:80/ai/feishu-iam:latest \
+  -t feishu-iam:v0.8.1 \
+  -t feishu-iam:latest \
   --push .
 ```
 

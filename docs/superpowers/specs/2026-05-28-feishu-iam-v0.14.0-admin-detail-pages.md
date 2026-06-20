@@ -132,7 +132,7 @@
 
 - 版本元数据更新为 `0.14.0` / `v0.14.0`。
 - 更新 `README.md`、`CHANGELOG.md`、`AGENTS.md` 和会话归档。
-- 构建并推送 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.0`。
+- 构建并推送 `feishu-iam:v0.14.0`。
 - GitLab MR 合并、tag、release 收口。
 - 在 `192.168.2.112:~/feishu-iam` 完成停机升级。
 - 线上验证 `/ready`、`/version`、后台导航、应用详情页和角色详情页。

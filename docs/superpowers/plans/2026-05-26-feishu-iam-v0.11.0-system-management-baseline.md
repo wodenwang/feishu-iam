@@ -652,15 +652,15 @@ ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:res
 - Merge MR after checks.
 - Create annotated tag `v0.11.0`.
 - Create GitLab release.
-- Build and push multi-arch image `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.0`.
+- Build and push multi-arch image `feishu-iam:v0.11.0`.
 - Deploy to `192.168.2.112:~/feishu-iam`.
 - Verify:
 
 ```bash
 curl -fsS http://192.168.2.112:8000/ready
 curl -fsS http://192.168.2.112:8000/version
-curl -fsS http://feishu-iam.dev.tangtring.com/ready
-curl -fsS http://feishu-iam.dev.tangtring.com/version
+curl -fsS http://feishu-iam.example.com/ready
+curl -fsS http://feishu-iam.example.com/version
 ```
 
 ## Self-Review

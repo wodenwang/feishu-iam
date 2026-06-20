@@ -1,13 +1,13 @@
 # Feishu IAM v0.6.0 生产化 Compose 部署说明
 
-本文档用于把 Feishu IAM `v0.6.0` 部署到内网服务器 `192.168.2.112`，对外访问域名为 `http://feishu-iam.dev.tangtring.com`。本文只记录部署步骤、配置项名称和安全原则，不记录真实密钥、token、cookie、密码或 client secret。
+本文档用于把 Feishu IAM `v0.6.0` 部署到内网服务器 `192.168.2.112`，对外访问域名为 `http://feishu-iam.example.com`。本文只记录部署步骤、配置项名称和安全原则，不记录真实密钥、token、cookie、密码或 client secret。
 
 ## 部署目标
 
 - 服务器地址：`192.168.2.112`
 - 部署用户：`dev`
 - 部署目录：`~/feishu-iam`
-- 对外访问地址：`http://feishu-iam.dev.tangtring.com`
+- 对外访问地址：`http://feishu-iam.example.com`
 - Web 直连地址：`http://192.168.2.112:8000`
 - 部署方式：Docker Compose
 - 版本要求：`/version` 返回 `0.6.0`
@@ -41,7 +41,7 @@
 
 - PostgreSQL 不映射宿主机端口，避免和其他 Compose 项目冲突。
 - Web 默认映射到宿主机 `8000` 端口，可通过 `.env` 的 `HOST_WEB_PORT` 调整。
-- Web 镜像从 `dockerhub.it.tangtring.com:80/ai/feishu-iam` 拉取，服务器不构建源码镜像。
+- Web 镜像从 `feishu-iam` 拉取，服务器不构建源码镜像。
 - 升级使用 `./upgrade.sh` 停机静态更新：拉镜像、停 `web`、备份数据库、执行 DDL、启动 `web`、检查 `/ready` 和 `/version`。
 - 首个平台管理员通过 `INITIAL_PLATFORM_ADMIN_FEISHU_USER_ID` 指向真实飞书用户“王文哲”。
 - 生产环境不再使用破窗 Web 登录，也不再配置 `BOOTSTRAP_SUPER_ADMIN_*`。
@@ -51,8 +51,8 @@
 在飞书开放平台的 Feishu IAM 企业自建应用中登记以下 OAuth 回调地址：
 
 ```text
-http://feishu-iam.dev.tangtring.com/admin/auth/feishu/callback
-http://feishu-iam.dev.tangtring.com/oauth/feishu/callback
+http://feishu-iam.example.com/admin/auth/feishu/callback
+http://feishu-iam.example.com/oauth/feishu/callback
 ```
 
 两类回调不要混用：
@@ -88,16 +88,16 @@ chmod 600 .env
 需要重点确认的配置项：
 
 - `COMPOSE_PROJECT_NAME=feishu-iam`，便于 `docker ps` 中看到 `feishu-iam-db-1` 和 `feishu-iam-web-1`。
-- `FEISHU_IAM_IMAGE=dockerhub.it.tangtring.com:80/ai/feishu-iam`。
+- `FEISHU_IAM_IMAGE=feishu-iam`。
 - `FEISHU_IAM_IMAGE_TAG=v0.6.0`。
 - `APP_VERSION=0.6.0`。
 - `FEISHU_IAM_GIT_REMOTE=git@github.com:wodenwang/feishu-iam.git`。
 - `FEISHU_IAM_GIT_SYNC=auto`，部署目录是 Git 仓库时自动同步当前分支；三文件部署目录会跳过。
 - `FEISHU_IAM_GIT_REF` 默认留空，表示跟随当前分支；如需固定升级分支或 tag 再显式填写。
 - `HOST_WEB_PORT=8000`。
-- `FEISHU_IAM_PUBLIC_URL=http://feishu-iam.dev.tangtring.com`。
+- `FEISHU_IAM_PUBLIC_URL=http://feishu-iam.example.com`。
 - `FEISHU_IAM_HEALTHCHECK_URL=http://192.168.2.112:8000`，用于服务器本机升级自检。
-- `ADMIN_WEB_BASE_URL=http://feishu-iam.dev.tangtring.com`。
+- `ADMIN_WEB_BASE_URL=http://feishu-iam.example.com`。
 - `POSTGRES_DATA_DIR=/home/dev/feishu-iam/data/postgres`。
 - `FEISHU_IAM_CONFIG_DIR=/home/dev/feishu-iam/config`。
 - `FEISHU_IAM_LOG_DIR=/home/dev/feishu-iam/logs`。
@@ -109,7 +109,7 @@ chmod 600 .env
 登录镜像仓库并执行首次启动：
 
 ```bash
-docker login dockerhub.it.tangtring.com:80
+docker login registry.example.com
 docker compose pull web
 ./upgrade.sh
 ```
@@ -151,7 +151,7 @@ docker compose exec db psql -U feishu_iam -d feishu_iam
 curl -fsS http://192.168.2.112:8000/health
 curl -fsS http://192.168.2.112:8000/ready
 curl -fsS http://192.168.2.112:8000/version
-curl -fsS http://feishu-iam.dev.tangtring.com/version
+curl -fsS http://feishu-iam.example.com/version
 ```
 
 通过标准：
@@ -159,7 +159,7 @@ curl -fsS http://feishu-iam.dev.tangtring.com/version
 - `/health` 返回服务健康。
 - `/ready` 返回数据库和迁移就绪。
 - `/version` 返回版本号 `0.6.0`。
-- 浏览器访问 `http://feishu-iam.dev.tangtring.com` 可以打开 Feishu IAM 管理后台。
+- 浏览器访问 `http://feishu-iam.example.com` 可以打开 Feishu IAM 管理后台。
 
 ## 数据和备份
 
@@ -173,7 +173,7 @@ PostgreSQL 数据保存在宿主机 `~/feishu-iam/data/postgres/`。常规重启
 - 根目录只保留 `docker-compose.yaml`、`.env`、`upgrade.sh` 和运行数据目录。
 - `.env` 权限为 `600`，真实凭证未写入仓库。
 - 飞书开放平台已登记两个 `8000` 端口回调地址。
-- 已执行 `docker login dockerhub.it.tangtring.com:80`。
+- 已执行 `docker login registry.example.com`。
 - 已执行 `./upgrade.sh`。
 - `docker compose ps` 显示 `db` 和 `web` 正常运行。
 - `docker ps` 中容器名带 `feishu-iam` 前缀。

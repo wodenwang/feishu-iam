@@ -59,7 +59,7 @@
 ### 线上验收
 
 - 已创建 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.2`。
-- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:9409b3df6fecb6bbe593b10ed4215563c6eec59272dd6460f9fa8f398a6ea408`，线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.2`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260613-162956`。
+- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:9409b3df6fecb6bbe593b10ed4215563c6eec59272dd6460f9fa8f398a6ea408`，线上运行 `feishu-iam:v1.0.2`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260613-162956`。
 - 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.2 / 20dc324`。
 - 已完成线上 OAuth 错误页验证：`/oauth/authorize`、`/oauth/feishu/callback?code=dummy&state=dummy` 和 `/api/auth/feishu/callback?code=dummy&state=dummy` 均返回 Feishu IAM 统一 HTML 错误页，只复制 `request id`，不包含 `复制问题信息` 或 `data-feedback`。
 - 已完成 `my-harness-canary` 快速检查，报告保存在 `.gstack/canary-reports/v1.0.2-2026-06-13T08-33-09-169Z/report.json`，状态为 `HEALTHY`，发现数为 0。
@@ -93,7 +93,7 @@
 
 - 已合并 GitHub PR `#3`，merge commit 为 `96c261b8995473d52645b7ec5c9cc71e49085ae4`。
 - 已创建 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.1`。
-- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:48eafa7036ce86e4eef7c2f1fa93f0c00f162283d4af0fc450b3bc244a1d7832`，线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.1`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260607-102448`。
+- 已完成 linux/amd64 离线镜像构建和远端停机升级：本地镜像 digest 为 `sha256:48eafa7036ce86e4eef7c2f1fa93f0c00f162283d4af0fc450b3bc244a1d7832`，线上运行 `feishu-iam:v1.0.1`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260607-102448`。
 - 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.1 / 96c261b`。
 - 已完成线上回调验证：`/oauth/feishu/callback?code=dummy&state=dummy` 和 `/api/auth/feishu/callback?code=dummy&state=dummy` 均返回 Feishu IAM 统一 HTML 错误页，不再返回框架默认 `Cannot GET ...`。
 - 已完成 `my-harness-canary` 快速检查，报告保存在 `.gstack/canary-reports/v1.0.1-2026-06-07T02-27-56-377Z/report.json`。canary 确认 OAuth 错误页在 768px 视口存在 5px 横向溢出，已登记 GitHub issue `#4`；最终回调复核确认 OAuth 错误页仍保留整段问题信息复制，已登记 GitHub issue `#5`；首页未登录态 401 console 判定为 canary 噪声，不作为本次发布阻塞。
@@ -130,7 +130,7 @@
 - 已通过响应式浏览器验证：`ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 390、768、1280、1440 视口和关键后台路由，结果 `failures: []`。
 - 已通过 390px Playwright 移动导航定点复测：点击移动 Sheet 内 `应用管理` 后跳转到 `/admin/applications`，Sheet 自动关闭，页面无横向溢出。
 - 已合并 GitHub PR `#1`，merge commit 为 `a8aca2e156656af581eb1bb1dfb3a05989a526bf`。
-- 已完成 amd64 离线镜像构建和远端停机部署：线上运行 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v1.0.0`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，旧 `v0.4.0` 部署目录已备份为 `/home/bpmt/feishu-iam-v0.4.0-backup-20260606-225509`。
+- 已完成 amd64 离线镜像构建和远端停机部署：线上运行 `feishu-iam:v1.0.0`，部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，旧 `v0.4.0` 部署目录已备份为 `/home/bpmt/feishu-iam-v0.4.0-backup-20260606-225509`。
 - 已完成线上健康检查：`https://feishu-iam.riversoft.com.cn/ready` 返回 ready，`https://feishu-iam.riversoft.com.cn/version` 返回 `1.0.0 / a8aca2e`。
 - 已完成线上数据边界核查：只有“王文哲”具备 `platform_admin`；第三方应用、client、回调地址和 IAM 业务角色计数均为 0。
 - 已完成线上浏览器检查：未登录后台入口、应用详情深链和 390px 追踪入口均展示统一问题提示页、可复制 request id、无旧品牌和敏感文本；Riversoft logo 静态资源返回 `image/png`。
@@ -164,7 +164,7 @@
 - 已通过完整检查：`pnpm check`，API 41 个测试文件 460 个测试通过，Admin Web 15 个测试文件 156 个测试通过。
 - 已通过本地浏览器自检：`ADMIN_WEB_URL=http://localhost:4173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 13 条后台路由和 4 组视口无溢出；额外交互检查确认应用清单详情按钮为 32px 图标按钮、组织用户选择器顶层不拉取全量用户、追踪页不再展示整段问题信息操作，且无 console/network 失败。
 - GitLab MR `!41` 已合并，GitLab issue `#36/#37/#38` 已关闭。
-- 已发布镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.2` 和 `latest`，多架构 manifest digest 为 `sha256:09cef06e3adfbbde7cf60124ef4e23b347b27184f0393cce11bd77e242eef5c5`，amd64 与 arm64 `docker pull --platform` 均通过。
+- 已发布镜像 `feishu-iam:v0.16.2` 和 `latest`，多架构 manifest digest 为 `sha256:09cef06e3adfbbde7cf60124ef4e23b347b27184f0393cce11bd77e242eef5c5`，amd64 与 arm64 `docker pull --platform` 均通过。
 - 已创建 GitLab release `v0.16.2`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260529-231412`，`/ready` 返回 ready，`/version` 返回 `0.16.2 / v0.16.2`。
 - 已在线上核查飞书组织镜像：活跃组织 317 个，根级父节点 `0` 的一级组织 4 个，递归可达活跃组织 317 个，最大深度 7 层。
@@ -195,7 +195,7 @@
 - 已通过按钮轻治理检查：`pnpm --filter @feishu-iam/admin-web test:buttons`。
 - 已通过完整检查：`pnpm check`，API 41 个测试文件 459 个测试通过，Admin Web 15 个测试文件 159 个测试通过。
 - GitLab MR `!40` 已合并，GitLab issue `#35/#26/#32/#33/#34` 已关闭。
-- 已发布镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.1` 和 `latest`，多架构 manifest digest 为 `sha256:c382b674a9581c7066ae92e0114b3abcf46c026772f360bf4c27b524ce9cfe52`，amd64 与 arm64 `docker pull --platform` 均通过。
+- 已发布镜像 `feishu-iam:v0.16.1` 和 `latest`，多架构 manifest digest 为 `sha256:c382b674a9581c7066ae92e0114b3abcf46c026772f360bf4c27b524ce9cfe52`，amd64 与 arm64 `docker pull --platform` 均通过。
 - 已创建 GitLab release `v0.16.1`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260529-192428`，`/ready` 返回 ready，`/version` 返回 `0.16.1 / v0.16.1`。
 - 已在线上复现未登录后台请求，返回的 request id 可在 `security_events` 中查到 `admin_auth_failure / ADMIN_SESSION_REQUIRED`。
@@ -227,7 +227,7 @@
 - 已通过类型检查和构建：`pnpm --filter @feishu-iam/api typecheck`、`pnpm --filter @feishu-iam/admin-web build`。前端构建仅保留既有 Vite chunk size warning。
 - 已通过完整检查：`pnpm check`，API 41 个测试文件 449 个测试通过，admin-web 15 个测试文件 154 个测试通过，typecheck 和 lint 通过。
 - GitLab MR `!39` 已合并，GitLab issue `#27/#28/#29/#30/#31` 已关闭。
-- 已发布镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.0` 和 `latest`，多架构 manifest digest 为 `sha256:e4c469ce15223d05d7d241adb48325a54b8da8828c0e9d10d30f4228d5f1e43d`，amd64 与 arm64 `docker pull --platform` 均通过。
+- 已发布镜像 `feishu-iam:v0.16.0` 和 `latest`，多架构 manifest digest 为 `sha256:e4c469ce15223d05d7d241adb48325a54b8da8828c0e9d10d30f4228d5f1e43d`，amd64 与 arm64 `docker pull --platform` 均通过。
 - 已创建 GitLab release `v0.16.0`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，`/ready` 返回 ready，`/version` 返回 `0.16.0 / v0.16.0`。
 
@@ -257,8 +257,8 @@
 - 已通过 lint：`pnpm --filter @feishu-iam/admin-web lint`、`pnpm --filter @feishu-iam/api lint`。
 - 已通过 `ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 12 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`。
 - 已使用 Playwright 打开本地 `http://localhost:5173/admin/permissions/crm/roles/role-1?tab=subjects`，确认根级组织请求包含 `parent_department_id=__root__`，下钻请求包含 `parent_department_id=od-root`，组织和用户同列表展示，下钻后已选组织与用户保留，console、Network 无错误。
-- 已创建 GitLab MR：`http://gitlab.it.tangtring.com/ai/feishu-iam/-/merge_requests/38`。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.15.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:864d87d79384a9cce763c189198c03352edc5255a35f9eb3107e275ebd4147ab`。
+- 已创建 GitLab MR：`http://gitlab.example.com/ai/feishu-iam/-/merge_requests/38`。
+- 已发布 `feishu-iam:v0.15.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:864d87d79384a9cce763c189198c03352edc5255a35f9eb3107e275ebd4147ab`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像；112 使用重新 `--platform linux/amd64 --load` 生成的 amd64 离线包升级。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-221028`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.15.2 / v0.15.2`。
@@ -292,12 +292,12 @@
 - 已通过 `pnpm --filter @feishu-iam/admin-web build`，仅保留既有 Vite chunk size warning。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 145 个测试通过。
 - 已通过 `ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 12 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`，并确认应用详情角色停用按钮为 32px 图标按钮、角色详情最终权限点可展示 `直接 + 权限组` 来源。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.15.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:83adf0dd0c37f939645c11404c0a169be2207b18fa9131166cff3dee4380ff93`。
+- 已发布 `feishu-iam:v0.15.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:83adf0dd0c37f939645c11404c0a169be2207b18fa9131166cff3dee4380ff93`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像；112 使用重新 `--platform linux/amd64 --load` 生成的 amd64 离线包升级。
-- 已创建 GitLab MR：`http://gitlab.it.tangtring.com/ai/feishu-iam/-/merge_requests/37`。
+- 已创建 GitLab MR：`http://gitlab.example.com/ai/feishu-iam/-/merge_requests/37`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-193359`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.15.1 / v0.15.1`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/applications/crm?tab=roles`、`/admin/permissions/crm/roles/role-1?tab=groups` 和 `/admin/system/info` 的 390px 与 1280px 视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/applications/crm?tab=roles`、`/admin/permissions/crm/roles/role-1?tab=groups` 和 `/admin/system/info` 的 390px 与 1280px 视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.15.0
 
@@ -328,12 +328,12 @@
 - 已通过 `pnpm --filter @feishu-iam/admin-web build`，仅保留既有 Vite chunk size warning。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 144 个测试通过。
 - 已通过 `ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖后台关键路由和 390、768、1280、1440 宽度视口，`failures: []`。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.15.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:94ab39ed247f3e8129cab62a91a78bf7bbbbff3017f6a66b74a1e09e099eab79`。
+- 已发布 `feishu-iam:v0.15.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:94ab39ed247f3e8129cab62a91a78bf7bbbbff3017f6a66b74a1e09e099eab79`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像；112 使用重新 `--platform linux/amd64 --load` 生成的 amd64 离线包升级。
-- 已创建 GitLab release：`http://gitlab.it.tangtring.com/ai/feishu-iam/-/releases/v0.15.0`。
+- 已创建 GitLab release：`http://gitlab.example.com/ai/feishu-iam/-/releases/v0.15.0`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-171434`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.15.0 / v0.15.0`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/system/feishu`、`/admin/permissions/crm/roles/role-1?tab=subjects` 和 `/admin/applications/crm?tab=roles` 的 390px 与 1280px 视口，确认未登录态正常、无横向溢出、无请求 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/system/feishu`、`/admin/permissions/crm/roles/role-1?tab=subjects` 和 `/admin/applications/crm?tab=roles` 的 390px 与 1280px 视口，确认未登录态正常、无横向溢出、无请求 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.14.2
 
@@ -364,11 +364,11 @@
 - 已通过 `ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 12 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`。
 - 已使用 Playwright fallback 检查 390px 和 1280px 下应用详情 `开发信息`、`角色管理` 以及权限管理页面，确认新增回调按钮 `nowrap`、角色表格可见、快捷应用区不存在，且无 console error 或 request failed。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 144 个测试通过。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:754fab751d132100c8f6fc2b990918d212b53ae7c21fef94e69320dd74289b27`。
+- 已发布 `feishu-iam:v0.14.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:754fab751d132100c8f6fc2b990918d212b53ae7c21fef94e69320dd74289b27`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-110024`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.14.2 / v0.14.2`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/applications/crm?tab=development`、`/admin/applications/crm?tab=roles` 移动视口和 `/admin/permissions?appKey=crm`，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/applications/crm?tab=development`、`/admin/applications/crm?tab=roles` 移动视口和 `/admin/permissions?appKey=crm`，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.14.1
 
@@ -402,12 +402,12 @@
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 144 个测试通过。
 - 已通过 `ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 12 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`。
 - 已使用 Playwright fallback 打开本地应用详情默认页和 `roles`、`development`、`danger` 三个 Tab 深链，确认无 console error、request failed 或横向溢出。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:b46fe5fb59cebe1aa54a02afd0cfaa347895ce9421dbdcd16b32e1fff3a54621`。
+- 已发布 `feishu-iam:v0.14.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:b46fe5fb59cebe1aa54a02afd0cfaa347895ce9421dbdcd16b32e1fff3a54621`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
-- 已创建 GitLab release：`http://gitlab.it.tangtring.com/ai/feishu-iam/-/releases/v0.14.1`。
+- 已创建 GitLab release：`http://gitlab.example.com/ai/feishu-iam/-/releases/v0.14.1`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-044841`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.14.1 / v0.14.1`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/applications/crm?tab=development` 桌面和移动视口，以及 `/admin/system/info` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/applications/crm?tab=development` 桌面和移动视口，以及 `/admin/system/info` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.14.0
 
@@ -439,12 +439,12 @@
 - 已通过 `pnpm --filter @feishu-iam/admin-web build`，仅保留既有 Vite chunk size warning。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 142 个测试通过。
 - 已通过 `ADMIN_WEB_URL=http://127.0.0.1:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 9 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`，并验证应用详情和角色详情默认入口不打开抽屉。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:ef1056f1ec36e223b2b71f08d5f119b3e2a718abef7aa239514f9ac14bc36582`。
+- 已发布 `feishu-iam:v0.14.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:ef1056f1ec36e223b2b71f08d5f119b3e2a718abef7aa239514f9ac14bc36582`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
-- 已创建 GitLab release：`http://gitlab.it.tangtring.com/ai/feishu-iam/-/releases/v0.14.0`。
+- 已创建 GitLab release：`http://gitlab.example.com/ai/feishu-iam/-/releases/v0.14.0`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-032802`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.14.0 / v0.14.0`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/applications/crm`、`/admin/permissions/crm/roles/role-1?tab=groups` 和 `/admin/system/info` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/applications/crm`、`/admin/permissions/crm/roles/role-1?tab=groups` 和 `/admin/system/info` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.13.1
 
@@ -473,7 +473,7 @@
 - 已通过 `ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 7 条后台路由和 390、768、1280、1440 宽度视口，`failures: []`。
 - 已使用 `@Browser` 打开本地 `http://localhost:3000/admin/system/audit`，通过 mock API 验证桌面展开、桌面收缩、移动 Sheet、当前二级页父级强制展开和无横向溢出。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 142 个测试通过。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.13.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:77b0ae687635428ab611cd77bb67cb79ea92557b0f46e4a9d71fa7f1b8dcf055`。
+- 已发布 `feishu-iam:v0.13.1` 和 `latest` 多架构镜像，manifest digest 为 `sha256:77b0ae687635428ab611cd77bb67cb79ea92557b0f46e4a9d71fa7f1b8dcf055`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-022657`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.13.1 / v0.13.1`。
@@ -510,11 +510,11 @@
 - 已通过 `ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 390、768、1280 和 1440 宽度下的主要后台页面。
 - 已使用 Playwright mock API 打开本地飞书同步控制台，完成组织与用户查询、用户详情、用户轻量同步、全量同步 preflight 和确认弹框主流程，确认默认路径未发起真实全量同步请求。
 - 已通过 `pnpm check`，其中 API 40 个测试文件 436 个测试通过，admin-web 13 个测试文件 140 个测试通过。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.13.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:657b5697e32a4e138a07cb95b9414a09341ec932ab7e8f3c09d0bac8ffd99b76`。
+- 已发布 `feishu-iam:v0.13.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:657b5697e32a4e138a07cb95b9414a09341ec932ab7e8f3c09d0bac8ffd99b76`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260528-013004`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.13.0 / v0.13.0`。
-- 已使用 Playwright 打开生产 `http://feishu-iam.dev.tangtring.com/admin/system/feishu` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
+- 已使用 Playwright 打开生产 `http://feishu-iam.example.com/admin/system/feishu` 移动视口，确认未登录态正常、无横向溢出、无请求失败或 5xx；未登录管理端身份接口返回预期 401。
 
 ## v0.12.0
 
@@ -522,7 +522,7 @@
 
 ### 新增
 
-- 将第三方接入 demo 独立仓库 [feishu-iam-sso-demo](http://gitlab.it.tangtring.com/ai/feishu-iam-sso-demo) 纳入 Feishu IAM README 和验收材料。
+- 将第三方接入 demo 独立仓库 [feishu-iam-sso-demo](http://gitlab.example.com/ai/feishu-iam-sso-demo) 纳入 Feishu IAM README 和验收材料。
 - 新增 `docs/acceptance/v0.12.0-third-party-sso-demo.md`，记录 OAuth 登录、授权码换 token、`/oauth/userinfo`、应用权限查询、前端权限展示和权限控制验收结论。
 
 ### 修复
@@ -539,12 +539,12 @@
 
 ### 验收
 
-- 已通过第三方接入 demo 独立仓库验收：demo 已部署到 `http://feishu-iam-sso-demo.dev.tangtring.com`，覆盖 Feishu IAM OAuth 登录、token、userinfo、权限读取和前端权限控制。
+- 已通过第三方接入 demo 独立仓库验收：demo 已部署到 `http://feishu-iam-sso-demo.example.com`，覆盖 Feishu IAM OAuth 登录、token、userinfo、权限读取和前端权限控制。
 - 已通过应用管理和管理员授权前端定向测试，覆盖 22 个用例。
 - 已通过 `pnpm check`，其中 API 39 个测试文件 419 个测试通过，admin-web 13 个测试文件 139 个测试通过。
 - 已通过 `pnpm --filter @feishu-iam/admin-web build` 和 `ADMIN_WEB_URL=http://localhost:4173 pnpm --filter @feishu-iam/admin-web test:responsive`。
 - 已使用 Playwright mock API 打开本地新增应用接入包和管理员授权页面，确认负责人输入框移除、创建应用请求默认携带当前管理员 `ownerUserId`、新增平台管理员成功后不打开详情空白页，console 和 request failure 均为空。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.12.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:be56fdc2d59841d52c8904acdb906353a07fc580ba912c8f5ca87ad5742942e0`。
+- 已发布 `feishu-iam:v0.12.0` 和 `latest` 多架构镜像，manifest digest 为 `sha256:be56fdc2d59841d52c8904acdb906353a07fc580ba912c8f5ca87ad5742942e0`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260527-195326`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.12.0 / v0.12.0`。
@@ -579,7 +579,7 @@
 - 已通过 `pnpm check`，其中 API 39 个测试文件 419 个测试通过，admin-web 13 个测试文件 138 个测试通过。
 - 已通过 `pnpm --filter @feishu-iam/admin-web build` 和响应式 overflow 检查。
 - 已使用 Playwright mock API 打开本地权限管理页，完成详情抽屉、主体绑定、权限组绑定和保存前确认主流程；移动端截图确认无横向溢出。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.3` 和 `latest` 多架构镜像，manifest digest 为 `sha256:33385133b16cee506376975855a5a3f7044e3c4a5903c81f06e1f26abbce0af6`。
+- 已发布 `feishu-iam:v0.11.3` 和 `latest` 多架构镜像，manifest digest 为 `sha256:33385133b16cee506376975855a5a3f7044e3c4a5903c81f06e1f26abbce0af6`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260526-225056`。
 - 线上内网和域名入口 `/ready` 均返回 `ready`，`/version` 均返回 `0.11.3 / v0.11.3`。
@@ -614,7 +614,7 @@
 
 - 已通过应用管理前端定向测试，覆盖清单摘要、基础信息编辑、回调地址维护、安全版提示词复制、停用确认和角色元数据状态。
 - 已通过后端管理端和权限服务定向测试，覆盖应用摘要、应用管理员授权范围、回调地址停用、应用启停审计动作和 developer API 停用语义。
-- 已发布 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:252b60decca1021baea685e0abd024c8d54ae07d42df840920880596248a1f88`。
+- 已发布 `feishu-iam:v0.11.2` 和 `latest` 多架构镜像，manifest digest 为 `sha256:252b60decca1021baea685e0abd024c8d54ae07d42df840920880596248a1f88`。
 - 已在 `192.168.2.112:~/feishu-iam` 通过 amd64 离线 tar 和 `FEISHU_IAM_PULL_POLICY=never` 完成停机升级，备份目录为 `/home/dev/feishu-iam/backups/20260526-192549`。
 - 线上 `/health` 返回 `ok`，`/ready` 返回 `ready`，`/version` 返回 `0.11.2 / v0.11.2`。
 - 生产 Browser 自检通过：管理后台首页 200，未登录态展示飞书登录入口；仅出现预期的 `/api/v1/admin/me` 401，未出现非预期 network failure 或横向溢出。
@@ -641,7 +641,7 @@
 - 已通过后端飞书同步和状态服务定向测试，覆盖 stale running、用户主键迁移和失败诊断字段。
 - 已通过管理后台飞书同步页定向测试，覆盖失败阶段和 request id 展示。
 - 已通过 `pnpm check`、`pnpm --filter @feishu-iam/admin-web build`、响应式检查和 Playwright 浏览器自检。
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.1` 和 `latest`，manifest digest 为 `sha256:802e0691e86b2d94f0237099b1f738484968b967bf18af1fe3183cc2ab817654`。
+- 已发布多架构镜像 `feishu-iam:v0.11.1` 和 `latest`，manifest digest 为 `sha256:802e0691e86b2d94f0237099b1f738484968b967bf18af1fe3183cc2ab817654`。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 `linux/amd64` 离线镜像 tar 和 `FEISHU_IAM_PULL_POLICY=never` 停机升级验证，`/ready` 正常，`/version` 返回 `0.11.1 / v0.11.1`。
 - 已在 112 触发真实飞书同步，旧 stale `running` 记录自动标记为 `FEISHU_SYNC_STALE_RUNNING`，新同步成功完成，最新状态接口显示 `configStatus=connected`、`running=false`。
 
@@ -675,10 +675,10 @@
 
 ### 发布
 
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.0` 和 `latest`，manifest digest 为 `sha256:9ff7baefbb426a8ccafdfc377a4e6a8287b303af8c72e58c51c629294afb0e6e`。
+- 已发布多架构镜像 `feishu-iam:v0.11.0` 和 `latest`，manifest digest 为 `sha256:9ff7baefbb426a8ccafdfc377a4e6a8287b303af8c72e58c51c629294afb0e6e`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，远端 Registry 拉取受访问权限限制时采用 `linux/amd64` 离线包导入，`/ready` 正常，`/version` 返回 `0.11.0` 和 `v0.11.0`。
-- 已使用 Playwright 打开生产入口 `http://feishu-iam.dev.tangtring.com/admin/system/audit?tab=security`，页面正常展示未登录态，未登录访问管理端身份接口返回预期 401，页面无横向溢出；截图保存到 `/tmp/feishu-iam-v0.11.0-prod-system-audit-login.png`。
+- 已使用 Playwright 打开生产入口 `http://feishu-iam.example.com/admin/system/audit?tab=security`，页面正常展示未登录态，未登录访问管理端身份接口返回预期 401，页面无横向溢出；截图保存到 `/tmp/feishu-iam-v0.11.0-prod-system-audit-login.png`。
 
 ## v0.10.4
 
@@ -700,9 +700,9 @@
 
 ### 发布
 
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.4` 和 `latest`，manifest digest 为 `sha256:15a6470aa5c748be2e5488dfa88aaf1bab588e0f7ef8711a37266f65eeb95cdf`。
+- 已发布多架构镜像 `feishu-iam:v0.10.4` 和 `latest`，manifest digest 为 `sha256:15a6470aa5c748be2e5488dfa88aaf1bab588e0f7ef8711a37266f65eeb95cdf`。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，`/ready` 正常，`/version` 返回 `0.10.4` 和 `v0.10.4`。
-- 已使用 Playwright 打开生产入口 `http://feishu-iam.dev.tangtring.com/admin/permissions?appKey=ssoaccept223013`，页面正常展示未登录态，未登录访问管理端身份接口返回预期 401，无页面溢出或非预期失败请求；截图保存到 `/tmp/feishu-iam-v0.10.4-prod-admin-permissions.png`。
+- 已使用 Playwright 打开生产入口 `http://feishu-iam.example.com/admin/permissions?appKey=ssoaccept223013`，页面正常展示未登录态，未登录访问管理端身份接口返回预期 401，无页面溢出或非预期失败请求；截图保存到 `/tmp/feishu-iam-v0.10.4-prod-admin-permissions.png`。
 
 ## v0.10.3
 
@@ -721,10 +721,10 @@
 - 已通过 `pnpm check` 和 `pnpm --filter @feishu-iam/admin-web build`。
 - 已通过 `ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖工作台、应用管理、权限管理、管理员授权、记录查询、系统设置及 390、768、1280、1440 四类宽度。
 - 已用 Playwright 针对 `/admin/admins` 检查顶部栏、用户菜单、菜单层级和管理员授权操作列；截图保存到 `/tmp/feishu-iam-v0.10.3-admins-design-review-fixed-settled.png`。
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.3` 和 `latest`，manifest digest 为 `sha256:0e1d2709e9fe5fbeb734ad556aca1ba14bb28a505554d74f4d9f3cd95a4cfe8e`。
+- 已发布多架构镜像 `feishu-iam:v0.10.3` 和 `latest`，manifest digest 为 `sha256:0e1d2709e9fe5fbeb734ad556aca1ba14bb28a505554d74f4d9f3cd95a4cfe8e`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，`/ready` 正常，`/version` 返回 `0.10.3` 和 `v0.10.3`。
-- 已使用 Playwright 打开生产入口 `http://feishu-iam.dev.tangtring.com/admin/admins`，页面静态资源加载正常，未登录访问管理端身份接口返回预期 401，无请求失败或 5xx 响应；截图保存到 `/tmp/feishu-iam-v0.10.3-prod-admin-admins.png`。
+- 已使用 Playwright 打开生产入口 `http://feishu-iam.example.com/admin/admins`，页面静态资源加载正常，未登录访问管理端身份接口返回预期 401，无请求失败或 5xx 响应；截图保存到 `/tmp/feishu-iam-v0.10.3-prod-admin-admins.png`。
 
 ## v0.10.1
 
@@ -746,12 +746,12 @@
 
 - 已通过 `pnpm --filter @feishu-iam/admin-web typecheck`、`pnpm --filter @feishu-iam/admin-web test`、`pnpm --filter @feishu-iam/admin-web build`、`pnpm --filter @feishu-iam/admin-web test -- src/App.test.tsx` 和 `pnpm check`。
 - 已通过 `ADMIN_WEB_URL=http://localhost:5173 pnpm --filter @feishu-iam/admin-web test:responsive`，覆盖 `/admin/workspace`、`/admin/applications`、`/admin/permissions`、`/admin/admins`、`/admin/records?tab=security`、`/admin/settings` 及 390、768、1280、1440 四类宽度。
-- 已使用 gstack browse 检查本地管理端入口和生产 `http://feishu-iam.dev.tangtring.com/admin/workspace`。生产入口静态资源加载正常，未登录访问管理端身份接口返回预期 401。
-- 已完成本地 Docker 镜像构建验证：`docker build -f deploy/api.Dockerfile -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.1-local .`。
+- 已使用 gstack browse 检查本地管理端入口和生产 `http://feishu-iam.example.com/admin/workspace`。生产入口静态资源加载正常，未登录访问管理端身份接口返回预期 401。
+- 已完成本地 Docker 镜像构建验证：`docker build -f deploy/api.Dockerfile -t feishu-iam:v0.10.1-local .`。
 
 ### 发布
 
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.1` 和 `latest`，manifest digest 为 `sha256:461780bb56a2e641d8dc4fad2f5994c575a064e750514b9842fd01c78ba0b917`。
+- 已发布多架构镜像 `feishu-iam:v0.10.1` 和 `latest`，manifest digest 为 `sha256:461780bb56a2e641d8dc4fad2f5994c575a064e750514b9842fd01c78ba0b917`。
 - 已分别拉取验证 `linux/amd64` 和 `linux/arm64` 架构镜像。内网 HTTP Registry 对 `docker buildx imagetools inspect` 的 HTTPS 默认探测返回预期协议错误，因此以 `docker pull --platform` 和远端升级作为发布证据。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，`/ready` 正常，`/version` 返回 `0.10.1` 和 `v0.10.1`。远端 Registry 拉取受访问权限限制时，采用已发布镜像的 `linux/amd64` 离线包导入后以 `FEISHU_IAM_PULL_POLICY=never` 完成升级。
 
@@ -781,9 +781,9 @@
 
 ### 发布
 
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.0` 和 `latest`，manifest digest 为 `sha256:2e594d8d0b2c10cd6ae826d500eadf96c49aacbd1800f94115c6410197a81846`。
+- 已发布多架构镜像 `feishu-iam:v0.10.0` 和 `latest`，manifest digest 为 `sha256:2e594d8d0b2c10cd6ae826d500eadf96c49aacbd1800f94115c6410197a81846`。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，`/ready` 正常，`/version` 返回 `0.10.0` 和部署提交 `05cb117`。
-- 已使用 Chrome + Playwright 打开 `http://feishu-iam.dev.tangtring.com/admin/records`，页面正常渲染未登录态；未登录访问管理端 API 返回预期 401，无请求失败。
+- 已使用 Chrome + Playwright 打开 `http://feishu-iam.example.com/admin/records`，页面正常渲染未登录态；未登录访问管理端 API 返回预期 401，无请求失败。
 
 ## v0.9.1
 
@@ -804,7 +804,7 @@
 
 ### 发布
 
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.9.1`，manifest digest 为 `sha256:e21a8c1e4ab92c46604e6d9587ee32017f69a7e47eaf886580393975a8b658a0`。
+- 已发布多架构镜像 `feishu-iam:v0.9.1`，manifest digest 为 `sha256:e21a8c1e4ab92c46604e6d9587ee32017f69a7e47eaf886580393975a8b658a0`。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 停机升级验证，`/ready` 正常，`/version` 返回 `0.9.1` 和 merge commit `4088f50`。
 
 ## v0.9.0
@@ -836,7 +836,7 @@
 ### 发布
 
 - 必跑门禁包括 `pnpm check`、管理端生产构建和真实浏览器响应式自检。
-- 已发布多架构镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.9.0`，manifest digest 为 `sha256:8d6fc671a9de55347ee023cf3617db50beb69483a7b211b4b89549cd7691e03f`。
+- 已发布多架构镜像 `feishu-iam:v0.9.0`，manifest digest 为 `sha256:8d6fc671a9de55347ee023cf3617db50beb69483a7b211b4b89549cd7691e03f`。
 - 已在 `192.168.2.112:~/feishu-iam` 使用 Docker Compose 升级验证，`/ready` 正常，`/version` 返回 `0.9.0` 和 merge commit `ad3f598`。
 
 ## v0.6.0

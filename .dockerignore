@@ -1,11 +1,15 @@
 .git
 .superpowers
+.gstack
+.local-compose
 node_modules
 dist
 coverage
 .turbo
 .vite
 backups
+docs
+design
 
 apps/*/node_modules
 apps/*/dist
@@ -14,5 +18,9 @@ apps/*/.vite
 
 .env
 .env.*
+.DS_Store
+CHANGELOG.md
+IMPLEMENTATION_PLAN.md
+README.md
 *.log
 pnpm-debug.log*

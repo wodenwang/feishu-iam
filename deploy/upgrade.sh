@@ -92,7 +92,7 @@ GIT_REMOTE_URL="${FEISHU_IAM_GIT_REMOTE:-git@github.com:wodenwang/feishu-iam.git
 GIT_REF="${FEISHU_IAM_GIT_REF:-}"
 GIT_SYNC="${FEISHU_IAM_GIT_SYNC:-auto}"
 PULL_POLICY="${FEISHU_IAM_PULL_POLICY:-always}"
-WEB_IMAGE="${FEISHU_IAM_IMAGE:-dockerhub.it.tangtring.com:80/ai/feishu-iam}:${FEISHU_IAM_IMAGE_TAG}"
+WEB_IMAGE="${FEISHU_IAM_IMAGE:-feishu-iam}:${FEISHU_IAM_IMAGE_TAG}"
 
 compose() {
   local args=(--project-directory "${ROOT_DIR}")

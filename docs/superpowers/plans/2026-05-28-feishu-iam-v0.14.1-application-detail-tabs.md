@@ -370,7 +370,7 @@ git push -u origin codex/v0.14.1-application-detail-tabs
 创建 `v0.14.1` tag 和 GitLab release。构建并推送：
 
 ```bash
-docker buildx build --platform linux/amd64,linux/arm64 --provenance=false --sbom=false -f deploy/api.Dockerfile -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.14.1 --push .
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=false --sbom=false -f deploy/api.Dockerfile -t feishu-iam:v0.14.1 --push .
 ```
 
 记录 manifest digest。

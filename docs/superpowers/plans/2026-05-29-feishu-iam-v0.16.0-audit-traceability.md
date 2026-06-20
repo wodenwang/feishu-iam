@@ -2106,7 +2106,7 @@ Expected: 阻塞和重要问题修复；可选问题记录接受原因。
 Run:
 
 ```bash
-docker buildx build --platform linux/amd64,linux/arm64 -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.0 --push .
+docker buildx build --platform linux/amd64,linux/arm64 -t feishu-iam:v0.16.0 --push .
 ```
 
 Expected: registry 出现 `v0.16.0` 多架构镜像。记录 digest。
@@ -2124,8 +2124,8 @@ curl -fsS http://192.168.2.112/api/version
 如果目标机不能拉取 registry，使用本机 `linux/amd64` tar + 远端 `docker load` + `FEISHU_IAM_PULL_POLICY=never`：
 
 ```bash
-docker buildx build --platform linux/amd64 -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.0 --load .
-docker save dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.16.0 | gzip > feishu-iam-v0.16.0-linux-amd64.tar.gz
+docker buildx build --platform linux/amd64 -t feishu-iam:v0.16.0 --load .
+docker save feishu-iam:v0.16.0 | gzip > feishu-iam-v0.16.0-linux-amd64.tar.gz
 scp feishu-iam-v0.16.0-linux-amd64.tar.gz dev@192.168.2.112:~/feishu-iam/
 ssh dev@192.168.2.112 'cd ~/feishu-iam && gunzip -c feishu-iam-v0.16.0-linux-amd64.tar.gz | docker load && FEISHU_IAM_PULL_POLICY=never ./upgrade.sh'
 ```

@@ -5,7 +5,7 @@ describe('IntegrationPromptService', () => {
   it('generates a full Codex prompt with one-time secrets', () => {
     const service = new IntegrationPromptService();
     const prompt = service.generateFullPrompt({
-      baseIamUrl: 'http://feishu-iam.dev.tangtring.com',
+      baseIamUrl: 'http://feishu-iam.example.com',
       appKey: 'finance',
       applicationName: '财务系统',
       redirectUris: ['http://localhost:5173/auth/callback'],
@@ -16,7 +16,7 @@ describe('IntegrationPromptService', () => {
 
     expect(prompt).toContain('AGENTS.md');
     expect(prompt).toContain('CLAUDE.md');
-    expect(prompt).toContain('FEISHU_IAM_URL=http://feishu-iam.dev.tangtring.com');
+    expect(prompt).toContain('FEISHU_IAM_URL=http://feishu-iam.example.com');
     expect(prompt).toContain('app_key: finance');
     expect(prompt).toContain('client_id: bic_finance');
     expect(prompt).toContain('client_secret: bics_secret');
@@ -59,7 +59,7 @@ describe('IntegrationPromptService', () => {
   it('generates a safe prompt without plaintext secrets', () => {
     const service = new IntegrationPromptService();
     const prompt = service.generateSafePrompt({
-      baseIamUrl: 'http://feishu-iam.dev.tangtring.com',
+      baseIamUrl: 'http://feishu-iam.example.com',
       appKey: 'finance',
       applicationName: '财务系统',
       redirectUris: ['http://localhost:5173/auth/callback'],

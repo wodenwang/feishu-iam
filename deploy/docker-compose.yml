@@ -19,7 +19,7 @@ services:
       retries: 20
 
   web:
-    image: ${FEISHU_IAM_IMAGE:-dockerhub.it.tangtring.com:80/ai/feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v1.0.3}
+    image: ${FEISHU_IAM_IMAGE:-feishu-iam}:${FEISHU_IAM_IMAGE_TAG:-v1.0.3}
     restart: unless-stopped
     depends_on:
       db:

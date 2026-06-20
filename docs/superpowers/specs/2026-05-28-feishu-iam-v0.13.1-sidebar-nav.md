@@ -108,7 +108,7 @@
 - 版本元数据更新为 `0.13.1` / `v0.13.1`。
 - 更新 `README.md` 版本历史、镜像信息和相关文档索引。
 - 更新 `CHANGELOG.md`。
-- 构建并推送 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.13.1`。
+- 构建并推送 `feishu-iam:v0.13.1`。
 - 通过 GitLab MR 合并、tag、release 收口。
 - 在 `192.168.2.112:~/feishu-iam` 完成停机升级。
 - 线上验证 `/ready` 和 `/version`，并通过浏览器检查后台导航。

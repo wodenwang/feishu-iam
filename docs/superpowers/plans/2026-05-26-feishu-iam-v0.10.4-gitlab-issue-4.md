@@ -191,7 +191,7 @@ http://localhost:3000/admin/permissions?appKey=ssoaccept223013
 3. 补充 Codex 会话归档。
 4. 创建修复分支和 GitLab MR。
 5. 合并后打 `v0.10.4` tag。
-6. 如本版本进入部署发布，则构建并推送 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.4` 多架构镜像，并完成远端停机升级验证。
+6. 如本版本进入部署发布，则构建并推送 `feishu-iam:v0.10.4` 多架构镜像，并完成远端停机升级验证。
 7. 验收通过后关闭 GitLab issue `#4`。
 
 ## 9. 验收标准

@@ -318,7 +318,7 @@ pnpm check
 浏览器验收：
 
 - 本地 `http://localhost:3000/`。
-- 生产 `http://feishu-iam.dev.tangtring.com/`。
+- 生产 `http://feishu-iam.example.com/`。
 - 1440、768、390 三个视口。
 - console 无非预期错误。
 - Network 无非预期失败请求。
@@ -868,7 +868,7 @@ pnpm check
 浏览器验收：
 
 - 本地 `http://localhost:3000/`。
-- 生产 `http://feishu-iam.dev.tangtring.com/`。
+- 生产 `http://feishu-iam.example.com/`。
 - 覆盖 1440、768、390 三个视口。
 - console 无非预期错误，Network 无非预期失败请求。
 - 记录查询和应用管理必须截图留证。
@@ -879,7 +879,7 @@ pnpm check
 - README、CHANGELOG、package 版本、`APP_VERSION`、Docker tag、Git tag 必须统一为 `0.10.0` / `v0.10.0`。
 - 内网 HTTP Registry 可能导致 `docker buildx imagetools inspect` 走 HTTPS 失败；镜像验证以 `docker pull --platform linux/amd64`、`docker pull --platform linux/arm64` 和远端实际运行作为证据。
 - `192.168.2.112` 既往使用 `FEISHU_IAM_PULL_POLICY=never` 和预加载镜像规避 Registry 解析/daemon 配置问题；v0.10.0 部署计划必须先复核远端 `.env`，不要假设远端能直接 pull。
-- 部署验收必须同时检查 `http://192.168.2.112:8000/ready`、`http://192.168.2.112:8000/version`、`http://feishu-iam.dev.tangtring.com/ready`、`http://feishu-iam.dev.tangtring.com/version` 和生产后台 UI。
+- 部署验收必须同时检查 `http://192.168.2.112:8000/ready`、`http://192.168.2.112:8000/version`、`http://feishu-iam.example.com/ready`、`http://feishu-iam.example.com/version` 和生产后台 UI。
 
 ### 工程评审结论
 

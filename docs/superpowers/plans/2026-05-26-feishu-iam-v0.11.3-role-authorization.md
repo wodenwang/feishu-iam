@@ -73,7 +73,7 @@ Browser 自检：
 - 版本号更新到 `0.11.3`：根包、API、admin-web、`/version` 默认值、deploy 默认镜像 tag、安装脚本、README、CHANGELOG。
 - 不新增 migration，数据库 ready schema 版本保持既有要求。
 - 构建并发布镜像：
-  `docker buildx build --platform linux/amd64,linux/arm64 --provenance=false --sbom=false -f deploy/api.Dockerfile -t dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.11.3 -t dockerhub.it.tangtring.com:80/ai/feishu-iam:latest --push .`
+  `docker buildx build --platform linux/amd64,linux/arm64 --provenance=false --sbom=false -f deploy/api.Dockerfile -t feishu-iam:v0.11.3 -t feishu-iam:latest --push .`
 - 创建 tag / release：`v0.11.3`。
 - 部署到 `192.168.2.112:~/feishu-iam`，停机升级后检查 `/ready`、`/version` 和管理后台权限管理路径。
 

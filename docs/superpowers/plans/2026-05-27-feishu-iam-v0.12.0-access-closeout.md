@@ -289,15 +289,15 @@ pnpm check
 
 - [x] **Step 3: Release 和 tag**
 
-创建 `v0.12.0` tag/release，发布镜像 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.12.0` 和 `latest`。
+创建 `v0.12.0` tag/release，发布镜像 `feishu-iam:v0.12.0` 和 `latest`。
 
 - [x] **Step 4: Deploy**
 
 在 `192.168.2.112:~/feishu-iam` 停机升级并验证：
 
 ```bash
-curl -fsS http://feishu-iam.dev.tangtring.com/ready
-curl -fsS http://feishu-iam.dev.tangtring.com/version
+curl -fsS http://feishu-iam.example.com/ready
+curl -fsS http://feishu-iam.example.com/version
 ```
 
 Expected: `/ready` 返回 ready，`/version` 返回 `0.12.0 / v0.12.0`。

@@ -395,7 +395,7 @@ rg -n "application-detail-drawer|admin-page|module-header|panel|status-badge-" a
 - 运行 `pnpm --filter @feishu-iam/admin-web build`。
 - 运行响应式溢出检查。
 - 使用 Browser 打开本地 `http://localhost:3000/` 做真实浏览器自检。
-- 有条件时使用生产登录态检查 `http://feishu-iam.dev.tangtring.com/admin/...` 六个模块。
+- 有条件时使用生产登录态检查 `http://feishu-iam.example.com/admin/...` 六个模块。
 
 验收：
 
@@ -421,9 +421,9 @@ rg -n "application-detail-drawer|admin-page|module-header|panel|status-badge-" a
 
 - README 记录 `v0.10.1` 版本边界、镜像 tag、digest 和相关文档索引。
 - `package.json` / `/version` 返回 `0.10.1`。
-- 生产镜像发布到 `dockerhub.it.tangtring.com:80/ai/feishu-iam:v0.10.1`。
+- 生产镜像发布到 `feishu-iam:v0.10.1`。
 - 远端 `192.168.2.112:~/feishu-iam` 停机升级验证通过。
-- `http://feishu-iam.dev.tangtring.com/admin/workspace`、`/admin/applications`、`/admin/permissions`、`/admin/admins`、`/admin/records`、`/admin/settings` 都完成浏览器自检。
+- `http://feishu-iam.example.com/admin/workspace`、`/admin/applications`、`/admin/permissions`、`/admin/admins`、`/admin/records`、`/admin/settings` 都完成浏览器自检。
 - 会话归档记录实现、验证和剩余风险。
 
 ## 9. 风险和控制

@@ -1837,14 +1837,14 @@ Expected: backup created, migration `0.6.1` applied or skipped if already applie
 ```bash
 curl -fsS http://192.168.2.112:8000/ready
 curl -fsS http://192.168.2.112:8000/version
-curl -fsS http://feishu-iam.dev.tangtring.com/version
+curl -fsS http://feishu-iam.example.com/version
 ```
 
 Expected: `/version` returns `0.6.1`.
 
 - [ ] **Step 4: Remote manual acceptance**
 
-In `http://feishu-iam.dev.tangtring.com/`, verify:
+In `http://feishu-iam.example.com/`, verify:
 
 - 王文哲 can log in as `platform_admin`.
 - 王文哲 creates `demo` application.

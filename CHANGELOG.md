@@ -35,8 +35,10 @@
 
 ### 发布状态
 
-- 本版本作为 `v1.0.7` release 收口，GitHub Release 地址为 `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7`。
-- 生产运行版本以 `/version` 读回为准；镜像上传、停机升级、健康检查和回滚信息在 Step 15 handoff 中记录。
+- 已完成 `/ship`：commit `3ab1790a418034035e990d927f5ed87e9fbce5c5`，tag `v1.0.7`，GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7`。
+- 已完成 `linux/amd64` 离线镜像构建、上传和生产停机升级：本地镜像 ID 为 `sha256:d02ab33b39f37a6e72e5291e6c482823382afe26054e8857c8ab723e4bdac2c6`，远端运行镜像 ID 为 `sha256:4cae6597a060e44c684a549267f0002ff66615439df35f9a16cc719350a61dfe`，离线包 SHA-256 为 `31ea88b9c5081a810d99eea1da62ac93b96051c30c38b8e9d64e967463e5f845`。
+- 生产部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260621-180240`。
+- 线上验证通过：公网 `/ready` 返回 ready，公网 `/version` 返回 `1.0.7 / 3ab1790`；权限管理入口、权限矩阵和角色 `tab=applications` 三条前端路由 smoke 均返回 HTTP 200。
 
 ## v1.0.6 - 权限管理 UI/UX 小版本
 

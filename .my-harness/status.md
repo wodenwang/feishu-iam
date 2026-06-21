@@ -4,7 +4,7 @@
 
 当前目标：推进 `v1.0.7 - 权限管理信息架构收敛`，一个版本完成 S1 角色工作台减负和 S2 权限矩阵 MVP。
 
-当前阶段：Step 13 Git closeout / `/ship` preflight 已完成。`v1.0.7` 本地实现、项目级验证、响应式浏览器自检、实现后视觉 QA、系统化功能 QA、代码 review 和提交边界预检已闭环；下一步进入 Step 14 `gstack /ship`。尚未 stage、commit、push、tag、release 或 deploy；push、tag、GitHub Release、镜像上传和生产部署仍需用户明确授权。
+当前阶段：Step 15 `gstack /land-and-deploy` 已完成。`v1.0.7` 已完成本地实现、验证、浏览器响应式检查、视觉 QA、系统化 QA、代码 review、ship preflight、GitHub Release、镜像构建上传和生产停机升级。当前 SOP 已闭环。
 
 关键证据：
 
@@ -32,6 +32,10 @@
 - Step 12 review 报告：`.gstack/reviews/2026-06-21-v1.0.7-permission-review.md`
 - Step 12 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-step12-review.md`
 - Step 13 ship preflight：`.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`
+- Step 14 ship：`.my-harness/runs/2026-06-21-v1.0.7-permission-step14-ship.md`
+- Step 15 land-and-deploy：`.my-harness/runs/2026-06-21-v1.0.7-permission-step15-land-and-deploy.md`
+- GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7`
+- 生产版本：`/version` 返回 `1.0.7 / 3ab1790`
 
 流程执行情况一览：
 
@@ -50,10 +54,10 @@
 | ✅ | 11 | gstack `/qa` | 已完成 | `.gstack/qa-reports/2026-06-21-v1.0.7-permission-qa.md`；未发现 P0/P1/P2 |
 | ✅ | 12 | gstack `/review` | 已完成 | `.gstack/reviews/2026-06-21-v1.0.7-permission-review.md`；P1/P2 已修复并复验 |
 | ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`；提交边界、版本号、敏感信息和产物排除已检查 |
-| ⏳ | 14 | gstack `/ship` | 待执行 | 未 stage/commit/push/tag/release |
-| ⏳ | 15 | gstack `/land-and-deploy` | 待执行 | 未到部署授权阶段 |
+| ✅ | 14 | gstack `/ship` | 已完成 | commit `3ab1790`；tag `v1.0.7`；GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7` |
+| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 生产运行 `feishu-iam:v1.0.7`；`/ready` ready；`/version` 返回 `1.0.7 / 3ab1790`；备份目录 `/home/bpmt/feishu-iam/backups/20260621-180240` |
 
-推荐提示词见 `.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`。
+当前 SOP 已闭环。可选后续是发布后 canary 观察窗口。
 
 ---
 

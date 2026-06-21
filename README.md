@@ -157,6 +157,7 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7
 - 角色配置工作台收敛为 `总览`、`组织与用户`、`应用权限`，移除重复 `基础信息`、`变更记录` 和权限点对比面板。
 - 新增 `管理角色关联应用` Dialog 和角色-应用绑定软解除 API，软解除写入审计。
 - 新增只读权限矩阵 API 和页面，支持用户/组织主体 ID 查询、按应用分组展示最终权限和来源解释。
+- `v1.0.7` 已完成生产停机升级：公网 `/ready` 返回 ready，公网 `/version` 返回 `1.0.7 / 3ab1790`，生产运行镜像为 `feishu-iam:v1.0.7`。
 
 `v1.0.5` 和 `v1.0.6` 已完成以下正式版能力，`v1.0.7` 不回退：
 
@@ -196,6 +197,8 @@ https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7
 - 新增只读权限矩阵 API 和页面，按用户或组织查询最终权限、命中角色、来源权限组和来源解释。
 - 已完成本地 focused tests、项目级 `pnpm check`、前后端 build、响应式浏览器自检和 `git diff --check`。
 - GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7`。
+- 已完成 `linux/amd64` 离线镜像构建、上传和生产停机升级：本地镜像 ID 为 `sha256:d02ab33b39f37a6e72e5291e6c482823382afe26054e8857c8ab723e4bdac2c6`，远端运行镜像 ID 为 `sha256:4cae6597a060e44c684a549267f0002ff66615439df35f9a16cc719350a61dfe`，离线包 SHA-256 为 `31ea88b9c5081a810d99eea1da62ac93b96051c30c38b8e9d64e967463e5f845`。
+- 生产部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260621-180240`；公网 `/ready` 返回 ready，公网 `/version` 返回 `1.0.7 / 3ab1790`。
 
 #### v1.0.6
 

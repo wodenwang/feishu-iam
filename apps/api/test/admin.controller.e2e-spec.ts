@@ -113,6 +113,8 @@ describe("Admin auth controller", () => {
     updateRole: vi.fn<IamRoleService["updateRole"]>(),
     setRoleStatus: vi.fn<IamRoleService["setRoleStatus"]>(),
     bindRoleToApplication: vi.fn<IamRoleService["bindRoleToApplication"]>(),
+    setRoleApplicationBindingStatus:
+      vi.fn<IamRoleService["setRoleApplicationBindingStatus"]>(),
     replaceRolePermissionGroups:
       vi.fn<IamRoleService["replaceRolePermissionGroups"]>(),
     replaceRoleSubjects: vi.fn<IamRoleService["replaceRoleSubjects"]>(),
@@ -708,6 +710,17 @@ describe("Admin auth controller", () => {
       createdAt: new Date("2026-05-17T01:00:00.000Z"),
       updatedAt: new Date("2026-05-17T01:00:00.000Z"),
     });
+    iamRoles.setRoleApplicationBindingStatus.mockImplementation((_appKey, roleId) =>
+      Promise.resolve({
+        id: roleId,
+        key: "finance.admin",
+        name: "财务管理员",
+        description: null,
+        status: "active",
+        createdAt: new Date("2026-05-17T01:00:00.000Z"),
+        updatedAt: new Date("2026-05-17T01:00:00.000Z"),
+      }),
+    );
     iamRoles.replaceRolePermissionGroups.mockResolvedValue(undefined);
     iamRoles.replaceRoleSubjects.mockResolvedValue(undefined);
     oauthConfig.listEnvironments.mockResolvedValue([
@@ -2539,6 +2552,73 @@ describe("Admin auth controller", () => {
     );
   });
 
+  it("PATCH /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 平台管理员可软解除角色应用绑定", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .patch(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/application-binding",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
+      .set("x-request-id", "req-disable-role-app")
+      .set("user-agent", "vitest-admin-console")
+      .send({ status: "disabled" })
+      .expect(200)
+      .expect((response) => {
+        expect(getField(response.body as unknown, "id")).toBe(
+          "role-finance-admin",
+        );
+        expect(getField(response.body as unknown, "app_key")).toBe("finance");
+      });
+
+    expect(iamRoles.setRoleApplicationBindingStatus).toHaveBeenCalledWith(
+      "finance",
+      "role-finance-admin",
+      "disabled",
+      {
+        actorType: "admin_user",
+        actorId: "admin-platform",
+        source: "admin_web",
+        requestId: "req-disable-role-app",
+        ip: expect.any(String) as unknown,
+        userAgent: "vitest-admin-console",
+      },
+    );
+  });
+
+  it("PATCH /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 拒绝非法状态", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-platform",
+      feishuUserId: "ou_platform",
+      displayName: "平台管理员",
+      roles: ["platform_admin"],
+      applicationIds: [],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .patch(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/application-binding",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_platform"])
+      .send({ status: "deleted" })
+      .expect(422)
+      .expect((response) => {
+        expect(getErrorCode(response.body as unknown)).toBe(
+          "IAM_ROLE_APPLICATION_BINDING_BODY_INVALID",
+        );
+      });
+
+    expect(iamRoles.setRoleApplicationBindingStatus).not.toHaveBeenCalled();
+  });
+
   it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 应用管理员不可绑定已有全局角色", async () => {
     auth.getContextFromSessionSecret.mockResolvedValue({
       adminUserId: "admin-app",
@@ -2562,6 +2642,32 @@ describe("Admin auth controller", () => {
       });
 
     expect(iamRoles.bindRoleToApplication).not.toHaveBeenCalled();
+  });
+
+  it("PATCH /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding 应用管理员不可软解除角色应用绑定", async () => {
+    auth.getContextFromSessionSecret.mockResolvedValue({
+      adminUserId: "admin-app",
+      feishuUserId: "ou_app",
+      displayName: "应用管理员",
+      roles: ["application_admin"],
+      applicationIds: ["app-finance"],
+    });
+    const httpServer = app.getHttpServer() as SupertestApp;
+
+    await request(httpServer)
+      .patch(
+        "/api/v1/admin/applications/finance/iam-roles/role-finance-admin/application-binding",
+      )
+      .set("Cookie", ["feishu_iam_admin_session=bias_app"])
+      .send({ status: "disabled" })
+      .expect(403)
+      .expect((response) => {
+        expect(getErrorCode(response.body as unknown)).toBe(
+          "ADMIN_PERMISSION_DENIED",
+        );
+      });
+
+    expect(iamRoles.setRoleApplicationBindingStatus).not.toHaveBeenCalled();
   });
 
   it("POST /api/v1/admin/applications/:appKey/iam-roles/:roleId/disable 和 enable 平台管理员可切换角色状态", async () => {

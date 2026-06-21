@@ -171,7 +171,9 @@ export function createPermissionRoleColumns(options: {
 }
 
 function RoleApplicationSummary(props: { role: IamRole }) {
-  const applications = props.role.applications ?? [];
+  const applications = (props.role.applications ?? []).filter(
+    (application) => application.bindingStatus === "active",
+  );
   if (applications.length === 0) {
     return <span className="text-sm text-muted-foreground">暂无应用</span>;
   }

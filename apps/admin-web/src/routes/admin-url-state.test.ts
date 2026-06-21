@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminRoutes, routePath } from './admin-routes';
+import { adminRoutes, getActiveAdminRoute, routePath } from './admin-routes';
 import {
   closeSheet,
   parseAdminUserSearch,
@@ -28,6 +28,10 @@ describe('admin routes', () => {
       'permissions',
       'system'
     ]);
+    expect(adminRoutes.find((route) => route.id === 'permissions')?.children?.map((route) => route.id)).toEqual([
+      'permissionsRoleAuth',
+      'permissionsMatrix'
+    ]);
     expect(adminRoutes.find((route) => route.id === 'system')?.children?.map((route) => route.id)).toEqual([
       'systemFeishu',
       'systemAdmins',
@@ -35,8 +39,15 @@ describe('admin routes', () => {
       'systemInfo'
     ]);
     expect(routePath('applications')).toBe('/admin/applications');
+    expect(routePath('permissions')).toBe('/admin/permissions');
+    expect(routePath('permissionsRoleAuth')).toBe('/admin/permissions');
+    expect(routePath('permissionsMatrix')).toBe('/admin/permissions/matrix');
     expect(routePath('systemAudit')).toBe('/admin/system/audit');
     expect(routePath('records')).toBe('/admin/records');
+    expect(getActiveAdminRoute('/admin/permissions')).toBe('permissionsRoleAuth');
+    expect(getActiveAdminRoute('/admin/permissions/matrix')).toBe('permissionsMatrix');
+    expect(getActiveAdminRoute('/admin/permissions/roles/role-1')).toBe('permissionsRoleAuth');
+    expect(getActiveAdminRoute('/admin/permissions/crm/roles/role-1')).toBe('permissionsRoleAuth');
   });
 });
 

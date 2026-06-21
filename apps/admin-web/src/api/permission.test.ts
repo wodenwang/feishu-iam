@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  fetchPermissionMatrix,
   fetchIamRolesAcrossApplications,
   replaceIamRolePermissionGroups,
+  setIamRoleApplicationBindingStatus,
   type Application,
 } from "./permission";
 
@@ -168,6 +170,52 @@ describe("permission api", () => {
         body: JSON.stringify({ groupIds: ["group-a", "group-b"] }),
         credentials: "include",
       }),
+    );
+  });
+
+  it("patches IAM role application binding status", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse({
+        id: "role-1",
+        app_key: "crm",
+        key: "crm.operator",
+        name: "CRM 操作员",
+        status: "active",
+        createdAt: "2026-06-21T00:00:00.000Z",
+        updatedAt: "2026-06-21T00:00:00.000Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await setIamRoleApplicationBindingStatus("crm", "role-1", "disabled");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/applications/crm/iam-roles/role-1/application-binding",
+      expect.objectContaining({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "disabled" }),
+        credentials: "include",
+      }),
+    );
+  });
+
+  it("fetches permission matrix by subject", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse({
+        subject: { type: "user", id: "user-1", name: "张三" },
+        scope_note: "用户查询包含直接用户绑定和用户所属组织绑定。",
+        applications: [],
+        computed_at: "2026-06-21T00:00:00.000Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPermissionMatrix({ subjectType: "user", subjectId: "user-1" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/permission-matrix?subjectType=user&subjectId=user-1",
+      expect.objectContaining({ credentials: "include" }),
     );
   });
 });

@@ -10,6 +10,8 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminErrorFilter } from './admin-error.filter';
 import { AdminFeishuController } from './admin-feishu.controller';
 import { AdminOauthConfigController } from './admin-oauth-config.controller';
+import { AdminPermissionMatrixController } from './admin-permission-matrix.controller';
+import { AdminPermissionMatrixService } from './admin-permission-matrix.service';
 import { AdminPermissionController } from './admin-permission.controller';
 import { AdminPermissionService } from './admin-permission.service';
 import { AdminQueryService } from './admin-query.service';
@@ -24,12 +26,14 @@ import { AdminUserService } from './admin-user.service';
     AdminAuthController,
     AdminUserController,
     AdminPermissionController,
+    AdminPermissionMatrixController,
     AdminOauthConfigController,
     AdminFeishuController,
     AdminAuditController
   ],
   providers: [
     AdminPermissionService,
+    AdminPermissionMatrixService,
     AdminUserService,
     AdminAuthService,
     AdminAuthFailureRecorder,

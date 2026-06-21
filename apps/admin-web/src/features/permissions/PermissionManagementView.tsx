@@ -267,13 +267,11 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
         description="统一管理角色资源，按应用筛选关联角色，并进入独立工作台维护组织、用户和应用权限。"
         primaryAction={
           <Button
-            disabled={!search.appKey || !canManageGlobalRoles}
+            disabled={!canManageGlobalRoles}
             title={
               !canManageGlobalRoles
                 ? "只有平台管理员可以创建角色"
-                : search.appKey
-                  ? "创建角色"
-                  : "请先选择一个应用后创建角色"
+                : "创建角色"
             }
             type="button"
             onClick={() => { setCreateOpen(true); }}
@@ -505,7 +503,12 @@ export function PermissionManagementView({ admin, initialAppKey }: PermissionMan
 
       <PermissionRoleCreateDialog
         appKey={search.appKey}
-        onCreated={reloadRoles}
+        applications={applicationsState.status === "loaded" ? applicationsState.applications : []}
+        onCreated={(_role, appKey) => {
+          setCreateOpen(false);
+          updateSearch({ appKey, page: 1, sheet: undefined });
+          reloadRoles();
+        }}
         onOpenChange={setCreateOpen}
         open={createOpen}
       />

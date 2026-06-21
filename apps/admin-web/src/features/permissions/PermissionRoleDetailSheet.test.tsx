@@ -71,7 +71,7 @@ const role: IamRole = {
     },
   ],
   key: "base-portal.admin",
-  name: "角色配置工作台",
+  name: "财务管理员",
   description: "测试角色",
   status: "active",
   permissionGroups: [group],
@@ -83,7 +83,7 @@ const role: IamRole = {
 };
 
 describe("PermissionRoleDetailSheet", () => {
-  it("页面模式使用角色上下文标题，避免重复工作台标题", () => {
+  it("页面模式使用角色名称作为详情标题并保留基础信息概览", () => {
     render(
       <PermissionRoleDetailSheet
         appKey="base-portal"
@@ -100,9 +100,33 @@ describe("PermissionRoleDetailSheet", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "角色上下文" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "财务管理员" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "基础信息概览" })).toBeInTheDocument();
-    expect(screen.queryAllByRole("heading", { name: "角色配置工作台" })).toHaveLength(0);
+  });
+
+  it("shows the reduced role workbench tabs without base, audit, or permission comparison", () => {
+    render(
+      <PermissionRoleDetailSheet
+        appKey="base-portal"
+        applications={[basePortal, ssoDemo]}
+        canBindApplications
+        canManageSubjects
+        onOpenChange={vi.fn()}
+        onSaved={vi.fn()}
+        open
+        permissionGroups={[group]}
+        permissionGroupsById={new Map([[group.id, group]])}
+        presentation="page"
+        role={role}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "总览" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "组织与用户" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "应用权限" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "基础信息" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "变更记录" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("权限点对比")).not.toBeInTheDocument();
   });
 
   it("应用权限页使用纵向应用 tab 切换且不拉伸可选权限组面板", async () => {
@@ -143,10 +167,86 @@ describe("PermissionRoleDetailSheet", () => {
 
     const permissionPreview = screen.getByRole("region", { name: "绑定结果预览" });
     expect(permissionPreview).toHaveClass("lg:max-h-[calc(100vh-7rem)]");
+    expect(within(permissionPreview).queryByLabelText("权限点对比")).not.toBeInTheDocument();
+  });
 
-    const permissionCompare = within(permissionPreview).getByLabelText("权限点对比");
-    const compareScroller = within(permissionCompare).getByRole("table").parentElement;
-    expect(compareScroller).toHaveClass("max-h-[420px]");
-    expect(compareScroller).toHaveClass("overflow-auto");
+  it("opens the manage role applications dialog from application permissions", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PermissionRoleDetailSheet
+        activeTab="groups"
+        appKey="base-portal"
+        applications={[basePortal, ssoDemo]}
+        canBindApplications
+        canManageSubjects
+        onActiveTabChange={vi.fn()}
+        onAppKeyChange={vi.fn()}
+        onBindApplication={vi.fn()}
+        onOpenChange={vi.fn()}
+        onSaved={vi.fn()}
+        open
+        permissionGroups={[group]}
+        permissionGroupsById={new Map([[group.id, group]])}
+        presentation="page"
+        role={role}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "管理应用" }));
+    const dialog = await screen.findByRole("dialog", { name: "管理角色关联应用" });
+    expect(dialog).toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText("搜索应用"), "sso");
+    expect(within(dialog).getByText("飞书IAM的SSO DEMO")).toBeInTheDocument();
+    expect(within(dialog).queryByText("基础门户")).not.toBeInTheDocument();
+  });
+
+  it("treats disabled role application bindings as restorable instead of active tabs", async () => {
+    const user = userEvent.setup();
+    const onBindApplication = vi.fn();
+    const roleWithDisabledApplication: IamRole = {
+      ...role,
+      applications: [
+        role.applications?.[0] as NonNullable<IamRole["applications"]>[number],
+        {
+          applicationId: "app-sso-demo",
+          appKey: "feishu-iam-sso-demo",
+          bindingStatus: "disabled",
+          name: "飞书IAM的SSO DEMO",
+          status: "active",
+        },
+      ],
+    };
+
+    render(
+      <PermissionRoleDetailSheet
+        activeTab="groups"
+        appKey="base-portal"
+        applications={[basePortal, ssoDemo]}
+        canBindApplications
+        canManageSubjects
+        onActiveTabChange={vi.fn()}
+        onAppKeyChange={vi.fn()}
+        onBindApplication={onBindApplication}
+        onOpenChange={vi.fn()}
+        onSaved={vi.fn()}
+        open
+        permissionGroups={[group]}
+        permissionGroupsById={new Map([[group.id, group]])}
+        presentation="page"
+        role={roleWithDisabledApplication}
+      />,
+    );
+
+    const availableGroups = screen.getByRole("region", { name: "可选权限组" });
+    const appTabs = within(availableGroups).getByRole("tablist", { name: "当前应用" });
+    expect(within(appTabs).queryByRole("tab", { name: /飞书IAM的SSO DEMO/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "管理应用" }));
+    const dialog = await screen.findByRole("dialog", { name: "管理角色关联应用" });
+    expect(within(dialog).getByText("可恢复绑定")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "添加" }));
+    expect(onBindApplication).toHaveBeenCalledWith("feishu-iam-sso-demo");
   });
 });

@@ -129,7 +129,8 @@ export class IamRoleService {
       where: {
         applications: {
           some: {
-            applicationId: application.id
+            applicationId: application.id,
+            status: 'active'
           }
         }
       },
@@ -323,6 +324,78 @@ export class IamRoleService {
         {
           applicationId: application.id,
           bindingStatus: 'active'
+        },
+        tx,
+        auditContext
+      );
+
+      return role;
+    });
+  }
+
+  async setRoleApplicationBindingStatus(
+    appKey: string,
+    roleId: string,
+    status: EntityStatus,
+    auditContext?: PermissionAuditContext
+  ): Promise<IamRole> {
+    return this.prisma.$transaction(async (tx) => {
+      const application = await this.applications.getApplicationByKey(appKey, tx);
+      const role = await tx.iamRole.findFirst({
+        where: {
+          id: roleId
+        }
+      });
+
+      if (!role) {
+        throw new PermissionDomainError('IAM_ROLE_NOT_FOUND', 'IAM 角色不存在', 404);
+      }
+
+      const currentBinding = await tx.iamRoleApplication.findUnique({
+        where: {
+          iamRoleId_applicationId: {
+            iamRoleId: roleId,
+            applicationId: application.id
+          }
+        }
+      });
+
+      if (!currentBinding && status === 'disabled') {
+        throw new PermissionDomainError(
+          'IAM_ROLE_APPLICATION_BINDING_NOT_FOUND',
+          '角色未绑定该应用',
+          404
+        );
+      }
+
+      await tx.iamRoleApplication.upsert({
+        where: {
+          iamRoleId_applicationId: {
+            iamRoleId: roleId,
+            applicationId: application.id
+          }
+        },
+        create: {
+          iamRoleId: roleId,
+          applicationId: application.id,
+          status
+        },
+        update: {
+          status
+        }
+      });
+
+      await this.recordAudit(
+        application.id,
+        roleId,
+        'set_application_binding_status',
+        {
+          applicationId: application.id,
+          bindingStatus: currentBinding?.status ?? null
+        },
+        {
+          applicationId: application.id,
+          bindingStatus: status
         },
         tx,
         auditContext
@@ -532,7 +605,8 @@ export class IamRoleService {
         id: roleId,
         applications: {
           some: {
-            applicationId: application.id
+            applicationId: application.id,
+            status: 'active'
           }
         }
       }

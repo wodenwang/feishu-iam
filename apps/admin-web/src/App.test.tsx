@@ -1601,7 +1601,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     expect(
@@ -1625,7 +1625,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user);
@@ -1639,8 +1639,9 @@ describe("管理后台骨架", () => {
 
     const drawer = await openRoleDetail(section, user);
     expect(
-      within(drawer).getByRole("heading", { name: "财务管理员", level: 3 }),
+      within(drawer).getByRole("heading", { name: "角色配置工作台", level: 1 }),
     ).toBeInTheDocument();
+    expect(drawer).toHaveTextContent("财务管理员");
     expect(drawer).toHaveTextContent("finance_admin");
     expect(
       within(drawer).getByRole("tab", { name: "组织与用户" }),
@@ -1672,7 +1673,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user);
@@ -1693,7 +1694,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user);
@@ -1732,7 +1733,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user);
@@ -1764,7 +1765,7 @@ describe("管理后台骨架", () => {
     });
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user);
@@ -1923,7 +1924,7 @@ describe("管理后台骨架", () => {
     );
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     await selectPermissionApplication(section, user, /finance/);
@@ -1993,7 +1994,7 @@ describe("管理后台骨架", () => {
     );
 
     render(<App />);
-    await user.click(await screen.findByRole("link", { name: "权限管理" }));
+    await openPermissionRoleAuth(user);
 
     const section = await screen.findByRole("region", { name: "权限管理" });
     expect(
@@ -2016,6 +2017,12 @@ async function permissionApplicationSelect(
     throw new Error("未找到权限管理应用筛选");
   }
   return select;
+}
+
+async function openPermissionRoleAuth(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  await user.click(await screen.findByRole("link", { name: "角色授权" }));
 }
 
 async function selectPermissionApplication(

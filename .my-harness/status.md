@@ -1,4 +1,63 @@
-# Feishu IAM v1.0.6 my-harness 状态
+# Feishu IAM my-harness 状态
+
+## v1.0.7 当前接续
+
+当前目标：推进 `v1.0.7 - 权限管理信息架构收敛`，一个版本完成 S1 角色工作台减负和 S2 权限矩阵 MVP。
+
+当前阶段：Step 13 Git closeout / `/ship` preflight 已完成。`v1.0.7` 本地实现、项目级验证、响应式浏览器自检、实现后视觉 QA、系统化功能 QA、代码 review 和提交边界预检已闭环；下一步进入 Step 14 `gstack /ship`。尚未 stage、commit、push、tag、release 或 deploy；push、tag、GitHub Release、镜像上传和生产部署仍需用户明确授权。
+
+关键证据：
+
+- PRD：`docs/superpowers/specs/2026-06-21-feishu-iam-v1.0.7-permission-management-prd.md`
+- 线上审计：`docs/design-audits/2026-06-21-permission-management-next-prd/audit-notes.md`
+- Step 2 评审：`docs/design-audits/2026-06-21-permission-management-next-prd/step2-product-design-planning-review.md`
+- my-harness run：`.my-harness/runs/2026-06-21-v1.0.7-permission-planning-review.md`
+- Step 3 视觉方向：`design/product-design-v1.0.7-permission-management/visual-directions.md`
+- Step 3 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-visual-directions.md`
+- Step 4 视觉评审：`design/product-design-v1.0.7-permission-management/selected-visual-target-review.md`
+- Step 4 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-selected-visual-review.md`
+- Step 5 工程评审：`docs/superpowers/reviews/2026-06-21-feishu-iam-v1.0.7-permission-management-plan-eng-review.md`
+- Step 5 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-plan-eng-review.md`
+- Step 6 实施计划：`docs/superpowers/plans/2026-06-21-feishu-iam-v1.0.7-permission-management.md`
+- Step 6 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-writing-plan.md`
+- Step 7 首个切片 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-executing-plan-slice1.md`
+- Step 7 首个切片会话归档：`docs/codex-sessions/2026-06-21-1645-v1.0.7-executing-plan-slice1.md`
+- Step 7 完整实现 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-executing-plan-complete.md`
+- Step 7 完整实现会话归档：`docs/codex-sessions/2026-06-21-1725-v1.0.7-permission-implementation-verification.md`
+- Step 10 实现后视觉 QA：`docs/design-audits/2026-06-21-permission-management-next-prd/step10-implemented-visual-qa.md`
+- Step 10 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-step10-visual-qa.md`
+- Step 10 视觉证据：`output/playwright/v1.0.7-permission-management-design-qa/10-role-workbench-title-final-1440.png`、`output/playwright/v1.0.7-permission-management-design-qa/11-manage-role-applications-dialog-final-1440.png`
+- Step 11 QA 报告：`.gstack/qa-reports/2026-06-21-v1.0.7-permission-qa.md`
+- Step 11 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-step11-qa.md`
+- Step 12 review 报告：`.gstack/reviews/2026-06-21-v1.0.7-permission-review.md`
+- Step 12 run：`.my-harness/runs/2026-06-21-v1.0.7-permission-step12-review.md`
+- Step 13 ship preflight：`.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`
+
+流程执行情况一览：
+
+| 状态 | 步骤 | Harness 动作 | 判断 | 证据/原因 |
+|---|---:|---|---|---|
+| ✅ | 1 | Discovery / Brainstorm gate | 前置已完成 | PRD、线上审计、GitHub issues `#6-#9`、用户确认 B |
+| ✅ | 2 | Product Design planning review | 前置已完成 | `step2-product-design-planning-review.md` |
+| ✅ | 3 | Design artifact / visual target | 前置已完成 | 用户确认 D1/D，视觉目标已选定 |
+| ✅ | 4 | Product Design review of selected design artifact | 前置已完成 | `selected-visual-target-review.md`，无关键设计阻塞 |
+| ✅ | 5 | gstack `/plan-eng-review` | 已完成 | `plan-eng-review.md`，确认一个版本可控，需新增矩阵服务和软解除 API |
+| ✅ | 6 | Superpowers `writing-plans` | 已完成 | `2026-06-21-feishu-iam-v1.0.7-permission-management.md` |
+| ✅ | 7 | Superpowers `executing-plans` | 已完成本地实现 | 已完成权限管理二级导航、创建角色根因修复、角色工作台减负、管理关联应用 Dialog、软解除 API、权限矩阵 API/UI、版本文档 |
+| ✅ | 8 | Verification before completion | 已完成 | `pnpm check`、前后端 build、focused tests、`git diff --check` 均通过 |
+| ✅ | 9 | Browser verification | 已完成 | `ADMIN_WEB_URL=http://localhost:4173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 14 条后台路由 x 4 视口，`failures: []` |
+| ✅ | 10 | Product Design visual QA / design review | 已完成 | `step10-implemented-visual-qa.md`；修正页面模式重复标题和状态徽标拉伸；无关键设计阻塞 |
+| ✅ | 11 | gstack `/qa` | 已完成 | `.gstack/qa-reports/2026-06-21-v1.0.7-permission-qa.md`；未发现 P0/P1/P2 |
+| ✅ | 12 | gstack `/review` | 已完成 | `.gstack/reviews/2026-06-21-v1.0.7-permission-review.md`；P1/P2 已修复并复验 |
+| ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`；提交边界、版本号、敏感信息和产物排除已检查 |
+| ⏳ | 14 | gstack `/ship` | 待执行 | 未 stage/commit/push/tag/release |
+| ⏳ | 15 | gstack `/land-and-deploy` | 待执行 | 未到部署授权阶段 |
+
+推荐提示词见 `.my-harness/runs/2026-06-21-v1.0.7-permission-step13-ship-preflight.md`。
+
+---
+
+# Feishu IAM v1.0.6 历史状态
 
 ## 当前目标
 
@@ -14,9 +73,9 @@
 
 ## 当前阶段
 
-已完成 step1-step14。`v1.0.6` 已 push 到 GitHub，tag 和 GitHub Release 已创建；上传镜像和 deploy 仍需用户另行授权。
+已完成 step1-step15。`v1.0.6` 已 push 到 GitHub，tag 和 GitHub Release 已创建，`linux/amd64` 离线镜像已上传并完成生产停机升级。
 
-最后更新时间：2026-06-21 03:08 CST。
+最后更新时间：2026-06-21 03:29 CST。
 
 ## 版本号
 
@@ -28,8 +87,9 @@
 - D2：Product Design 专用工具当前不可用，使用用户生产标注、`DESIGN.md`、v1.0.5 定稿规格和 Playwright 三视口审计作为替代设计证据。
 - D3：应用切换采用纵向 tab，并保留添加应用下拉作为次级动作。
 - D4：权限点对比保留在主界面，不降级为弹窗。
-- D5：`v1.0.6` README / CHANGELOG / package version 已按 release prep 口径补齐，但 GitHub Release、镜像上传和生产部署仍待授权，不写成已完成事实。
-- D6：本轮只授权 push、tag 和 GitHub Release，不授权镜像上传或生产 deploy。
+- D5：`v1.0.6` README / CHANGELOG / package version 已按 release 和生产部署事实更新。
+- D6：Step14 只授权 push、tag 和 GitHub Release；Step15 已另获授权执行镜像上传和生产 deploy。
+- D7：生产部署沿用单机 Docker Compose 停机升级，使用 `FEISHU_IAM_PULL_POLICY=never` 和离线 tar 导入，不输出 `.env` 敏感配置。
 
 ## 流程执行情况一览
 
@@ -49,7 +109,7 @@
 | ✅ | 12 | gstack `/review` | 已完成 | diff 仅涉及权限管理前端、测试、计划和验证证据；未发现需继续修复的 P0/P1 |
 | ✅ | 13 | Git closeout / `/ship` preflight | 已完成 | `.my-harness/step13-v1.0.6-git-closeout-preflight.md`；已整理提交边界、版本文档缺口和授权动作，未 stage/commit/push |
 | ✅ | 14 | gstack `/ship` | Release 已创建 | commit `31db6aa`；tag `v1.0.6`；GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6`；未上传镜像、未 deploy |
-| ⏸️ | 15 | gstack `/land-and-deploy` | 未授权 | 需用户授权 |
+| ✅ | 15 | gstack `/land-and-deploy` | 已完成 | 线上运行 `feishu-iam:v1.0.6`；`/ready` ready；`/version` 返回 `1.0.6 / 31db6aa`；备份目录 `/home/bpmt/feishu-iam/backups/20260621-032848` |
 
 ## 当前验证证据
 
@@ -62,6 +122,12 @@ pnpm --filter @feishu-iam/admin-web typecheck
 pnpm --filter @feishu-iam/admin-web lint
 pnpm --filter @feishu-iam/admin-web build
 git diff --check
+docker buildx build --platform linux/amd64 -f deploy/api.Dockerfile -t feishu-iam:v1.0.6 --load .
+docker save feishu-iam:v1.0.6 -o /tmp/feishu-iam-v1.0.6-linux-amd64.tar
+scp /tmp/feishu-iam-v1.0.6-linux-amd64.tar bpmt@120.24.236.92:/home/bpmt/feishu-iam/
+ssh bpmt@120.24.236.92 'cd /home/bpmt/feishu-iam && docker load -i feishu-iam-v1.0.6-linux-amd64.tar && FEISHU_IAM_GIT_SYNC=false FEISHU_IAM_PULL_POLICY=never FEISHU_IAM_IMAGE_TAG=v1.0.6 APP_VERSION=1.0.6 GIT_COMMIT=31db6aa ./upgrade.sh'
+curl -fsS https://feishu-iam.riversoft.com.cn/ready
+curl -fsS https://feishu-iam.riversoft.com.cn/version
 ```
 
 浏览器证据：
@@ -87,6 +153,11 @@ git diff --check
 - `绑定结果预览` 桌面高度 788px，包含 `lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`。
 - `权限点对比` 包含 `max-h-[420px] overflow-auto`。
 - `总览` 桌面 `角色配置工作台` 标题计数为 1，存在 `角色上下文` 和 `基础信息概览`。
+- 生产 `/ready`：`{"status":"ready","checks":{"database":"ok"}}`。
+- 生产 `/version`：`{"name":"feishu-iam-api","version":"1.0.6","commit":"31db6aa","node_env":"production"}`。
+- 生产权限管理路由 smoke：`/admin/permissions`、角色 `tab=subjects`、角色 `tab=permissions` 均返回 HTTP 200。
+- 镜像证据：本地 `feishu-iam:v1.0.6` 为 `linux/amd64`，本地镜像 ID `sha256:1bf04b6ec9c7c04c331dce7ff3e3bc09ef370d989099d1e2ee9616aad65624b5`；远端运行镜像 ID `sha256:58e6f5dbb5ee00564995595b25d06545d4e49f602007597c65dc4fd8c6b29abc`；tar SHA-256 `0e79ad15c748318769d372c6d98131340410dc589c7df98c2a86da2a48709e08`。
+- 回滚基线：上一版镜像 `feishu-iam:v1.0.5`，上一版线上 `/version` 为 `1.0.5 / ed98409`；本次升级备份目录 `/home/bpmt/feishu-iam/backups/20260621-032848`。
 
 ## 关键制品
 
@@ -96,19 +167,24 @@ git diff --check
 - v1.0.6 run：`.my-harness/runs/2026-06-21-v1.0.6-permission-uiux.md`
 - v1.0.6 step13 preflight：`.my-harness/step13-v1.0.6-git-closeout-preflight.md`
 - v1.0.6 step14 ship prep：`.my-harness/step14-v1.0.6-ship-prep.md`
+- v1.0.6 step15 land-and-deploy：`.my-harness/step15-v1.0.6-land-and-deploy.md`
 - v1.0.6 CHANGELOG：`CHANGELOG.md`
 - v1.0.6 README：`README.md`
 - v1.0.6 ship prep 会话归档：`docs/codex-sessions/2026-06-21-0301-v1.0.6-ship-prep.md`
+- v1.0.6 land-and-deploy 会话归档：`docs/codex-sessions/2026-06-21-0329-v1.0.6-land-and-deploy.md`
 - v1.0.6 GitHub Release：`https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6`
 - v1.0.6 release commit：`31db6aa`
 - v1.0.6 tag：`v1.0.6`
+- v1.0.6 生产镜像：`feishu-iam:v1.0.6`
+- v1.0.6 生产部署目录：`bpmt@120.24.236.92:/home/bpmt/feishu-iam`
+- v1.0.6 升级备份目录：`/home/bpmt/feishu-iam/backups/20260621-032848`
 
 ## 下一步
 
-等待用户授权 Step15 `gstack /land-and-deploy`。未经授权不上传镜像或部署。
+`v1.0.6` 已完成 Step15 `gstack /land-and-deploy`。下一步建议执行发布后 canary/观察窗口，继续只读复核关键登录、权限管理页面和第三方 SSO Demo 链路。
 
 推荐提示词：
 
 ```text
-请继续完成 Feishu IAM v1.0.6 Step 15 gstack /land-and-deploy：我授权你基于 GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6` 和 commit `31db6aa` 执行镜像构建、上传和生产部署。执行前请复核 `git status`、tag、release、README/CHANGELOG 口径、部署目标、镜像 tag、远端环境和敏感信息边界；执行后必须输出镜像信息、远端部署目录、健康检查 `/ready`、版本读回 `/version`、必要 smoke/canary 证据和回滚信息。执行完毕后，请按照 my-harness 规定的流程输出 `流程执行情况一览：` 15 步进度表，并在末尾继续给出下一步可直接复制执行的 `推荐提示词`。如果项目已经在使用 my-harness，请创建或更新 `.my-harness/` 快速索引，记录步骤状态、关键决策、证据链接、验证命令和下一步提示词。Superpowers、gstack、Product Design、Pencil 等第三方技能生成的文档必须继续保留在其规范目录中，`.my-harness/` 只保存链接和简短摘要。这个末尾提示词必须同时包含本句要求，让用户后续只需要复制末尾提示词继续推进，不需要重新询问 next action。
+请继续完成 Feishu IAM v1.0.6 发布后 canary 观察：基于当前已部署的 `https://feishu-iam.riversoft.com.cn/`、GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6`、生产镜像 `feishu-iam:v1.0.6`、部署目录 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，只读复核 `/ready`、`/version`、权限管理关键页面、角色配置工作台 `组织与用户` 和 `应用权限` 两个 tab、以及第三方 SSO Demo 基础链路；不要修改代码、不要上传镜像、不要 deploy，除非我另行明确授权。执行完毕后，请按照 my-harness 规定的流程输出 `流程执行情况一览：` 15 步进度表，并在末尾继续给出下一步可直接复制执行的 `推荐提示词`。如果项目已经在使用 my-harness，请创建或更新 `.my-harness/` 快速索引，记录步骤状态、关键决策、证据链接、验证命令和下一步提示词。Superpowers、gstack、Product Design、Pencil 等第三方技能生成的文档必须继续保留在其规范目录中，`.my-harness/` 只保存链接和简短摘要。这个末尾提示词必须同时包含本句要求，让用户后续只需要复制末尾提示词继续推进，不需要重新询问 next action。
 ```

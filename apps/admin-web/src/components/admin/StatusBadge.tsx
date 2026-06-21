@@ -35,7 +35,7 @@ export function StatusBadge({
   return (
     <Badge
       aria-label={ariaLabel}
-      className={`shrink-0 whitespace-nowrap ${toneClasses[tone]}`}
+      className={`w-fit shrink-0 self-start whitespace-nowrap ${toneClasses[tone]}`}
       variant="outline"
     >
       {children}

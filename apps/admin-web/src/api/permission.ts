@@ -103,6 +103,30 @@ export type IamRoleSubject = {
   displayPath?: string;
 };
 
+export type PermissionMatrixSubjectType = "user" | "department";
+
+export type PermissionMatrixResult = {
+  subject: { type: PermissionMatrixSubjectType; id: string; name: string };
+  scope_note: string;
+  applications: PermissionMatrixApplication[];
+  computed_at: string;
+};
+
+export type PermissionMatrixApplication = {
+  app_key: string;
+  name: string;
+  matched_roles: Array<{ key: string; name: string; match_type: string }>;
+  permission_groups: Array<{ key: string; name: string; source_roles: string[] }>;
+  permission_points: Array<{
+    key: string;
+    name: string;
+    source_roles: string[];
+    source_groups: string[];
+    status: "active";
+  }>;
+  computed_at: string;
+};
+
 export class PermissionApiError extends Error {
   readonly code?: string;
   readonly requestId?: string;
@@ -206,6 +230,9 @@ function safeErrorMessage(status: number, code?: string): string {
     IAM_ROLE_SUBJECT_DUPLICATED: "IAM 角色成员重复",
     PERMISSION_GROUP_DUPLICATED: "权限组重复",
     IAM_ROLE_BODY_INVALID: "IAM 角色请求体不合法",
+    IAM_ROLE_APPLICATION_BINDING_BODY_INVALID: "角色应用绑定请求体不合法",
+    IAM_ROLE_APPLICATION_BINDING_NOT_FOUND: "角色未绑定该应用",
+    PERMISSION_MATRIX_QUERY_INVALID: "权限矩阵查询参数不合法",
   };
 
   if (code && codeMessages[code]) {
@@ -445,6 +472,33 @@ export async function bindIamRoleApplication(
     },
   );
   return normalizeIamRole(role, appKey);
+}
+
+export async function setIamRoleApplicationBindingStatus(
+  appKey: string,
+  roleId: string,
+  status: EntityStatus,
+): Promise<IamRole> {
+  const role = await readJson<RawIamRole>(
+    `/api/v1/admin/applications/${encodeURIComponent(appKey)}/iam-roles/${encodeURIComponent(roleId)}/application-binding`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return normalizeIamRole(role, appKey);
+}
+
+export async function fetchPermissionMatrix(input: {
+  subjectType: PermissionMatrixSubjectType;
+  subjectId: string;
+}): Promise<PermissionMatrixResult> {
+  const params = new URLSearchParams({
+    subjectType: input.subjectType,
+    subjectId: input.subjectId,
+  });
+  return readJson<PermissionMatrixResult>(`/api/v1/admin/permission-matrix?${params.toString()}`);
 }
 
 async function setIamRoleStatus(

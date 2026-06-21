@@ -87,6 +87,10 @@ type UpdateRoleBody = {
   description?: string | null;
 };
 
+type ApplicationBindingBody = {
+  status: EntityStatus;
+};
+
 type ApplicationIntegrationSummary = {
   redirectUriCount: number;
   activeRedirectUriCount: number;
@@ -431,6 +435,24 @@ export class AdminPermissionController {
     const role = await this.iamRoles.bindRoleToApplication(
       appKey,
       roleId,
+      buildPermissionAuditContext(request, context),
+    );
+    return serializeRoleMutation(role, appKey);
+  }
+
+  @Patch("/:appKey/iam-roles/:roleId/application-binding")
+  async setRoleApplicationBindingStatus(
+    @Param("appKey") appKey: string,
+    @Param("roleId") roleId: string,
+    @Body() body: unknown,
+    @Req() request: Request,
+  ): Promise<IamRoleMutationResponse> {
+    const { context } = await this.assertCanManageApplication(appKey, request);
+    this.permission.assertCanManageGlobalIamRoles(context);
+    const role = await this.iamRoles.setRoleApplicationBindingStatus(
+      appKey,
+      roleId,
+      readApplicationBindingBody(body).status,
       buildPermissionAuditContext(request, context),
     );
     return serializeRoleMutation(role, appKey);
@@ -937,6 +959,23 @@ function readUpdateRoleBody(body: unknown): UpdateRoleBody {
       "IAM 角色请求体不合法",
     ),
   };
+}
+
+function readApplicationBindingBody(body: unknown): ApplicationBindingBody {
+  const input = readObjectBody(
+    body,
+    "IAM_ROLE_APPLICATION_BINDING_BODY_INVALID",
+    "角色应用绑定请求体不合法",
+  );
+  const status = input.status;
+  if (status !== "active" && status !== "disabled") {
+    throw new PermissionDomainError(
+      "IAM_ROLE_APPLICATION_BINDING_BODY_INVALID",
+      "角色应用绑定状态不合法",
+      422,
+    );
+  }
+  return { status };
 }
 
 function readRequiredBodyString(

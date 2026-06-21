@@ -5,10 +5,11 @@ const routePaths = [
   "/admin/workspace",
   "/admin/applications",
   "/admin/applications/crm?from=/admin/applications",
-  "/admin/applications/crm?from=/admin/applications&tab=roles",
+  "/admin/applications/crm?from=/admin/applications&tab=permissions",
   "/admin/applications/crm?from=/admin/applications&tab=development",
   "/admin/applications/crm?from=/admin/applications&tab=danger",
   "/admin/permissions",
+  "/admin/permissions/matrix",
   "/admin/permissions/crm/roles/role-1?from=/admin/permissions%3FappKey%3Dcrm&tab=groups",
   "/admin/system/admins",
   "/admin/system/audit?tab=security",
@@ -191,15 +192,25 @@ try {
         Object.assign(result, { roleDetailPage: detailCheck });
       }
       if (
-        routePath.startsWith("/admin/applications/crm") &&
-        routePath.includes("tab=roles") &&
+        routePath === "/admin/permissions/matrix" &&
         viewport.width >= 1280
       ) {
-        const roleActionCheck = await checkApplicationRoleActions(page);
-        if (roleActionCheck.failures.length > 0) {
-          failures.push(...roleActionCheck.failures);
+        const matrixCheck = await checkPermissionMatrixPage(page);
+        if (matrixCheck.failures.length > 0) {
+          failures.push(...matrixCheck.failures);
         }
-        Object.assign(result, { applicationRoleActions: roleActionCheck });
+        Object.assign(result, { permissionMatrixPage: matrixCheck });
+      }
+      if (
+        routePath.startsWith("/admin/applications/crm") &&
+        routePath.includes("tab=permissions") &&
+        viewport.width >= 1280
+      ) {
+        const permissionAssetCheck = await checkApplicationPermissionAssets(page);
+        if (permissionAssetCheck.failures.length > 0) {
+          failures.push(...permissionAssetCheck.failures);
+        }
+        Object.assign(result, { applicationPermissionAssets: permissionAssetCheck });
       }
       if (consoleErrors.length > 0) {
         failures.push(`console error: ${consoleErrors.join(" | ")}`);
@@ -271,6 +282,9 @@ async function installApiMocks(page) {
     if (pathname === "/api/v1/admin/feishu/sync-runs") {
       return fulfillJson(route, { items: [mockSyncRun()] });
     }
+    if (pathname === "/api/v1/admin/permission-matrix") {
+      return fulfillJson(route, mockPermissionMatrix());
+    }
     if (pathname === "/api/v1/admin/applications") {
       return fulfillJson(route, mockApplicationPage());
     }
@@ -332,7 +346,7 @@ async function installApiMocks(page) {
       });
     }
     if (pathname.endsWith("/permission-points")) {
-      return fulfillJson(route, []);
+      return fulfillJson(route, { items: [] });
     }
     if (pathname.endsWith("/iam-roles")) {
       return fulfillJson(route, {
@@ -441,15 +455,15 @@ async function checkApplicationDetailPage(page) {
 
 async function checkRoleDetailPage(page) {
   const failures = [];
-  const main = page.getByRole("main", { name: "角色详情" });
+  const main = page.getByRole("main", { name: "角色配置工作台" });
   await main.waitFor();
-  await main.getByRole("heading", { level: 1, name: "角色详情" }).waitFor();
-  await main.getByRole("tab", { name: "权限组绑定" }).waitFor();
+  await main.getByRole("heading", { level: 1, name: "角色配置工作台" }).waitFor();
+  await main.getByRole("tab", { name: "应用权限" }).waitFor();
   const selected = await main
-    .getByRole("tab", { name: "权限组绑定" })
+    .getByRole("tab", { name: "应用权限" })
     .getAttribute("aria-selected");
   if (selected !== "true") {
-    failures.push("角色详情 URL tab=groups 未恢复到权限组绑定");
+    failures.push("角色详情 URL tab=groups 未恢复到应用权限");
   }
   await main.getByRole("button", { name: "查看权限点" }).first().click();
   const effectivePoints = main.getByLabel("最终权限点清单");
@@ -467,38 +481,34 @@ async function checkRoleDetailPage(page) {
   return { url: page.url(), selectedTab: selected, failures };
 }
 
-async function checkApplicationRoleActions(page) {
+async function checkPermissionMatrixPage(page) {
+  const failures = [];
+  const main = page.getByRole("region", { name: "权限矩阵" });
+  await main.waitFor();
+  await main.getByRole("heading", { level: 1, name: "权限矩阵" }).waitFor();
+  await main.getByLabel("主体 ID").fill("ou_user_1");
+  await main.getByRole("button", { name: "查询" }).click();
+  await main.getByText("CRM 系统").first().waitFor();
+  await main.getByText("crm.customer.read").first().waitFor();
+  await main.getByText("权限来源解释").waitFor();
+  await main.getByText("通过组织继承").waitFor();
+  return { url: page.url(), failures };
+}
+
+async function checkApplicationPermissionAssets(page) {
   const failures = [];
   const main = page.getByRole("main", { name: "应用详情" });
   await main.waitFor();
-  await main.getByRole("tab", { name: "角色管理" }).waitFor();
+  await main.getByRole("tab", { name: "权限资产" }).waitFor();
   const selected = await main
-    .getByRole("tab", { name: "角色管理" })
+    .getByRole("tab", { name: "权限资产" })
     .getAttribute("aria-selected");
   if (selected !== "true") {
-    failures.push("应用详情 URL tab=roles 未恢复到角色管理");
+    failures.push("应用详情 URL tab=permissions 未恢复到权限资产");
   }
-  const disableButton = main.getByRole("button", { name: "停用 crm_admin" });
-  await disableButton.waitFor();
-  const buttonCheck = await disableButton.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return {
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-      text: element.textContent?.trim() ?? "",
-      title: element.getAttribute("title"),
-    };
-  });
-  if (buttonCheck.width !== 32 || buttonCheck.height !== 32) {
-    failures.push(`角色停用按钮尺寸不是 32px：${JSON.stringify(buttonCheck)}`);
-  }
-  if (buttonCheck.text !== "") {
-    failures.push(`角色停用按钮不应显示文字：${buttonCheck.text}`);
-  }
-  if (buttonCheck.title !== "停用") {
-    failures.push(`角色停用按钮 title 不正确：${String(buttonCheck.title)}`);
-  }
-  return { url: page.url(), selectedTab: selected, buttonCheck, failures };
+  await main.getByText("权限资产查询").waitFor();
+  await main.getByText("客户查看员").first().waitFor();
+  return { url: page.url(), selectedTab: selected, failures };
 }
 
 function mockApplicationPage() {
@@ -617,6 +627,58 @@ function mockTraceResult() {
       feishuSyncRuns: 0,
       oauthContexts: 0,
     },
+  };
+}
+
+function mockPermissionMatrix() {
+  return {
+    subject: {
+      type: "user",
+      id: "ou_user_1",
+      name: "张三",
+    },
+    scope_note: "用户查询包含直接用户绑定和用户所属组织绑定。",
+    applications: [
+      {
+        app_key: "crm",
+        name: "CRM 系统",
+        matched_roles: [
+          {
+            key: "crm_admin",
+            name: "CRM 管理员",
+            match_type: "direct",
+          },
+          {
+            key: "crm_sales_viewer",
+            name: "销售查看员",
+            match_type: "department",
+          },
+        ],
+        permission_groups: [
+          {
+            key: "crm.customer.viewer",
+            name: "客户查看员",
+            source_roles: ["crm_admin", "crm_sales_viewer"],
+          },
+        ],
+        permission_points: [
+          {
+            key: "crm.customer.read",
+            name: "查看客户",
+            source_groups: ["crm.customer.viewer"],
+            source_roles: ["crm_admin", "crm_sales_viewer"],
+            status: "active",
+          },
+          {
+            key: "crm.customer.export",
+            name: "导出客户",
+            source_groups: [],
+            source_roles: ["crm_admin"],
+            status: "active",
+          },
+        ],
+      },
+    ],
   };
 }
 

@@ -1,7 +1,7 @@
 import type { ReactNode, SyntheticEvent } from "react";
 import { useEffect, useState } from "react";
 import { createIamRole } from "../../api/permission";
-import type { IamRole } from "../../api/permission";
+import type { Application, IamRole } from "../../api/permission";
 import { FormDialog } from "../../components/admin/FormDialog";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -16,12 +16,15 @@ import type { PermissionRoleDraft, PermissionRoleFormErrors } from "./permission
 
 export function PermissionRoleCreateDialog(props: {
   appKey?: string;
+  applications: Application[];
   open: boolean;
-  onCreated: (role: IamRole) => void;
+  onCreated: (role: IamRole, appKey: string) => void;
   onOpenChange: (open: boolean) => void;
 }) {
   const [draft, setDraft] = useState<PermissionRoleDraft>(emptyPermissionRoleDraft);
   const [errors, setErrors] = useState<PermissionRoleFormErrors>({});
+  const [selectedAppKey, setSelectedAppKey] = useState(props.appKey ?? "");
+  const [appError, setAppError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -29,14 +32,17 @@ export function PermissionRoleCreateDialog(props: {
     if (props.open) {
       setDraft(emptyPermissionRoleDraft);
       setErrors({});
+      setSelectedAppKey(props.appKey ?? "");
+      setAppError(undefined);
       setError(undefined);
     }
-  }, [props.open]);
+  }, [props.appKey, props.open]);
 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!props.appKey) {
-      setError("请先选择应用");
+    const targetAppKey = props.appKey ?? selectedAppKey;
+    if (!targetAppKey) {
+      setAppError("请选择所属应用");
       return;
     }
 
@@ -49,9 +55,9 @@ export function PermissionRoleCreateDialog(props: {
     setPending(true);
     setError(undefined);
     try {
-      const role = await createIamRole(props.appKey, toCreateRolePayload(draft));
+      const role = await createIamRole(targetAppKey, toCreateRolePayload(draft));
       props.onOpenChange(false);
-      props.onCreated(role);
+      props.onCreated(role, targetAppKey);
     } catch (createError: unknown) {
       setError(createError instanceof Error ? createError.message : "无法创建 IAM 角色");
     } finally {
@@ -62,12 +68,33 @@ export function PermissionRoleCreateDialog(props: {
   return (
     <FormDialog error={error} onOpenChange={props.onOpenChange} open={props.open} pending={pending} title="创建 IAM 角色">
       <form className="grid gap-4" onSubmit={(event) => void handleSubmit(event)}>
+        {!props.appKey ? (
+          <RoleField label="所属应用" error={appError}>
+            <select
+              aria-label="所属应用"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pending}
+              value={selectedAppKey}
+              onChange={(event) => {
+                setSelectedAppKey(event.target.value);
+                setAppError(undefined);
+              }}
+            >
+              <option value="">请选择应用</option>
+              {props.applications.map((application) => (
+                <option key={application.appKey} value={application.appKey}>
+                  {application.name} / {application.appKey}
+                </option>
+              ))}
+            </select>
+          </RoleField>
+        ) : null}
         <RoleField label="角色 key" error={errors.key}>
           <Input
             aria-label="角色 key"
             autoComplete="off"
             disabled={pending}
-            placeholder={`${props.appKey ?? "app"}.operator`}
+            placeholder={`${props.appKey ?? (selectedAppKey || "app")}.operator`}
             value={draft.key}
             onChange={(event) => {
               setDraft((current) => ({ ...current, key: event.target.value }));

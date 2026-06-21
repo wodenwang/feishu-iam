@@ -49,6 +49,7 @@ import { AdminAuthorizationPage } from "./routes/AdminAuthorizationPage";
 import { ApplicationManagementPage } from "./routes/ApplicationManagementPage";
 import { ApplicationDetailPage } from "./routes/ApplicationDetailPage";
 import { PermissionManagementPage } from "./routes/PermissionManagementPage";
+import { PermissionMatrixPage } from "./routes/PermissionMatrixPage";
 import { PermissionRoleDetailPage } from "./routes/PermissionRoleDetailPage";
 import { RecordQueryPage } from "./routes/RecordQueryPage";
 import { SystemSettingsPage } from "./routes/SystemSettingsPage";
@@ -455,6 +456,10 @@ function AdminApp() {
         <Route
           path="/admin/permissions"
           element={<PermissionManagementPage admin={adminState.admin} />}
+        />
+        <Route
+          path="/admin/permissions/matrix"
+          element={<PermissionMatrixPage admin={adminState.admin} />}
         />
         <Route
           path="/admin/permissions/roles/:roleId"

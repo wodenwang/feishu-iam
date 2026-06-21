@@ -2,6 +2,8 @@ export type AdminRouteId =
   | "workspace"
   | "applications"
   | "permissions"
+  | "permissionsRoleAuth"
+  | "permissionsMatrix"
   | "system"
   | "systemFeishu"
   | "systemAdmins"
@@ -44,10 +46,21 @@ export const systemRoutes: AdminRoute[] = [
   { id: "systemInfo", path: "/admin/system/info", label: "系统信息", iconKey: "info" },
 ];
 
+export const permissionRoutes: AdminRoute[] = [
+  { id: "permissionsRoleAuth", path: "/admin/permissions", label: "角色授权", iconKey: "permissions" },
+  { id: "permissionsMatrix", path: "/admin/permissions/matrix", label: "权限矩阵", iconKey: "permissions" },
+];
+
 export const adminRoutes: AdminRoute[] = [
   { id: "workspace", path: "/admin/workspace", label: "工作台", iconKey: "workspace" },
   { id: "applications", path: "/admin/applications", label: "应用管理", iconKey: "applications" },
-  { id: "permissions", path: "/admin/permissions", label: "权限管理", iconKey: "permissions" },
+  {
+    id: "permissions",
+    path: "/admin/permissions",
+    label: "权限管理",
+    iconKey: "permissions",
+    children: permissionRoutes,
+  },
   {
     id: "system",
     path: "/admin/system/info",

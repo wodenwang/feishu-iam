@@ -8,6 +8,7 @@ import {
   fetchIamRoles,
   fetchIamRolesAcrossApplications,
   fetchPermissionGroups,
+  setIamRoleApplicationBindingStatus,
 } from "../../api/permission";
 import type { Application, IamRole, PermissionGroup } from "../../api/permission";
 import { PageHeader } from "../../components/admin/PageHeader";
@@ -48,6 +49,9 @@ export function PermissionRoleDetailWorkspace(props: { admin: AdminMe }) {
     if (tab === "permissions" || tab === "groups") {
       return "groups";
     }
+    if (tab === "base" || tab === "audit") {
+      return "overview";
+    }
     return typeof tab === "string" && roleDetailTabs.some((item) => item === tab)
       ? tab
       : "overview";
@@ -82,8 +86,10 @@ export function PermissionRoleDetailWorkspace(props: { admin: AdminMe }) {
         ? await fetchIamRoles(appKey)
         : await fetchIamRolesAcrossApplications(applications);
       const role = roles.find((item) => item.id === roleId);
-      const effectiveAppKey =
-        appKey ?? role?.appKeys?.[0] ?? role?.applications?.[0]?.appKey ?? role?.appKey;
+      const firstActiveAppKey = role?.applications?.find(
+        (applicationBinding) => applicationBinding.bindingStatus === "active",
+      )?.appKey;
+      const effectiveAppKey = appKey ?? firstActiveAppKey ?? role?.appKey;
       const application = applications.find((item) => item.appKey === effectiveAppKey);
       const effectiveRoles =
         effectiveAppKey && effectiveAppKey !== appKey
@@ -172,6 +178,23 @@ export function PermissionRoleDetailWorkspace(props: { admin: AdminMe }) {
               next.set("tab", "permissions");
               setReloadKey((current) => current + 1);
               void navigate({ search: `?${next.toString()}` }, { replace: false });
+            }}
+            onSetApplicationBindingStatus={async (targetAppKey, status) => {
+              await setIamRoleApplicationBindingStatus(targetAppKey, state.role.id, status);
+              if (targetAppKey === state.application.appKey && status === "disabled") {
+                const nextAppKey = state.role.applications?.find(
+                  (application) =>
+                    application.appKey !== targetAppKey &&
+                    application.bindingStatus === "active",
+                )?.appKey;
+                if (nextAppKey) {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("appKey", nextAppKey);
+                  next.set("tab", "permissions");
+                  void navigate({ search: `?${next.toString()}` }, { replace: false });
+                }
+              }
+              setReloadKey((current) => current + 1);
             }}
             onOpenChange={() => { void navigate(returnTo); }}
             onSaved={() => { setReloadKey((current) => current + 1); }}

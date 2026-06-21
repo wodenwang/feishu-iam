@@ -20,6 +20,7 @@ import { cn } from "../../lib/utils";
 import { OrgUserSelector } from "../org-browser/org-user-selector";
 import { readBoundPermissionGroupIds } from "./permission-columns";
 import { formatRoleStatus } from "./permission-form";
+import { RoleApplicationBindingDialog } from "./RoleApplicationBindingDialog";
 
 export type PermissionRoleDetailSheetProps = {
   role: IamRole | null;
@@ -29,6 +30,7 @@ export type PermissionRoleDetailSheetProps = {
   canManageSubjects?: boolean;
   onAppKeyChange?: (appKey: string) => void;
   onBindApplication?: (appKey: string) => Promise<void>;
+  onSetApplicationBindingStatus?: (appKey: string, status: Application["status"]) => Promise<void>;
   roleMissing?: boolean;
   permissionGroups: PermissionGroup[];
   permissionGroupsById: Map<string, PermissionGroup>;
@@ -53,9 +55,10 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
   const [pending, setPending] = useState(false);
   const [bindingAppKey, setBindingAppKey] = useState("");
   const [bindingPending, setBindingPending] = useState(false);
+  const [applicationBindingOpen, setApplicationBindingOpen] = useState(false);
   const [error, setError] = useState<string>();
   const [saveIntent, setSaveIntent] = useState<SaveIntent>(null);
-  const activeTab = props.activeTab ?? internalActiveTab;
+  const activeTab = normalizeRoleDetailTab(props.activeTab ?? internalActiveTab);
   const setActiveTab = props.onActiveTabChange ?? setInternalActiveTab;
 
   useEffect(() => {
@@ -167,7 +170,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
       open={props.open}
       presentation={props.presentation}
       sizeStorageKey="feishu-iam:permissions-role-detail-sheet-size"
-      title={props.presentation === "page" ? "角色上下文" : "角色配置工作台"}
+      title={props.presentation === "page" && role ? role.name : "角色配置工作台"}
     >
       {role ? (
         <div className="grid gap-4">
@@ -187,8 +190,6 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
               <TabsTrigger value="overview">总览</TabsTrigger>
               <TabsTrigger value="subjects">组织与用户</TabsTrigger>
               <TabsTrigger value="groups">应用权限</TabsTrigger>
-              <TabsTrigger value="base">基础信息</TabsTrigger>
-              <TabsTrigger value="audit">变更记录</TabsTrigger>
             </ResponsiveTabsList>
 
             <TabsContent className="min-w-0" value="overview">
@@ -241,6 +242,7 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
                 onAppKeyChange={props.onAppKeyChange}
                 onBindApplication={() => { void handleBindApplication(); }}
                 onBindingAppKeyChange={setBindingAppKey}
+                onOpenApplicationDialog={() => { setApplicationBindingOpen(true); }}
                 onGroupQueryChange={setGroupQuery}
                 onSave={() => { setSaveIntent("groups"); }}
                 onToggleGroup={(groupId) => {
@@ -251,14 +253,22 @@ export function PermissionRoleDetailSheet(props: PermissionRoleDetailSheetProps)
               />
             </TabsContent>
 
-            <TabsContent className="min-w-0" value="base">
-              <BaseInfoTab role={role} />
-            </TabsContent>
-
-            <TabsContent className="min-w-0" value="audit">
-              <AuditTab />
-            </TabsContent>
           </Tabs>
+
+          {props.onBindApplication ? (
+            <RoleApplicationBindingDialog
+              applications={props.applications ?? []}
+              canManage={Boolean(props.canBindApplications)}
+              onBindApplication={async (nextAppKey) => {
+                await props.onBindApplication?.(nextAppKey);
+                props.onSaved();
+              }}
+              onOpenChange={setApplicationBindingOpen}
+              onSetApplicationBindingStatus={props.onSetApplicationBindingStatus}
+              open={applicationBindingOpen}
+              role={role}
+            />
+          ) : null}
 
           {confirmation ? (
             <ConfirmDialog
@@ -347,6 +357,7 @@ function GroupsTab(props: {
   onAppKeyChange?: (appKey: string) => void;
   onBindApplication: () => void;
   onBindingAppKeyChange: (appKey: string) => void;
+  onOpenApplicationDialog: () => void;
   onGroupQueryChange: (value: string) => void;
   onToggleGroup: (groupId: string) => void;
   onSave: () => void;
@@ -354,15 +365,6 @@ function GroupsTab(props: {
   const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
   const [effectiveQuery, setEffectiveQuery] = useState("");
   const changed = props.groupDiff.added.length > 0 || props.groupDiff.removed.length > 0;
-  const boundAppKeys = new Set((props.role.applications ?? []).map((application) => application.appKey));
-  const unboundApplications = props.applications.filter(
-    (application) => !boundAppKeys.has(application.appKey),
-  );
-  const canSubmitApplicationBinding =
-    props.canBindApplications &&
-    !props.disabled &&
-    !props.bindingPending &&
-    Boolean(props.bindingAppKey);
   const effectivePermissionPoints = useMemo(
     () => buildEffectivePermissionPoints(props.role, props.permissionGroups, props.selectedGroupIds),
     [props.permissionGroups, props.role, props.selectedGroupIds],
@@ -454,38 +456,20 @@ function GroupsTab(props: {
           </div>
 
           <div className="grid min-w-0 content-start gap-3">
-            <div className="grid gap-1.5 text-sm font-medium">
-              <span>添加应用</span>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <select
-                  aria-label="选择要添加的应用"
-                  className="flex h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-                  disabled={!props.canBindApplications || props.disabled || props.bindingPending || unboundApplications.length === 0}
-                  value={props.bindingAppKey}
-                  onChange={(event) => {
-                    props.onBindingAppKeyChange(event.target.value);
-                  }}
-                >
-                  {unboundApplications.length === 0 ? (
-                    <option value="">所有应用均已绑定</option>
-                  ) : null}
-                  {unboundApplications.map((application) => (
-                    <option key={application.appKey} value={application.appKey}>
-                      {application.name} / {application.appKey}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  disabled={!canSubmitApplicationBinding}
-                  size="sm"
-                  title={props.canBindApplications ? "将当前角色绑定到选中的应用" : "只有平台管理员可以为角色添加应用"}
-                  type="button"
-                  variant="outline"
-                  onClick={props.onBindApplication}
-                >
-                  {props.bindingPending ? "添加中..." : "添加应用"}
-                </Button>
-              </div>
+            <div className="flex flex-col gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-muted-foreground">
+                当前角色关联 {String(boundApplications.length)} 个应用。
+              </span>
+              <Button
+                disabled={!props.canBindApplications || props.disabled}
+                size="sm"
+                title={props.canBindApplications ? "管理角色关联应用" : "只有平台管理员可以管理角色关联应用"}
+                type="button"
+                variant="outline"
+                onClick={props.onOpenApplicationDialog}
+              >
+                管理应用
+              </Button>
             </div>
             <label className="grid gap-1.5 text-sm font-medium">
               <span>搜索权限组</span>
@@ -577,10 +561,6 @@ function GroupsTab(props: {
           </p>
           <EffectivePermissionPointList permissionPoints={filteredEffectivePermissionPoints} />
         </div>
-        <PermissionPointComparePanel
-          permissionGroups={props.permissionGroups}
-          selectedGroupIds={props.selectedGroupIds}
-        />
       </section>
     </div>
   );
@@ -605,8 +585,10 @@ function buildBoundApplications(
   currentAppKey?: string,
 ): BoundApplicationTab[] {
   const applicationsByKey = new Map(applications.map((application) => [application.appKey, application]));
-  const bound = role.applications && role.applications.length > 0
-    ? role.applications
+  const roleApplications = role.applications ?? [];
+  const activeRoleApplications = roleApplications.filter((application) => application.bindingStatus === "active");
+  const bound = roleApplications.length > 0
+    ? activeRoleApplications
     : [
         {
           appKey: role.appKey,
@@ -625,7 +607,12 @@ function buildBoundApplications(
     };
   });
 
-  if (currentAppKey && !tabs.some((application) => application.appKey === currentAppKey)) {
+  const currentBinding = roleApplications.find((application) => application.appKey === currentAppKey);
+  if (
+    currentAppKey &&
+    !tabs.some((application) => application.appKey === currentAppKey) &&
+    currentBinding?.bindingStatus !== "disabled"
+  ) {
     const currentApplication = applicationsByKey.get(currentAppKey);
     tabs.unshift({
       appKey: currentAppKey,
@@ -697,83 +684,6 @@ function EffectivePermissionPointList({ permissionPoints }: { permissionPoints: 
   );
 }
 
-function PermissionPointComparePanel(props: {
-  permissionGroups: PermissionGroup[];
-  selectedGroupIds: string[];
-}) {
-  const selectedGroups = props.permissionGroups.filter((group) =>
-    props.selectedGroupIds.includes(group.id),
-  );
-  const points = buildPermissionCompareRows(selectedGroups);
-
-  return (
-    <div className="grid min-w-0 gap-3 border-t pt-3" aria-label="权限点对比">
-      <div>
-        <h4 className="text-sm font-semibold">权限点对比</h4>
-        <p className="text-xs text-muted-foreground">
-          对比当前已选权限组覆盖的权限点，帮助判断重复授权和差异。
-        </p>
-      </div>
-      {selectedGroups.length === 0 ? (
-        <p className="rounded-md border border-dashed px-3 py-8 text-center text-sm text-muted-foreground">
-          选择权限组后展示权限点对比。
-        </p>
-      ) : (
-        <div className="max-h-[420px] overflow-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/60 text-xs text-muted-foreground">
-              <tr>
-                <th className="w-[220px] px-3 py-2 text-left font-medium">权限点</th>
-                {selectedGroups.map((group) => (
-                  <th className="min-w-[120px] px-3 py-2 text-center font-medium" key={group.id}>
-                    {group.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr className="border-t" key={point.key}>
-                  <td className="px-3 py-2">
-                    <span className="block font-medium">{point.name}</span>
-                    <code className="break-all text-xs text-muted-foreground">{point.key}</code>
-                  </td>
-                  {selectedGroups.map((group) => (
-                    <td className="px-3 py-2 text-center" key={group.id}>
-                      {point.groupIds.has(group.id) ? (
-                        <StatusBadge tone="success">包含</StatusBadge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function buildPermissionCompareRows(groups: PermissionGroup[]): Array<{
-  key: string;
-  name: string;
-  groupIds: Set<string>;
-}> {
-  const byKey = new Map<string, { key: string; name: string; groupIds: Set<string> }>();
-  for (const group of groups) {
-    for (const point of group.permissionPoints ?? []) {
-      const key = point.key;
-      const current = byKey.get(key) ?? { key, name: point.name, groupIds: new Set<string>() };
-      current.groupIds.add(group.id);
-      byKey.set(key, current);
-    }
-  }
-  return [...byKey.values()].sort((left, right) => left.key.localeCompare(right.key));
-}
-
 function buildEffectivePermissionPoints(
   role: IamRole,
   permissionGroups: PermissionGroup[],
@@ -839,42 +749,6 @@ function mergePermissionGroupDetails(groups: PermissionGroup[], role: IamRole | 
     });
   }
   return [...byId.values()];
-}
-
-function BaseInfoTab({ role }: { role: IamRole }) {
-  return (
-    <section className="grid gap-4 rounded-md border bg-background p-4">
-      <div>
-        <h3 className="text-base font-semibold">基础信息</h3>
-        <p className="text-sm text-muted-foreground">角色基础信息由权限管理统一维护，列表页可进入编辑和启停操作。</p>
-      </div>
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <InfoItem label="角色名称" value={role.name} />
-        <InfoItem label="角色 key" value={role.key} code />
-        <InfoItem label="角色描述" value={role.description ?? "暂无描述"} />
-        <InfoItem label="状态" value={formatRoleStatus(role.status)} />
-        <InfoItem label="创建时间" value={formatDateTime(role.createdAt)} />
-        <InfoItem label="更新时间" value={formatDateTime(role.updatedAt)} />
-      </dl>
-    </section>
-  );
-}
-
-function AuditTab() {
-  return (
-    <section className="grid gap-3 rounded-md border bg-background p-4">
-      <h3 className="text-base font-semibold">变更记录</h3>
-      <p className="text-sm text-muted-foreground">
-        角色授权变更写入系统审计日志；如需追溯具体操作者、before/after diff、IP、User-Agent 和 request id，请在审计日志中按角色 key 或 request id 查询。
-      </p>
-      <ul className="grid gap-2 text-sm text-muted-foreground">
-        <li>保存前必须确认新增和移除的主体或权限组摘要。</li>
-        <li>保存失败会保留当前草稿，管理员可以修正后重试。</li>
-        <li>后端会记录操作者、目标角色、before/after diff、结果、IP、User-Agent 和 request id。</li>
-        <li>应用权限页展示权限组、最终权限点和权限点对比，权限点定义仍由应用侧权限资产维护。</li>
-      </ul>
-    </section>
-  );
 }
 
 function SubjectSummary({ subjects }: { subjects: IamRoleSubject[] }) {
@@ -981,6 +855,13 @@ function groupSubjects(subjects: IamRoleSubject[]): { users: IamRoleSubject[]; d
 
 function readBoundPermissionGroupIdsFromNullable(role: IamRole | null): string[] {
   return role ? readBoundPermissionGroupIds(role) : [];
+}
+
+function normalizeRoleDetailTab(tab: string): string {
+  if (tab === "base" || tab === "audit" || tab === "permissions") {
+    return tab === "permissions" ? "groups" : "overview";
+  }
+  return tab;
 }
 
 function sameSubject(left: IamRoleSubject, right: IamRoleSubject): boolean {

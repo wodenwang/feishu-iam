@@ -1,5 +1,43 @@
 # 变更日志
 
+## v1.0.7 - 权限管理信息架构收敛
+
+`v1.0.7` 是 `v1.0.6` 后的权限管理信息架构收敛版本，范围锁定角色授权首屏减负、角色工作台减负、角色-应用绑定软解除和只读权限矩阵 MVP。本版本不新增 DDL，不扩大权限模型，不新增 ABAC、资源级权限、deny 规则或数据范围权限。
+
+### 新增与调整
+
+- 权限管理增加二级导航：`角色授权` 继续承载 `/admin/permissions`，新增 `权限矩阵` 入口 `/admin/permissions/matrix`；旧角色详情深链继续归属角色授权。
+- 平台管理员可在全部应用视图直接创建角色，创建弹窗内选择所属应用，解决未选择应用时创建入口 disabled 的根因。
+- 角色配置工作台收敛为 `总览`、`组织与用户`、`应用权限` 三个 Tab，移除重复的 `基础信息`、`变更记录` 和权限点对比面板。
+- 新增 `管理角色关联应用` Dialog，角色-应用关联管理从主工作台内联下拉收敛到弹框。
+- 新增角色-应用绑定软解除 API：`PATCH /api/v1/admin/applications/:appKey/iam-roles/:roleId/application-binding`，使用现有 `iam_role_applications.status=disabled`，不硬删除关系，并写入 `set_application_binding_status` 审计。
+- 新增只读权限矩阵 API：`GET /api/v1/admin/permission-matrix?subjectType=user|department&subjectId=...`，按应用分组返回命中角色、权限组、权限点和来源解释。
+- 权限矩阵页面支持用户/组织主体 ID 查询、加载/空/错/权限不足状态、结果分组和权限来源解释面板；390px 下以单列堆叠展示。
+
+### 安全与边界
+
+- 权限矩阵只读，不在矩阵页编辑角色、权限组、权限点、组织或用户绑定。
+- 权限矩阵 MVP 用户查询包含直接用户绑定和用户所属组织绑定；组织查询只统计直接绑定该组织的角色，不展开组织下用户。
+- 服务端排除 disabled 应用、角色应用绑定、角色、权限组和权限点；前端不自行拼接跨应用权限结果。
+- 角色-应用软解除只允许平台管理员执行，应用管理员继续不可维护全局 IAM 角色绑定。
+- 响应和测试不暴露 secret、token、cookie、authorization、raw payload 或 state hash。
+
+### 本地验收
+
+- 已通过前端 focused 回归：`pnpm --filter @feishu-iam/admin-web test -- src/routes/admin-url-state.test.ts src/api/permission.test.ts src/features/permissions/PermissionManagementView.test.tsx src/features/permissions/PermissionRoleDetailSheet.test.tsx src/features/permissions/PermissionMatrixView.test.tsx`，5 个测试文件 42 个用例通过。
+- 已通过后端 focused 回归：`pnpm --filter @feishu-iam/api test -- test/iam-role.service.spec.ts test/admin.controller.e2e-spec.ts test/admin-permission-matrix.e2e-spec.ts`，3 个测试文件 159 个用例通过。
+- 已通过前后端类型检查：`pnpm --filter @feishu-iam/admin-web typecheck`、`pnpm --filter @feishu-iam/api typecheck`。
+- 已通过前后端 lint：`pnpm --filter @feishu-iam/admin-web lint`、`pnpm --filter @feishu-iam/api lint`。
+- 已通过前后端生产构建：`pnpm --filter @feishu-iam/admin-web build`、`pnpm --filter @feishu-iam/api build`；Vite chunk size warning 为既有构建提示。
+- 已通过项目级检查：`pnpm check`，前端 21 个测试文件 169 个用例、后端 42 个测试文件 494 个用例通过。
+- 已通过响应式浏览器验证：`ADMIN_WEB_URL=http://localhost:4173 pnpm --filter @feishu-iam/admin-web test:responsive` 覆盖 14 条后台路由和 390、768、1280、1440 宽度视口，结果 `failures: []`。
+- 已通过 `git diff --check`。
+
+### 发布状态
+
+- 本版本作为 `v1.0.7` release 收口，GitHub Release 地址为 `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.7`。
+- 生产运行版本以 `/version` 读回为准；镜像上传、停机升级、健康检查和回滚信息在 Step 15 handoff 中记录。
+
 ## v1.0.6 - 权限管理 UI/UX 小版本
 
 `v1.0.6` 是 `v1.0.5` 后的权限管理 UI/UX 小版本，范围锁定角色配置工作台的布局、应用切换、标题层级和滚动边界。本版本不新增 DDL，不改变权限模型、权限计算、管理员 session 或生产部署拓扑。
@@ -30,8 +68,10 @@
 
 ### 发布状态
 
-- 当前已完成本地 `/ship` prep：版本号、README、CHANGELOG、计划、my-harness 索引和验证证据已补齐。
-- 尚未执行 stage、commit、push、tag、GitHub Release、上传镜像或生产 deploy；这些动作需要用户另行授权。
+- 已完成 `/ship`：commit `31db6aa96b5dedac89d8943150b599561843cff7`，tag `v1.0.6`，GitHub Release `https://github.com/wodenwang/feishu-iam/releases/tag/v1.0.6`。
+- 已完成 `linux/amd64` 离线镜像构建、上传和生产停机升级：本地镜像 ID 为 `sha256:1bf04b6ec9c7c04c331dce7ff3e3bc09ef370d989099d1e2ee9616aad65624b5`，远端运行镜像 ID 为 `sha256:58e6f5dbb5ee00564995595b25d06545d4e49f602007597c65dc4fd8c6b29abc`，离线包 SHA-256 为 `0e79ad15c748318769d372c6d98131340410dc589c7df98c2a86da2a48709e08`。
+- 生产部署目录为 `bpmt@120.24.236.92:/home/bpmt/feishu-iam`，升级备份目录为 `/home/bpmt/feishu-iam/backups/20260621-032848`。
+- 线上验证通过：公网 `/ready` 返回 ready，公网 `/version` 返回 `1.0.6 / 31db6aa`；权限管理入口、`tab=subjects` 和 `tab=permissions` 三条前端路由 smoke 均返回 HTTP 200。
 
 ## v1.0.5 - 权限管理角色配置工作台
 

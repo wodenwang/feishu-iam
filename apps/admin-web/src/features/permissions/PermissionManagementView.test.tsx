@@ -7,8 +7,10 @@ import type { AdminMe } from "../../admin-types";
 import { fetchApplicationFeishuDepartments, fetchApplicationFeishuUsers } from "../../api/feishu";
 import {
   fetchApplications,
+  fetchIamRolesAcrossApplications,
   fetchIamRoles,
   fetchPermissionGroups,
+  createIamRole,
   disableIamRole,
   enableIamRole,
   replaceIamRolePermissionGroups,
@@ -18,8 +20,10 @@ import { PermissionManagementView } from "./PermissionManagementView";
 
 vi.mock("../../api/permission", () => ({
   fetchApplications: vi.fn(),
+  fetchIamRolesAcrossApplications: vi.fn(),
   fetchPermissionGroups: vi.fn(),
   fetchIamRoles: vi.fn(),
+  createIamRole: vi.fn(),
   disableIamRole: vi.fn(),
   enableIamRole: vi.fn(),
   replaceIamRolePermissionGroups: vi.fn(),
@@ -133,8 +137,15 @@ const role = {
 describe("PermissionManagementView", () => {
   beforeEach(() => {
     vi.mocked(fetchApplications).mockResolvedValue([application]);
+    vi.mocked(fetchIamRolesAcrossApplications).mockResolvedValue([role]);
     vi.mocked(fetchPermissionGroups).mockResolvedValue([group, groupTwo]);
     vi.mocked(fetchIamRoles).mockResolvedValue([role]);
+    vi.mocked(createIamRole).mockResolvedValue({
+      ...role,
+      id: "role-created",
+      key: "crm.auditor",
+      name: "CRM 审计员",
+    });
     vi.mocked(disableIamRole).mockResolvedValue({ ...role, status: "disabled" });
     vi.mocked(enableIamRole).mockResolvedValue(role);
     vi.mocked(replaceIamRolePermissionGroups).mockResolvedValue(undefined);
@@ -225,6 +236,34 @@ describe("PermissionManagementView", () => {
     await screen.findByText("CRM 操作员");
     expect(screen.getByRole("button", { name: "创建角色" })).toBeInTheDocument();
     expect(screen.getByText(/统一管理角色资源/)).toBeInTheDocument();
+  });
+
+  it("lets platform admins create a role from the all-applications view after selecting an application", async () => {
+    const user = userEvent.setup();
+    window.history.pushState({}, "", "/admin/permissions");
+    renderView();
+
+    await screen.findByText("CRM 操作员");
+    await user.click(screen.getByRole("button", { name: "创建角色" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "创建 IAM 角色" });
+    expect(within(dialog).getByLabelText("所属应用")).toBeInTheDocument();
+
+    await user.selectOptions(within(dialog).getByLabelText("所属应用"), "crm");
+    await user.type(within(dialog).getByLabelText("角色 key"), "crm.auditor");
+    await user.type(within(dialog).getByLabelText("角色名称"), "CRM 审计员");
+    await user.click(within(dialog).getByRole("button", { name: "创建角色" }));
+
+    await waitFor(() => {
+      expect(createIamRole).toHaveBeenCalledWith(
+        "crm",
+        expect.objectContaining({
+          key: "crm.auditor",
+          name: "CRM 审计员",
+        }),
+      );
+    });
+    expect(window.location.search).toContain("appKey=crm");
   });
 
   it("disables global role metadata actions for application admins", async () => {
